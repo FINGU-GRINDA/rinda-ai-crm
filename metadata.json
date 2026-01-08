@@ -1,0 +1,5 @@
+{
+  "name": "RINDA CRM (Korean)",
+  "description": "한국 세일즈 팀을 위한 AI 에이전트 기반 칸반 CRM. Gemini 3.0 Flash를 활용한 자동 고객 분석 및 Nano Banana Pro를 이용한 맞춤형 제안서 생성 기능을 제공합니다.",
+  "requestFramePermissions": []
+}
