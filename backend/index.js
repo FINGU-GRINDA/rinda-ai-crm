@@ -61,17 +61,19 @@ app.use(helmet());
 // Compression middleware
 app.use(compression());
 
-// CORS configuration - allow multiple origins for development
+// CORS configuration
+// For separate services: FRONTEND_URL should be set to the frontend service URL
+// For local development: defaults to localhost:3000
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  process.env.FRONTEND_URL
+  'http://localhost:3000',        // Local dev
+  'http://localhost:3000:80',     // Local dev with explicit port
+  'http://127.0.0.1:3000',        // Local dev loopback
+  process.env.FRONTEND_URL         // Production/separate services (e.g., https://frontend.traefik.me)
 ].filter(Boolean);
 
-// In development, allow any origin from the same network
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
+    // Allow requests with no origin (like mobile apps or curl or health checks)
     if (!origin) {
       return callback(null, true);
     }
@@ -81,20 +83,24 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // In development, allow any localhost or local network IP on port 3000
+    // In development, allow any localhost or local network IP
     if (process.env.NODE_ENV !== 'production') {
-      const isLocalhost = origin.includes('localhost:3000') || origin.includes('127.0.0.1:3000');
-      const isLocalNetwork = /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)[0-9.]+:3000$/.test(origin);
+      const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+      const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)[0-9.]+/.test(origin);
       if (isLocalhost || isLocalNetwork) {
         return callback(null, true);
       }
     }
 
+    // Log unauthorized CORS attempts in production
+    logger.warn(`CORS rejected origin: ${origin}`);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   optionsSuccessStatus: 200
 };
+
+logger.info(`CORS enabled for origins: ${allowedOrigins.join(', ')}`);
 app.use(cors(corsOptions));
 
 // Body parsing middleware with raw body capture for Slack verification

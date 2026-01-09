@@ -19,7 +19,8 @@
       "Bash(xargs:*)",
       "Bash(timeout /t 5 /nobreak)",
       "Bash(cmd //c \"taskkill /PID 102688 /F\")",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(wc:*)"
     ]
   }
 }

@@ -18,6 +18,7 @@ coverage
 tests
 *.test.js
 *.spec.js
+crm.db
+*.db
 README.md
 LICENSE
-CHANGELOG.md
