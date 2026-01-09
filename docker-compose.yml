@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: rinda-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
+      - PROSPECT_COLLECTION_ENABLED=${PROSPECT_COLLECTION_ENABLED:-true}
+      - PROSPECT_COLLECTION_CRON=${PROSPECT_COLLECTION_CRON:-0 * * * *}
+    volumes:
+      - ./server/crm.db:/app/crm.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - rinda-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rinda-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - rinda-network
+
+networks:
+  rinda-network:
+    driver: bridge
+
+volumes:
+  crm-db:
+    driver: local
