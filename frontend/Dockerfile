@@ -1,6 +1,6 @@
 # BASE OS
 FROM node:20.10-alpine3.19 AS base
-RUN apk --no-cache add curl
+RUN apk --no-cache add curl gettext
 
 # CODEBASE
 FROM base AS codebase
@@ -21,6 +21,23 @@ FROM deps AS builder
 RUN npm run build
 
 # PRODUCTION TARGET
-FROM nginx AS production
+FROM nginx:alpine AS production
+
+# Install gettext for environment variable substitution
+RUN apk add --no-cache gettext
+
+# Copy nginx config template (will be processed by entrypoint)
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+# Copy built app from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy docker entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 80
+
+# Entrypoint will substitute environment variables and start nginx
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]
