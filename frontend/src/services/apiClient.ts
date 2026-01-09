@@ -5,7 +5,7 @@
 
 // Use relative URL to leverage Vite's proxy (avoids CORS issues)
 // The proxy in vite.config.ts will forward /api/* requests to the backend
-const API_BASE_URL = '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 class APIClient {
   private baseURL: string;
