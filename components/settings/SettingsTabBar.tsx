@@ -16,6 +16,14 @@ const IconSlack: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+// Mixpanel 아이콘
+const IconMixpanel: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18"/>
+    <path d="M7 16l4-8 4 5 5-9"/>
+  </svg>
+);
+
 interface TabConfig {
   id: SettingsTabType;
   label: string;
@@ -27,6 +35,7 @@ const SETTINGS_TABS: TabConfig[] = [
   { id: 'ai', label: 'AI 설정', icon: IconBrain, description: 'Gemini API Key' },
   { id: 'prospect', label: '잠재고객 탐색', icon: IconSparkles, description: 'ICP 프로필 및 수집' },
   { id: 'slack', label: 'Slack 연동', icon: IconSlack, description: 'Webhook 알림' },
+  { id: 'mixpanel', label: 'Mixpanel 연동', icon: IconMixpanel, description: '유저 이벤트 수신' },
   { id: 'email', label: '이메일 연동', icon: IconMail, description: 'Gmail/Outlook' },
   { id: 'calendar', label: '캘린더 연동', icon: IconCalendar, description: 'Google/Outlook' },
   { id: 'notifications', label: '알림 설정', icon: IconBell, description: '알림 관리' },
@@ -38,6 +47,7 @@ interface SettingsTabBarProps {
   connectionStatus?: {
     ai?: boolean;
     slack?: boolean;
+    mixpanel?: boolean;
     email?: boolean;
     calendar?: boolean;
   };
@@ -55,6 +65,9 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
       return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
     }
     if (tabId === 'slack' && connectionStatus.slack) {
+      return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
+    }
+    if (tabId === 'mixpanel' && connectionStatus.mixpanel) {
       return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
     }
     if (tabId === 'email' && connectionStatus.email) {

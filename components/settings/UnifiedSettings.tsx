@@ -9,6 +9,7 @@ import { getSlackSettings } from '../../services/slackIntegrationService';
 const AISettingsTab = lazy(() => import('./tabs/AISettingsTab').then(m => ({ default: m.AISettingsTab })));
 const ProspectSettingsTab = lazy(() => import('./tabs/ProspectSettingsTab').then(m => ({ default: m.ProspectSettingsTab })));
 const SlackIntegrationTab = lazy(() => import('./tabs/SlackIntegrationTab').then(m => ({ default: m.SlackIntegrationTab })));
+const MixpanelIntegrationTab = lazy(() => import('./tabs/MixpanelIntegrationTab').then(m => ({ default: m.MixpanelIntegrationTab })));
 const EmailIntegrationTab = lazy(() => import('./tabs/EmailIntegrationTab').then(m => ({ default: m.EmailIntegrationTab })));
 const CalendarIntegrationTab = lazy(() => import('./tabs/CalendarIntegrationTab').then(m => ({ default: m.CalendarIntegrationTab })));
 const NotificationSettingsTab = lazy(() => import('./tabs/NotificationSettingsTab').then(m => ({ default: m.NotificationSettingsTab })));
@@ -39,15 +40,28 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
   const [connectionStatus, setConnectionStatus] = useState({
     ai: false,
     slack: false,
+    mixpanel: false,
     email: false,
     calendar: false,
   });
 
   // Update connection status on open and when settings change
-  const updateConnectionStatus = () => {
+  const updateConnectionStatus = async () => {
+    let mixpanelEnabled = false;
+    try {
+      const response = await fetch('http://localhost:3001/api/mixpanel/status');
+      if (response.ok) {
+        const status = await response.json();
+        mixpanelEnabled = status.isEnabled;
+      }
+    } catch {
+      // Ignore errors
+    }
+
     setConnectionStatus({
       ai: GeminiAPIManager.getInstance().isApiKeyConfigured(),
       slack: getSlackSettings().isValidated,
+      mixpanel: mixpanelEnabled,
       email: !!localStorage.getItem('rinda_email_settings') &&
              JSON.parse(localStorage.getItem('rinda_email_settings') || '{}').isConnected,
       calendar: !!localStorage.getItem('rinda_calendar_settings') &&
@@ -96,6 +110,8 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
         );
       case 'slack':
         return <SlackIntegrationTab onSettingsChange={handleSettingsChange} />;
+      case 'mixpanel':
+        return <MixpanelIntegrationTab onSettingsChange={handleSettingsChange} />;
       case 'email':
         return <EmailIntegrationTab onSettingsChange={handleSettingsChange} />;
       case 'calendar':

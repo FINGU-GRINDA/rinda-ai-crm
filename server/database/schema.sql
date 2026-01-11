@@ -275,10 +275,34 @@ CREATE TABLE IF NOT EXISTS meeting_summaries (
 CREATE INDEX IF NOT EXISTS idx_meetings_customer ON meeting_summaries(customer_id);
 CREATE INDEX IF NOT EXISTS idx_meetings_date ON meeting_summaries(meeting_date);
 
+-- ========================================
+-- Mixpanel Events Table (Mixpanel 이벤트 로그)
+-- ========================================
+CREATE TABLE IF NOT EXISTS mixpanel_events (
+    id TEXT PRIMARY KEY,
+    event_name TEXT NOT NULL,
+    distinct_id TEXT,
+    email TEXT,
+    company_name TEXT,
+    properties TEXT,          -- JSON object
+    prospect_id TEXT,
+    customer_id TEXT,
+    processed INTEGER DEFAULT 0,
+    received_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+    FOREIGN KEY (prospect_id) REFERENCES prospects(id) ON DELETE SET NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_mixpanel_event ON mixpanel_events(event_name);
+CREATE INDEX IF NOT EXISTS idx_mixpanel_distinct ON mixpanel_events(distinct_id);
+CREATE INDEX IF NOT EXISTS idx_mixpanel_processed ON mixpanel_events(processed);
+CREATE INDEX IF NOT EXISTS idx_mixpanel_received ON mixpanel_events(received_at);
+
 -- Insert default settings if not exists
 INSERT OR IGNORE INTO settings (key, value) VALUES
     ('slack', '{"webhookUrl":"","isEnabled":false,"notifications":{"newProspect":true,"followUpReminder":true,"dealWon":false,"dealLost":false},"isValidated":false,"eventApiEnabled":false}'),
     ('email', '{"provider":null,"isConnected":false,"autoSync":false,"syncInterval":3600000,"lastSyncAt":null}'),
     ('calendar', '{"provider":null,"isConnected":false,"autoSync":false,"syncInterval":3600000,"meetingPrepEnabled":true}'),
     ('notifications', '{"browser":{"enabled":true,"types":{"followUp":true,"meeting":true,"news":true,"risk":true,"prospect":true}},"email":{"enabled":false,"dailyDigest":false,"digestTime":"09:00"}}'),
-    ('collection', '{"autoCollect":false,"interval":3600000,"lastRun":null}');
+    ('collection', '{"autoCollect":false,"interval":3600000,"lastRun":null}'),
+    ('mixpanel', '{"isEnabled":false,"projectToken":null,"apiSecret":null,"webhookSecret":null,"trackedEvents":["$signup","sign_up","user_signup","registration","account_created"],"autoCreateProspect":true,"defaultSignalStrength":"medium","enrichWithAI":true}');

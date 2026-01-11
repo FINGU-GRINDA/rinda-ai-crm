@@ -22,6 +22,7 @@ import icpRoutes from './routes/icp.routes.js';
 import settingsRoutesNew, { notificationsRouter } from './routes/settings.routes.new.js';
 import migrationRoutes from './routes/migration.routes.js';
 import slackEventRoutes from './routes/slackEvent.routes.js';
+import mixpanelRoutes from './routes/mixpanel.routes.js';
 import gmailRoutes from './routes/gmail.routes.js';
 import calendarRoutes from './routes/calendar.routes.js';
 
@@ -142,6 +143,7 @@ app.use('/api/migrate', migrationRoutes);
 
 // External integrations
 app.use('/api/slack', slackEventRoutes);
+app.use('/api/mixpanel', mixpanelRoutes);
 app.use('/api/gmail', gmailRoutes);
 app.use('/api/calendar', calendarRoutes);
 
