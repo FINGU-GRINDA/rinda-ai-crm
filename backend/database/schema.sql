@@ -275,10 +275,32 @@ CREATE TABLE IF NOT EXISTS meeting_summaries (
 CREATE INDEX IF NOT EXISTS idx_meetings_customer ON meeting_summaries(customer_id);
 CREATE INDEX IF NOT EXISTS idx_meetings_date ON meeting_summaries(meeting_date);
 
+-- ========================================
+-- Mixpanel Events Table
+-- ========================================
+CREATE TABLE IF NOT EXISTS mixpanel_events (
+    id TEXT PRIMARY KEY,
+    event_name TEXT NOT NULL,
+    distinct_id TEXT,
+    properties TEXT,
+    received_at INTEGER NOT NULL,
+    processed INTEGER DEFAULT 0,
+    lead_id TEXT,
+    customer_id TEXT,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    FOREIGN KEY (lead_id) REFERENCES leads(id),
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mixpanel_events_distinct_id ON mixpanel_events(distinct_id);
+CREATE INDEX IF NOT EXISTS idx_mixpanel_events_processed ON mixpanel_events(processed);
+CREATE INDEX IF NOT EXISTS idx_mixpanel_events_event_name ON mixpanel_events(event_name);
+
 -- Insert default settings if not exists
 INSERT OR IGNORE INTO settings (key, value) VALUES
     ('slack', '{"webhookUrl":"","isEnabled":false,"notifications":{"newProspect":true,"followUpReminder":true,"dealWon":false,"dealLost":false},"isValidated":false,"eventApiEnabled":false}'),
     ('email', '{"provider":null,"isConnected":false,"autoSync":false,"syncInterval":3600000,"lastSyncAt":null}'),
     ('calendar', '{"provider":null,"isConnected":false,"autoSync":false,"syncInterval":3600000,"meetingPrepEnabled":true}'),
     ('notifications', '{"browser":{"enabled":true,"types":{"followUp":true,"meeting":true,"news":true,"risk":true,"prospect":true}},"email":{"enabled":false,"dailyDigest":false,"digestTime":"09:00"}}'),
-    ('collection', '{"autoCollect":false,"interval":3600000,"lastRun":null}');
+    ('collection', '{"autoCollect":false,"interval":3600000,"lastRun":null}'),
+    ('mixpanel', '{"enabled":false,"projectToken":"","apiSecret":"","autoCreateLeads":true,"eventMappings":{}}')
