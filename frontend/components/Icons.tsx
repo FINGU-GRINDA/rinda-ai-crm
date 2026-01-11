@@ -36,7 +36,8 @@ import {
   EyeOff,
   ExternalLink,
   Key,
-  Trash2
+  Trash2,
+  Activity
 } from 'lucide-react';
 
 export const IconUsers = (props: any) => <Users {...props} />;
@@ -76,3 +77,4 @@ export const IconEyeOff = (props: any) => <EyeOff {...props} />;
 export const IconExternalLink = (props: any) => <ExternalLink {...props} />;
 export const IconKey = (props: any) => <Key {...props} />;
 export const IconTrash = (props: any) => <Trash2 {...props} />;
+export const IconActivity = (props: any) => <Activity {...props} />;

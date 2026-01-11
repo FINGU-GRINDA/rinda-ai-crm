@@ -1,6 +1,6 @@
 import React from 'react';
 import { SettingsTabType } from '../../types';
-import { IconBrain, IconSparkles, IconMail, IconCalendar, IconBell } from '../Icons';
+import { IconBrain, IconSparkles, IconMail, IconCalendar, IconBell, IconActivity } from '../Icons';
 
 // Slack 아이콘 (lucide-react에 없으므로 직접 정의)
 const IconSlack: React.FC<{ className?: string }> = ({ className }) => (
@@ -29,6 +29,7 @@ const SETTINGS_TABS: TabConfig[] = [
   { id: 'slack', label: 'Slack 연동', icon: IconSlack, description: 'Webhook 알림' },
   { id: 'email', label: '이메일 연동', icon: IconMail, description: 'Gmail/Outlook' },
   { id: 'calendar', label: '캘린더 연동', icon: IconCalendar, description: 'Google/Outlook' },
+  { id: 'mixpanel', label: 'Mixpanel', icon: IconActivity, description: '이벤트 통합' },
   { id: 'notifications', label: '알림 설정', icon: IconBell, description: '알림 관리' },
 ];
 
@@ -40,6 +41,7 @@ interface SettingsTabBarProps {
     slack?: boolean;
     email?: boolean;
     calendar?: boolean;
+    mixpanel?: boolean;
   };
   horizontal?: boolean;
 }
@@ -61,6 +63,9 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
       return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
     }
     if (tabId === 'calendar' && connectionStatus.calendar) {
+      return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
+    }
+    if (tabId === 'mixpanel' && connectionStatus.mixpanel) {
       return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
     }
     return null;

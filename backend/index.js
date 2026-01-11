@@ -24,6 +24,7 @@ import migrationRoutes from './routes/migration.routes.js';
 import slackEventRoutes from './routes/slackEvent.routes.js';
 import gmailRoutes from './routes/gmail.routes.js';
 import calendarRoutes from './routes/calendar.routes.js';
+import mixpanelRoutes from './routes/mixpanel.routes.js';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -150,6 +151,7 @@ app.use('/api/migrate', migrationRoutes);
 app.use('/api/slack', slackEventRoutes);
 app.use('/api/gmail', gmailRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/mixpanel', mixpanelRoutes);
 
 // ========================================
 
@@ -181,6 +183,7 @@ const server = app.listen(PORT, () => {
     - /api/slack         - Slack Event API
     - /api/gmail         - Gmail OAuth & Sync
     - /api/calendar      - Google Calendar OAuth & Events
+    - /api/mixpanel      - Mixpanel Event Integration
     ========================================
   `);
 

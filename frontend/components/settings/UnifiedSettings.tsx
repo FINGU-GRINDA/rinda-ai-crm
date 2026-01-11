@@ -12,6 +12,7 @@ const SlackIntegrationTab = lazy(() => import('./tabs/SlackIntegrationTab').then
 const EmailIntegrationTab = lazy(() => import('./tabs/EmailIntegrationTab').then(m => ({ default: m.EmailIntegrationTab })));
 const CalendarIntegrationTab = lazy(() => import('./tabs/CalendarIntegrationTab').then(m => ({ default: m.CalendarIntegrationTab })));
 const NotificationSettingsTab = lazy(() => import('./tabs/NotificationSettingsTab').then(m => ({ default: m.NotificationSettingsTab })));
+const MixpanelIntegrationTab = lazy(() => import('./tabs/MixpanelIntegrationTab'));
 
 interface UnifiedSettingsProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
     slack: false,
     email: false,
     calendar: false,
+    mixpanel: false,
   });
 
   // Update connection status on open and when settings change
@@ -102,6 +104,8 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
         return <CalendarIntegrationTab onSettingsChange={handleSettingsChange} />;
       case 'notifications':
         return <NotificationSettingsTab onSettingsChange={handleSettingsChange} />;
+      case 'mixpanel':
+        return <MixpanelIntegrationTab onSettingsChange={handleSettingsChange} />;
       default:
         return null;
     }
