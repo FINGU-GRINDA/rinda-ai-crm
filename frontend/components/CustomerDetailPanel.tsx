@@ -246,6 +246,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 
@@ -513,8 +514,6 @@ const HistoryTabContent: React.FC<{
       </div>
     )}
   </div>
-  </>
-  );
-};
+);
 
 export default CustomerDetailPanel;
