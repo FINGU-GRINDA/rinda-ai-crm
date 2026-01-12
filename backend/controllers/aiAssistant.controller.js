@@ -98,15 +98,21 @@ export const aiAssistantController = {
       }
 
       const modelId = 'gemini-1.5-flash';
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().toLocaleString('ko-KR', { month: 'long' });
 
       const prompt = `
+        현재는 ${currentYear}년 ${currentMonth}입니다.
         기업 "${companyName}" (${website})을 분석해주세요.
+
+        **중요: 반드시 최신 정보만 사용해주세요. 2024년 이전의 오래된 정보는 제외하고, ${currentYear}년의 최신 데이터를 우선적으로 사용해주세요.**
+
         다음 정보를 한국어로 제공해주세요:
-        1. 포괄적인 비즈니스 요약.
+        1. 포괄적인 비즈니스 요약 (${currentYear}년 기준 최신 사업 현황 포함).
         2. 현재 CEO 및 설립 연도.
-        3. 웹에서 검색한 이 회사의 최근 뉴스 헤드라인 또는 이벤트 3가지.
+        3. **최근 6개월 이내**의 이 회사 관련 뉴스 헤드라인 또는 이벤트 3가지. 각 뉴스 항목에 발생 시기(월)를 명시해주세요.
         4. 주요 경쟁사 3곳.
-        5. "세일즈 기회 및 전략": 이 회사의 상황을 바탕으로 B2B 솔루션을 제안할 수 있는 구체적인 기회와 접근 전략을 분석해서 작성해주세요.
+        5. "세일즈 기회 및 전략": 이 회사의 최근 상황과 ${currentYear}년 트렌드를 바탕으로 B2B 솔루션을 제안할 수 있는 구체적인 기회와 접근 전략을 분석해서 작성해주세요.
       `;
 
       const response = await geminiClient.generateContent({
