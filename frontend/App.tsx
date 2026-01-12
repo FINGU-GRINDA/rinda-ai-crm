@@ -19,6 +19,7 @@ import { LostDealModal } from './components/LostDealModal';
 
 // New separated components
 import { KanbanBoard, KANBAN_COLUMNS } from './components/KanbanBoard';
+import { ProspectsBoard } from './components/ProspectsBoard';
 import { CustomerDetailPanel } from './components/CustomerDetailPanel';
 import { AppHeader, StatsBar } from './components/AppHeader';
 import { AddCustomerModal, DeleteConfirmModal } from './components/modals';
@@ -152,8 +153,9 @@ const App: React.FC = () => {
   const tabCounts = useMemo(() => ({
     active: customers.filter(c => c.status !== 'lost' && c.status !== 'prospect').length,
     leads: customers.filter(c => c.status === 'new').length,
+    prospects: prospects.filter(p => !p.converted).length,
     lost: customers.filter(c => c.status === 'lost').length
-  }), [customers]);
+  }), [customers, prospects]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -197,10 +199,36 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Fetch prospects from backend API
+  const fetchProspectsFromBackend = useCallback(async () => {
+    try {
+      const response = await apiClient.getLeads({ converted: false, limit: 500 }) as any;
+      if (response.success && response.data) {
+        const transformedProspects = response.data.map((p: any) => ({
+          id: p.id,
+          companyName: p.company_name || p.companyName,
+          website: p.website,
+          industry: p.industry,
+          signalStrength: p.signal_strength || p.signalStrength || 'low',
+          sourceArticle: p.source_article || p.sourceArticle,
+          notes: p.notes,
+          detectedAt: p.detected_at || p.detectedAt || Date.now(),
+          converted: p.converted || false
+        }));
+        setProspects(transformedProspects);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch prospects:', err);
+      // Fallback to localStorage if backend fails
+      setProspects(getProspects());
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     fetchCustomers();
-  }, [fetchCustomers]);
+    fetchProspectsFromBackend();
+  }, [fetchCustomers, fetchProspectsFromBackend]);
 
   // Load contextual suggestions
   useEffect(() => {
@@ -508,21 +536,15 @@ const App: React.FC = () => {
     if (!prospect) return;
 
     try {
-      const response = await apiClient.createCustomer({
-        name: prospect.companyName,
-        website: prospect.website,
-        industry: prospect.industry,
-        notes: prospect.notes || '',
-        status: 'new'
-      }) as any;
+      // Use the backend API to convert lead to customer
+      const response = await apiClient.convertLeadToCustomer(prospectId, { status: 'new' }) as any;
 
       if (response.success && response.data) {
         const newCustomer = transformApiCustomer(response.data);
         setCustomers(prev => [...prev, newCustomer]);
 
-        const updatedProspects = prospects.filter(p => p.id !== prospectId);
-        setProspects(updatedProspects);
-        saveProspects(updatedProspects);
+        // Refresh prospects list
+        await fetchProspectsFromBackend();
       } else {
         throw new Error(response.error || '고객 전환에 실패했습니다.');
       }
@@ -692,9 +714,18 @@ const App: React.FC = () => {
           counts={tabCounts}
         />
 
-        {/* Main Content - Kanban Board */}
+        {/* Main Content - Kanban Board or Prospects Board */}
         <main className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6">
-          {filteredCustomers.length === 0 && searchQuery ? (
+          {activeTab === 'prospects' ? (
+            <ProspectsBoard
+              prospects={prospects}
+              onSelectProspect={(prospectId) => {
+                // For now, just log - could open a detail panel later
+                console.log('Selected prospect:', prospectId);
+              }}
+              onConvertToCustomer={handleConvertProspectToCustomer}
+            />
+          ) : filteredCustomers.length === 0 && searchQuery ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <IconSearch className="w-8 h-8 text-slate-400" />
