@@ -79,7 +79,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
       {/* Panel */}
       <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl overflow-y-auto flex flex-col animate-in slide-in-from-right duration-300 transform transition-transform">
         {/* Panel Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-white to-slate-50 z-10 border-b border-slate-200 px-6 py-5 flex justify-between items-start shadow-sm">
+        <div className="sticky top-0 bg-white z-10 border-b border-slate-200 px-6 py-5 flex justify-between items-start shadow-sm">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-slate-900 mb-2">{customer.name}</h2>
             <div className="flex flex-wrap items-center gap-3 mt-2">

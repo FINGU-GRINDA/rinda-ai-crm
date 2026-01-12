@@ -5,77 +5,15 @@
  */
 
 export const colors = {
-  // Primary (Brand - Indigo)
+  // Primary: Single brand color (Blue)
   primary: {
-    50: '#EEF2FF',
-    100: '#E0E7FF',
-    200: '#C7D2FE',
-    300: '#A5B4FC',
-    400: '#818CF8',
-    500: '#6366F1',
-    600: '#4F46E5',
-    700: '#4338CA',
-    800: '#3730A3',
-    900: '#312E81',
+    DEFAULT: '#2563EB',  // blue-600
+    hover: '#1D4ED8',    // blue-700
+    light: '#DBEAFE',    // blue-50
+    dark: '#1E40AF',     // blue-800
   },
 
-  // Secondary (Accent - Sky Blue)
-  secondary: {
-    50: '#F0F9FF',
-    100: '#E0F2FE',
-    200: '#BAE6FD',
-    300: '#7DD3FC',
-    400: '#38BDF8',
-    500: '#0EA5E9',
-    600: '#0284C7',
-    700: '#0369A1',
-    800: '#075985',
-    900: '#0C4A6E',
-  },
-
-  // Success (Emerald)
-  success: {
-    50: '#F0FDF4',
-    100: '#DCFCE7',
-    200: '#BBF7D0',
-    300: '#86EFAC',
-    400: '#4ADE80',
-    500: '#10B981',
-    600: '#059669',
-    700: '#047857',
-    800: '#065F46',
-    900: '#064E3B',
-  },
-
-  // Warning (Amber)
-  warning: {
-    50: '#FFFBEB',
-    100: '#FEF3C7',
-    200: '#FDE68A',
-    300: '#FCD34D',
-    400: '#FBBF24',
-    500: '#F59E0B',
-    600: '#D97706',
-    700: '#B45309',
-    800: '#92400E',
-    900: '#78350F',
-  },
-
-  // Error (Red)
-  error: {
-    50: '#FEF2F2',
-    100: '#FEE2E2',
-    200: '#FECACA',
-    300: '#FCA5A5',
-    400: '#F87171',
-    500: '#EF4444',
-    600: '#DC2626',
-    700: '#B91C1C',
-    800: '#991B1B',
-    900: '#7F1D1D',
-  },
-
-  // Neutral (Slate)
+  // Neutral: Main UI colors (Slate)
   neutral: {
     50: '#F8FAFC',
     100: '#F1F5F9',
@@ -87,7 +25,15 @@ export const colors = {
     700: '#334155',
     800: '#1E293B',
     900: '#0F172A',
-  }
+  },
+
+  // Semantic: Only when necessary
+  success: '#10B981',   // Single green (emerald-500)
+  warning: '#F59E0B',   // Single amber (amber-500)
+  error: '#EF4444',     // Single red (red-500)
+
+  // Accent: Minimal accent for special features
+  accent: '#8B5CF6',    // Single purple (violet-500)
 };
 
 export const typography = {

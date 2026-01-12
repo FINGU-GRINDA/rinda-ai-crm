@@ -3,7 +3,7 @@ import { IconLoader, IconCheck, IconX } from './Icons';
 
 interface ButtonProps {
   // Variants
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'success';
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'danger';
 
   // Sizes
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -68,52 +68,41 @@ export const Button: React.FC<ButtonProps> = ({
   const isSuccess = success || internalSuccess;
   const isError = error || internalError;
 
-  // Variant styles
+  // Variant styles - Clean, solid colors without gradients
   const variantStyles = {
     primary: `
-      bg-gradient-to-r from-blue-600 to-indigo-600
+      bg-blue-600
       text-white
-      hover:from-blue-700 hover:to-indigo-700
-      shadow-md hover:shadow-lg
+      hover:bg-blue-700
+      shadow-sm hover:shadow
       border-0
       focus:ring-blue-500
     `,
 
     secondary: `
-      bg-gradient-to-r from-indigo-50 to-blue-50
-      border-2 border-indigo-200
-      text-indigo-700
-      hover:from-indigo-100 hover:to-blue-100
-      hover:border-indigo-300
-      shadow-sm hover:shadow-md
-      focus:ring-indigo-500
+      bg-white
+      border border-neutral-300
+      text-neutral-700
+      hover:bg-neutral-50
+      shadow-sm
+      focus:ring-neutral-500
     `,
 
     tertiary: `
       bg-transparent
-      border border-slate-200
-      text-slate-600
-      hover:bg-slate-50
-      hover:border-slate-300
-      focus:ring-slate-500
+      text-neutral-600
+      hover:bg-neutral-100
+      border-0
+      focus:ring-neutral-500
     `,
 
     danger: `
       bg-red-600
       text-white
       hover:bg-red-700
-      shadow-md hover:shadow-lg
+      shadow-sm hover:shadow
       border-0
       focus:ring-red-500
-    `,
-
-    success: `
-      bg-emerald-600
-      text-white
-      hover:bg-emerald-700
-      shadow-md hover:shadow-lg
-      border-0
-      focus:ring-emerald-500
     `
   };
 
@@ -157,7 +146,7 @@ export const Button: React.FC<ButtonProps> = ({
       {!loading && isSuccess && (
         <>
           <IconCheck className="w-4 h-4" />
-          <span>완료!</span>
+          <span>완료</span>
         </>
       )}
 
