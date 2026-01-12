@@ -132,8 +132,8 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
 
             <Tooltip text={
               !customer?.enrichedData
-                ? "먼저 '데이터 분석 실행'을 눌러주세요"
-                : "수집된 데이터와 메모를 바탕으로 맞춤형 제안서 초안과 커버 이미지를 생성합니다."
+                ? "먼저 데이터 분석을 실행하세요"
+                : "데이터와 메모를 바탕으로 제안서 초안과 커버 이미지를 생성합니다"
             }>
               <Button
                 variant="primary"
@@ -171,7 +171,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
               onClick={() => setDetailPanelTab('action')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 detailPanelTab === 'action'
-                  ? 'border-indigo-600 text-indigo-600'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -184,7 +184,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
               onClick={() => setDetailPanelTab('history')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 detailPanelTab === 'history'
-                  ? 'border-emerald-600 text-emerald-600'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -192,10 +192,10 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
                 <IconFileText className="w-4 h-4" />
                 <span>이력</span>
                 {customer.proposals.length > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
                     detailPanelTab === 'history'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-slate-100 text-slate-600'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-neutral-100 text-neutral-600'
                   }`}>
                     {customer.proposals.length}
                   </span>
