@@ -37,7 +37,12 @@ import {
   ExternalLink,
   Key,
   Trash2,
-  Activity
+  Activity,
+  LayoutGrid,
+  Table2,
+  ArrowUp,
+  ArrowDown,
+  Check
 } from 'lucide-react';
 
 export const IconUsers = (props: any) => <Users {...props} />;
@@ -78,3 +83,7 @@ export const IconExternalLink = (props: any) => <ExternalLink {...props} />;
 export const IconKey = (props: any) => <Key {...props} />;
 export const IconTrash = (props: any) => <Trash2 {...props} />;
 export const IconActivity = (props: any) => <Activity {...props} />;
+export const IconGrid = (props: any) => <LayoutGrid {...props} />;
+export const IconTable = (props: any) => <Table2 {...props} />;
+export const IconArrowUp = (props: any) => <ArrowUp {...props} />;
+export const IconArrowDown = (props: any) => <ArrowDown {...props} />;

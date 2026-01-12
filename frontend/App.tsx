@@ -23,6 +23,8 @@ import { ProspectsBoard } from './components/ProspectsBoard';
 import { CustomerDetailPanel } from './components/CustomerDetailPanel';
 import { AppHeader, StatsBar } from './components/AppHeader';
 import { AddCustomerModal, DeleteConfirmModal } from './components/modals';
+import { ViewSwitcher, ViewMode } from './components/ViewSwitcher';
+import { TableView } from './components/TableView';
 
 // Lazy load heavy modals for better performance
 const ProposalGenerator = lazy(() => import('./components/ProposalGenerator').then(m => ({ default: m.ProposalGenerator })));
@@ -66,6 +68,10 @@ const App: React.FC = () => {
   const [customersLoading, setCustomersLoading] = useState(true);
   const [customersError, setCustomersError] = useState<string | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+
+  // View Mode State
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [selectedTableRows, setSelectedTableRows] = useState<Set<string>>(new Set());
 
   // Tab Navigation State
   const [activeTab, setActiveTab] = useState<TabType>('active');
@@ -707,12 +713,15 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <TabNavigation
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          counts={tabCounts}
-        />
+        {/* Tab Navigation & View Switcher */}
+        <div className="flex items-center justify-between px-4 md:px-6 pt-4 bg-white border-b border-neutral-200">
+          <TabNavigation
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            counts={tabCounts}
+          />
+          <ViewSwitcher currentView={viewMode} onViewChange={setViewMode} />
+        </div>
 
         {/* Main Content - Kanban Board or Prospects Board */}
         <main className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6">
@@ -736,7 +745,7 @@ const App: React.FC = () => {
                 검색어 지우기
               </button>
             </div>
-          ) : (
+          ) : viewMode === 'kanban' ? (
             <KanbanBoard
               customers={filteredCustomers}
               selectedCustomerId={selectedCustomerId}
@@ -744,6 +753,14 @@ const App: React.FC = () => {
               onDeleteCustomer={handleDeleteCustomer}
               onConvertProspect={handleConvertProspectToCustomer}
               onStatusChange={handleKanbanStatusChange}
+            />
+          ) : (
+            <TableView
+              customers={filteredCustomers}
+              selectedCustomerId={selectedCustomerId}
+              onSelectCustomer={(customerId) => setSelectedCustomerId(customerId)}
+              selectedRows={selectedTableRows}
+              onSelectionChange={setSelectedTableRows}
             />
           )}
         </main>
