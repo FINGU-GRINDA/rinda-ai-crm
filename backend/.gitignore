@@ -1,0 +1,5 @@
+rinda-crm.db
+rinda-crm.db-shm
+rinda-crm.db-wal
+node_modules
+.env

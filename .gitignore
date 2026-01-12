@@ -54,3 +54,5 @@ coverage/
 *.zip
 *.tar.gz
 *.rar
+
+tmpclaude-*
