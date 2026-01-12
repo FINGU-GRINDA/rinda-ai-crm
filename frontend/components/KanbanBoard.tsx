@@ -22,11 +22,11 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
   </div>
 );
 
-export const KANBAN_COLUMNS: { id: CustomerStatus; title: string; color: string }[] = [
-  { id: 'new', title: '새로운 고객', color: 'bg-slate-100 border-slate-200 text-slate-700' },
-  { id: 'contact', title: '연락 중', color: 'bg-blue-50 border-blue-200 text-blue-700' },
-  { id: 'negotiation', title: '제안서 검토 중', color: 'bg-indigo-50 border-indigo-200 text-indigo-700' },
-  { id: 'won', title: '계약 완료', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+export const KANBAN_COLUMNS: { id: CustomerStatus; title: string; accent: string }[] = [
+  { id: 'new', title: '새로운 고객', accent: 'border-l-neutral-400' },
+  { id: 'contact', title: '연락 중', accent: 'border-l-blue-600' },
+  { id: 'negotiation', title: '제안서 검토 중', accent: 'border-l-blue-600' },
+  { id: 'won', title: '계약 완료', accent: 'border-l-emerald-500' },
 ];
 
 interface KanbanBoardProps {
@@ -84,11 +84,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         onClick={() => onSelectCustomer(customer.id)}
         className={`bg-white p-4 rounded-lg shadow-sm border ${
           isProspect
-            ? 'border-purple-200 cursor-pointer'
-            : 'border-slate-200 cursor-grab active:cursor-grabbing'
-        } hover:shadow-lg hover:border-blue-400 hover:-translate-y-0.5 transition-all group select-none ${
+            ? 'border-neutral-300 cursor-pointer'
+            : 'border-neutral-200 cursor-grab active:cursor-grabbing'
+        } hover:shadow-md hover:border-blue-600 hover:-translate-y-0.5 transition-all group select-none ${
           draggedCustomerId === customer.id ? 'opacity-50 grayscale scale-95 ring-2 ring-blue-100' : ''
-        } ${selectedCustomerId === customer.id ? 'ring-2 ring-blue-500 border-blue-500' : ''}`}
+        } ${selectedCustomerId === customer.id ? 'ring-2 ring-blue-600 border-blue-600' : ''}`}
       >
         <div className="flex justify-between items-start mb-2">
           <h4 className="font-semibold text-slate-800 text-sm flex-1">{customer.name}</h4>
@@ -96,14 +96,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             {isProspect && prospectData && (
               <Tooltip text={`신호 강도: ${prospectData.signalStrength === 'high' ? '높음' : prospectData.signalStrength === 'medium' ? '중간' : '낮음'}`}>
                 <IconTrendingUp className={`w-4 h-4 flex-shrink-0 ${
-                  prospectData.signalStrength === 'high' ? 'text-red-500' :
-                  prospectData.signalStrength === 'medium' ? 'text-yellow-500' : 'text-slate-400'
+                  prospectData.signalStrength === 'high' ? 'text-neutral-900' :
+                  prospectData.signalStrength === 'medium' ? 'text-neutral-600' : 'text-neutral-400'
                 }`} />
               </Tooltip>
             )}
             {customer.enrichedData && (
               <Tooltip text="AI 분석 완료">
-                <IconBrain className="w-4 h-4 text-indigo-500 flex-shrink-0 ml-2" />
+                <IconBrain className="w-4 h-4 text-blue-600 flex-shrink-0 ml-2" />
               </Tooltip>
             )}
             <Tooltip text="삭제">
@@ -122,12 +122,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
 
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className="text-xs text-slate-500 bg-slate-50 px-2 py-0.5 rounded">{customer.industry}</span>
+          <span className="text-xs text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded">{customer.industry}</span>
           {isProspect && prospectData && (
             <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${
-              prospectData.signalStrength === 'high' ? 'bg-red-50 text-red-700' :
-              prospectData.signalStrength === 'medium' ? 'bg-yellow-50 text-yellow-700' :
-              'bg-slate-50 text-slate-600'
+              prospectData.signalStrength === 'high' ? 'bg-neutral-900 text-white' :
+              prospectData.signalStrength === 'medium' ? 'bg-neutral-700 text-white' :
+              'bg-neutral-200 text-neutral-700'
             }`}>
               <IconSparkles className="w-3 h-3" />
               {prospectData.signalStrength === 'high' ? '높음' :
@@ -135,7 +135,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             </span>
           )}
           {customer.proposals.length > 0 && (
-            <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded flex items-center gap-1">
+            <span className="text-xs text-neutral-700 bg-neutral-200 px-2 py-0.5 rounded flex items-center gap-1">
               <IconFileText className="w-3 h-3" />
               {customer.proposals.length}
             </span>
@@ -143,22 +143,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
 
         {isProspect && prospectData && (
-          <div className="bg-purple-50 p-2 rounded text-[11px] text-purple-800 leading-snug mb-2">
+          <div className="bg-neutral-100 p-2 rounded text-[11px] text-neutral-800 leading-snug mb-2 border border-neutral-200">
             <div className="flex items-start gap-1 mb-1">
               <IconNews className="w-3 h-3 mt-0.5 flex-shrink-0" />
-              <span className="font-bold">출처: </span>
+              <span className="font-semibold">출처: </span>
               <a
                 href={prospectData.sourceArticle.uri}
                 target="_blank"
                 rel="noreferrer"
-                className="hover:underline truncate"
+                className="hover:underline truncate text-blue-600"
                 onClick={(e) => e.stopPropagation()}
               >
                 {prospectData.sourceArticle.title}
               </a>
             </div>
             {prospectData.notes && (
-              <div className="text-purple-700 line-clamp-2 mt-1">
+              <div className="text-neutral-700 line-clamp-2 mt-1">
                 {prospectData.notes}
               </div>
             )}
@@ -166,12 +166,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         )}
 
         {!isProspect && customer.enrichedData?.salesOpportunity ? (
-          <div className="bg-indigo-50 p-2 rounded text-[11px] text-indigo-800 leading-snug line-clamp-2 mb-2">
-            <span className="font-bold">💡 AI 인사이트: </span>
+          <div className="bg-blue-50 p-2 rounded text-[11px] text-neutral-800 leading-snug line-clamp-2 mb-2 border border-blue-100">
+            <span className="font-semibold">💡 AI 인사이트: </span>
             {customer.enrichedData.salesOpportunity}
           </div>
         ) : !isProspect && (
-          <div className="text-xs text-slate-400 italic mb-2">AI 분석을 실행해보세요</div>
+          <div className="text-xs text-neutral-400 italic mb-2">AI 분석을 실행해보세요</div>
         )}
 
         <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-50">
@@ -218,13 +218,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 activeKanbanColumn === idx
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-600'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-neutral-100 text-neutral-600'
               }`}
             >
               <span>{col.title}</span>
               <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                activeKanbanColumn === idx ? 'bg-blue-500' : 'bg-slate-200'
+                activeKanbanColumn === idx ? 'bg-blue-700' : 'bg-neutral-200'
               }`}>
                 {count}
               </span>
@@ -252,14 +252,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             return (
               <div
                 key={column.id}
-                className="w-[85vw] flex-shrink-0 snap-center flex flex-col rounded-xl bg-slate-100/50 border border-slate-200/60 overflow-hidden"
+                className={`w-[85vw] flex-shrink-0 snap-center flex flex-col rounded-xl bg-white border-l-4 ${column.accent} border-r border-t border-b border-neutral-200 overflow-hidden`}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, column.id)}
               >
                 {/* Column Header */}
-                <div className={`px-4 py-3 border-b flex justify-between items-center ${column.color} bg-opacity-20 border-opacity-50`}>
-                  <span className="font-bold text-sm">{column.title}</span>
-                  <span className="bg-white bg-opacity-50 px-2 py-0.5 rounded-full text-xs font-semibold">
+                <div className="px-4 py-3 border-b border-neutral-200 flex justify-between items-center bg-neutral-50">
+                  <span className="font-semibold text-sm text-neutral-900">{column.title}</span>
+                  <span className="bg-neutral-200 px-2 py-0.5 rounded-full text-xs font-medium text-neutral-700">
                     {columnCustomers.length}
                   </span>
                 </div>
@@ -295,18 +295,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         return (
           <div
             key={column.id}
-            className={`w-72 md:w-80 flex flex-col h-full rounded-xl transition-all duration-200 ${
+            className={`w-72 md:w-80 flex flex-col h-full rounded-xl transition-all duration-200 bg-white border-l-4 ${column.accent} ${
               draggedCustomerId
-                ? 'bg-blue-50/30 border-2 border-dashed border-blue-200'
-                : 'bg-slate-100/50 border border-slate-200/60'
+                ? 'border-r-2 border-t-2 border-b-2 border-dashed border-blue-300'
+                : 'border-r border-t border-b border-neutral-200'
             }`}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, column.id)}
           >
             {/* Column Header */}
-            <div className={`px-4 py-3 border-b rounded-t-xl flex justify-between items-center ${column.color} bg-opacity-20 border-opacity-50`}>
-              <span className="font-bold text-sm">{column.title}</span>
-              <span className="bg-white bg-opacity-50 px-2 py-0.5 rounded-full text-xs font-semibold">
+            <div className="px-4 py-3 border-b border-neutral-200 rounded-t-xl flex justify-between items-center bg-neutral-50">
+              <span className="font-semibold text-sm text-neutral-900">{column.title}</span>
+              <span className="bg-neutral-200 px-2 py-0.5 rounded-full text-xs font-medium text-neutral-700">
                 {columnCustomers.length}
               </span>
             </div>

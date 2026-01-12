@@ -63,7 +63,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       {/* Mobile Header */}
       <header className="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
             <IconDashboard className="w-5 h-5" />
           </div>
           <h1 className="font-bold text-slate-800 text-lg tracking-tight">RINDA CRM</h1>
@@ -80,7 +80,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       {/* Desktop Header */}
       <header className="hidden md:flex bg-white border-b border-slate-200 px-6 py-4 flex-row justify-between items-center gap-4 z-10 shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
             <IconDashboard className="w-5 h-5" />
           </div>
           <div>
