@@ -1,7 +1,7 @@
 import React from 'react';
-import { IconBriefcase, IconUsers, IconX } from './Icons';
+import { IconBriefcase, IconUsers, IconX, IconSparkles } from './Icons';
 
-export type TabType = 'active' | 'leads' | 'lost';
+export type TabType = 'active' | 'leads' | 'prospects' | 'lost';
 
 interface TabNavigationProps {
   activeTab: TabType;
@@ -9,6 +9,7 @@ interface TabNavigationProps {
   counts: {
     active: number;
     leads: number;
+    prospects: number;
     lost: number;
   };
 }
@@ -30,6 +31,12 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
       label: '잠재 고객',
       icon: <IconUsers className="w-4 h-4" />,
       count: counts.leads
+    },
+    {
+      id: 'prospects',
+      label: 'AI 발견',
+      icon: <IconSparkles className="w-4 h-4" />,
+      count: counts.prospects
     },
     {
       id: 'lost',
