@@ -42,7 +42,8 @@ import {
   Table2,
   ArrowUp,
   ArrowDown,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 
 export const IconUsers = (props: any) => <Users {...props} />;
@@ -87,3 +88,4 @@ export const IconGrid = (props: any) => <LayoutGrid {...props} />;
 export const IconTable = (props: any) => <Table2 {...props} />;
 export const IconArrowUp = (props: any) => <ArrowUp {...props} />;
 export const IconArrowDown = (props: any) => <ArrowDown {...props} />;
+export const IconDownload = (props: any) => <Download {...props} />;
