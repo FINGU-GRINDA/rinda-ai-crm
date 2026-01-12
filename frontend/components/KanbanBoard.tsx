@@ -189,7 +189,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               }}
               className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors"
             >
-              고객으로 전환
+              고객 등록
             </button>
           ) : (
             <IconArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity" />

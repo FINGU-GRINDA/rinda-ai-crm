@@ -25,7 +25,7 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
 
   const handleGenerate = async () => {
     if (!customer.enrichedData) {
-      alert("제안서를 만들려면 먼저 'AI로 고객 정보 분석하기'를 실행해주세요.");
+      alert("먼저 AI 데이터 분석을 실행해주세요.");
       return;
     }
 
@@ -39,18 +39,18 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
     // Foreground mode - existing behavior
     setStatus('thinking');
     setStepLog([]);
-    addLog("제안서 작성을 준비하고 있어요...");
+    addLog("제안서 작성 준비 중");
 
     try {
       // Step 1: Text Generation (Thinking Model)
-      addLog("1단계: 제안서 내용 작성 중 (Gemini 3 Pro)...");
+      addLog("1단계: 제안서 내용 작성 중 (Gemini 3 Pro)");
       const strategyText = await generateProposalStrategy(customer.name, customer.enrichedData, customer.notes);
       setGeneratedContent(strategyText);
-      addLog("제안서 내용 작성 완료!");
+      addLog("제안서 내용 작성 완료");
 
       // Step 2: Image Generation (Nano Banana Pro)
       setStatus('generating_image');
-      addLog(`2단계: 커버 이미지 만들기 (${selectedImageSize} 화질)...`);
+      addLog(`2단계: 커버 이미지 생성 (${selectedImageSize} 화질)`);
       // Pass summary for context-aware image generation
       const imageUrl = await generateProposalCoverImage(
         customer.name,
@@ -59,12 +59,12 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
         selectedImageSize
       );
       setGeneratedImage(imageUrl);
-      addLog("커버 이미지 생성 완료!");
+      addLog("커버 이미지 생성 완료");
 
       setStatus('complete');
     } catch (e) {
       console.error(e);
-      addLog("제안서 생성 중 문제가 발생했어요.");
+      addLog("제안서 생성 실패");
       setStatus('error');
     }
   };
@@ -87,7 +87,7 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
         </div>
 
         {/* Header */}
-        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-100 flex justify-between items-center bg-white">
           <h2 className="text-base md:text-lg font-bold text-slate-800 flex items-center">
             <IconWand className="w-5 h-5 mr-2 text-blue-600" />
             <span className="truncate">{customer.name} 제안서</span>
@@ -106,13 +106,13 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
 
           {status === 'idle' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-200 shadow-sm">
-                <h3 className="font-semibold text-blue-900 mb-2 flex items-center">
+              <div className="bg-blue-50 p-5 rounded-lg border border-blue-200 shadow-sm">
+                <h3 className="font-semibold text-neutral-900 mb-2 flex items-center">
                   <IconBrain className="w-4 h-4 mr-2" />
                   AI 설정 안내
                 </h3>
-                <p className="text-sm text-blue-700 mb-4 leading-relaxed">
-                  RINDA는 <strong className="text-blue-900">Gemini 3 Pro</strong>로 제안서 내용을 작성하고, <strong className="text-blue-900">Nano Banana Pro</strong>로 멋진 커버 이미지를 만들어드려요.
+                <p className="text-sm text-neutral-700 mb-4 leading-relaxed">
+                  RINDA는 <strong className="text-neutral-900">Gemini 3 Pro</strong>로 제안서 내용을 작성하고, <strong className="text-neutral-900">Nano Banana Pro</strong>로 커버 이미지를 만듭니다.
                 </p>
 
                 <div className="space-y-4">
@@ -162,7 +162,7 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
                               여기서 바로 생성
                             </h4>
                             <p className="text-xs text-slate-500 mt-1">
-                              이 화면에서 제안서가 완성될 때까지 기다립니다. 결과를 바로 확인할 수 있어요.
+                              이 화면에서 제안서가 완성될 때까지 기다립니다. 결과를 바로 확인할 수 있습니다.
                             </p>
                           </div>
                         </div>
@@ -193,7 +193,7 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
                               </span>
                             </h4>
                             <p className="text-xs text-slate-500 mt-1">
-                              다른 작업을 하면서 제안서를 생성합니다. 완료되면 알림으로 알려드려요.
+                              다른 작업을 하면서 제안서를 생성합니다. 완료되면 알림을 표시합니다.
                             </p>
                           </div>
                         </div>
@@ -205,27 +205,27 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
 
               {/* Background Mode Info */}
               {generationMode === 'background' && (
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg border border-indigo-200">
+                <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                      <IconClock className="w-4 h-4 text-indigo-600" />
+                    <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0">
+                      <IconClock className="w-4 h-4 text-neutral-600" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-indigo-900 text-sm mb-1">
+                      <h4 className="font-semibold text-neutral-900 text-sm mb-1">
                         백그라운드 생성 안내
                       </h4>
-                      <ul className="text-xs text-indigo-700 space-y-1">
+                      <ul className="text-xs text-neutral-700 space-y-1">
                         <li className="flex items-center gap-2">
                           <IconCheck className="w-3 h-3 text-emerald-500" />
-                          버튼을 누르면 이 창이 닫히고 다른 작업을 계속할 수 있어요
+                          버튼을 누르면 이 창이 닫히고 다른 작업을 계속할 수 있습니다
                         </li>
                         <li className="flex items-center gap-2">
                           <IconCheck className="w-3 h-3 text-emerald-500" />
-                          화면 오른쪽 아래에서 진행 상황을 확인할 수 있어요
+                          화면 오른쪽 아래에서 진행 상황을 확인할 수 있습니다
                         </li>
                         <li className="flex items-center gap-2">
                           <IconCheck className="w-3 h-3 text-emerald-500" />
-                          완료되면 알림이 표시되고, 바로 결과를 확인할 수 있어요
+                          완료되면 알림이 표시되고, 바로 결과를 확인할 수 있습니다
                         </li>
                       </ul>
                     </div>
@@ -236,10 +236,10 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
               <div className="flex justify-end">
                 <button
                   onClick={handleGenerate}
-                  className={`px-6 py-3 rounded-lg font-medium flex items-center shadow-lg hover:shadow-xl transition-all active:scale-95 ${
+                  className={`px-6 py-3 rounded-lg font-medium flex items-center shadow-sm hover:shadow transition-all active:scale-95 ${
                     generationMode === 'background'
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white'
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                      ? 'bg-neutral-900 hover:bg-neutral-800 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
                   }`}
                 >
                   {generationMode === 'background' ? (
@@ -265,9 +265,9 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
                 <IconLoader className="w-12 h-12 text-blue-600 animate-spin relative z-10" />
               </div>
               <h3 className="text-lg font-medium text-slate-800 animate-pulse">
-                {status === 'thinking' ? 'AI가 제안서 내용을 작성하고 있어요...' : '커버 이미지를 만들고 있어요...'}
+                {status === 'thinking' ? 'AI가 제안서 내용을 작성 중입니다' : '커버 이미지를 생성 중입니다'}
               </h3>
-              <div className="bg-gradient-to-br from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-4 w-full max-w-md shadow-sm">
+              <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 w-full max-w-md shadow-sm">
                 <ul className="text-sm space-y-2.5">
                   {stepLog.map((log, i) => (
                     <li key={i} className="flex items-center text-slate-700 bg-white px-3 py-2 rounded border border-slate-100">
@@ -283,7 +283,7 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
           {status === 'complete' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
               {/* Preview Content */}
-              <div className="prose prose-sm prose-blue max-h-[500px] overflow-auto p-5 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-slate-200 shadow-sm">
+              <div className="prose prose-sm prose-blue max-h-[500px] overflow-auto p-5 bg-neutral-50 rounded-xl border border-neutral-200 shadow-sm">
                 <ReactMarkdown>{generatedContent}</ReactMarkdown>
               </div>
 
@@ -305,8 +305,8 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
 
            {status === 'error' && (
              <div className="text-center py-10">
-               <div className="text-red-500 mb-2 font-bold">제안서 생성에 실패했어요</div>
-               <button onClick={() => setStatus('idle')} className="text-blue-600 underline hover:text-blue-700">다시 시도해보기</button>
+               <div className="text-red-500 mb-2 font-semibold">제안서 생성 실패</div>
+               <button onClick={() => setStatus('idle')} className="text-blue-600 underline hover:text-blue-700">다시 시도</button>
              </div>
            )}
 
@@ -331,7 +331,7 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all active:scale-95"
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm hover:shadow transition-all active:scale-95"
                 >
                   제안서 저장
                 </button>
