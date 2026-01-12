@@ -12,7 +12,7 @@ const SlackIntegrationTab = lazy(() => import('./tabs/SlackIntegrationTab').then
 const EmailIntegrationTab = lazy(() => import('./tabs/EmailIntegrationTab').then(m => ({ default: m.EmailIntegrationTab })));
 const CalendarIntegrationTab = lazy(() => import('./tabs/CalendarIntegrationTab').then(m => ({ default: m.CalendarIntegrationTab })));
 const NotificationSettingsTab = lazy(() => import('./tabs/NotificationSettingsTab').then(m => ({ default: m.NotificationSettingsTab })));
-const MixpanelIntegrationTab = lazy(() => import('./tabs/MixpanelIntegrationTab'));
+const MixpanelIntegrationTab = lazy(() => import('./tabs/MixpanelIntegrationTab').then(m => ({ default: m.MixpanelIntegrationTab })));
 
 interface UnifiedSettingsProps {
   isOpen: boolean;

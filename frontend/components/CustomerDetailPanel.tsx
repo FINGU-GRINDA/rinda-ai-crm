@@ -6,6 +6,7 @@ import { ProgressBar } from './ProgressBar';
 import { EnrichmentPanel } from './EnrichmentPanel';
 import { FollowUpPanel } from './FollowUpPanel';
 import { CustomerFollowUpWidget } from './followup';
+import { ProposalViewModal } from './ProposalViewModal';
 import {
   IconX,
   IconGlobe,
@@ -53,8 +54,21 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
   enrichmentProgress,
 }) => {
   const [detailPanelTab, setDetailPanelTab] = useState<DetailPanelTab>('info');
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
 
   return (
+    <>
+      {/* Proposal View Modal */}
+      {selectedProposal && (
+        <ProposalViewModal
+          proposal={selectedProposal}
+          customerName={customer.name}
+          isOpen={true}
+          onClose={() => setSelectedProposal(null)}
+        />
+      )}
+
+    {/* Main Panel */}
     <div className="fixed inset-0 z-40 flex justify-end">
       {/* Backdrop */}
       <div
@@ -416,6 +430,7 @@ const HistoryTabContent: React.FC<{
           customer.proposals.map(proposal => (
             <div
               key={proposal.id}
+              onClick={() => setSelectedProposal(proposal)}
               className="bg-gradient-to-br from-white to-slate-50 rounded-lg border border-slate-200 shadow-sm overflow-hidden group hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer"
             >
               <div className="flex">
@@ -437,6 +452,10 @@ const HistoryTabContent: React.FC<{
                   </div>
                   <div className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                     <ReactMarkdown allowedElements={['p']}>{proposal.content.substring(0, 150)}</ReactMarkdown>
+                  </div>
+                  <div className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>전체보기</span>
+                    <IconArrowRight className="w-3 h-3" />
                   </div>
                 </div>
               </div>
@@ -494,6 +513,8 @@ const HistoryTabContent: React.FC<{
       </div>
     )}
   </div>
-);
+  </>
+  );
+};
 
 export default CustomerDetailPanel;
