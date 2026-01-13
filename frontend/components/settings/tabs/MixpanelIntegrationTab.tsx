@@ -12,23 +12,39 @@ interface MixpanelSettings {
   enrichWithAI: boolean;
 }
 
+export interface MixpanelFormState {
+  isDirty: boolean;
+  isSaving: boolean;
+  onSave: () => Promise<void>;
+  onReset: () => void;
+}
+
 interface MixpanelIntegrationTabProps {
   onSettingsChange?: () => void;
+  onFormStateChange?: (state: MixpanelFormState | null) => void;
 }
 
 const API_BASE = 'http://localhost:3001/api';
 
-export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ onSettingsChange }) => {
-  const [settings, setSettings] = useState<MixpanelSettings>({
-    isEnabled: false,
-    projectToken: null,
-    apiSecret: null,
-    webhookSecret: null,
-    trackedEvents: ['$signup', 'sign_up', 'user_signup', 'registration', 'account_created'],
-    autoCreateProspect: true,
-    defaultSignalStrength: 'medium',
-    enrichWithAI: true
-  });
+const DEFAULT_SETTINGS: MixpanelSettings = {
+  isEnabled: false,
+  projectToken: null,
+  apiSecret: null,
+  webhookSecret: null,
+  trackedEvents: ['$signup', 'sign_up', 'user_signup', 'registration', 'account_created'],
+  autoCreateProspect: true,
+  defaultSignalStrength: 'medium',
+  enrichWithAI: true
+};
+
+export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ onSettingsChange, onFormStateChange }) => {
+  // Form state (local edits)
+  const [formData, setFormData] = useState<MixpanelSettings>(DEFAULT_SETTINGS);
+  // Server state (last saved)
+  const [originalData, setOriginalData] = useState<MixpanelSettings>(DEFAULT_SETTINGS);
+  // Track unsaved changes
+  const [isDirty, setIsDirty] = useState(false);
+
   const [webhookUrl, setWebhookUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -37,6 +53,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
   const [successMessage, setSuccessMessage] = useState('');
   const [newEvent, setNewEvent] = useState('');
   const [copied, setCopied] = useState(false);
+  const [webhookSecretInput, setWebhookSecretInput] = useState('');
 
   // Load settings on mount
   useEffect(() => {
@@ -44,12 +61,28 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
     fetchWebhookInfo();
   }, []);
 
+  // Check if form is dirty whenever formData changes
+  useEffect(() => {
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
+    setIsDirty(hasChanges);
+  }, [formData, originalData]);
+
+  // Check if webhook secret field is dirty
+  const isWebhookSecretDirty = webhookSecretInput.length > 0;
+  const isFormDirty = isDirty || isWebhookSecretDirty;
+
   const fetchSettings = async () => {
     try {
       const response = await fetch(`${API_BASE}/mixpanel/settings`);
       if (response.ok) {
         const data = await response.json();
-        setSettings(data);
+        const mergedData = {
+          ...DEFAULT_SETTINGS,
+          ...data,
+          trackedEvents: data.trackedEvents || DEFAULT_SETTINGS.trackedEvents,
+        };
+        setFormData(mergedData);
+        setOriginalData(mergedData);
       }
     } catch (error) {
       console.error('Failed to fetch Mixpanel settings:', error);
@@ -70,21 +103,34 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
     }
   };
 
-  const handleSaveSettings = async (updates: Partial<MixpanelSettings>) => {
+  // Submit all form changes
+  const handleSubmit = async () => {
     setIsSaving(true);
     setErrorMessage('');
     setSuccessMessage('');
 
     try {
+      // Include webhook secret if it was changed
+      const dataToSave = webhookSecretInput
+        ? { ...formData, webhookSecret: webhookSecretInput }
+        : formData;
+
       const response = await fetch(`${API_BASE}/mixpanel/settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(dataToSave)
       });
 
       if (response.ok) {
         const data = await response.json();
-        setSettings(data);
+        const mergedData = {
+          ...DEFAULT_SETTINGS,
+          ...data,
+          trackedEvents: data.trackedEvents || DEFAULT_SETTINGS.trackedEvents,
+        };
+        setFormData(mergedData);
+        setOriginalData(mergedData);
+        setWebhookSecretInput('');
         setSuccessMessage('설정이 저장되었습니다.');
         onSettingsChange?.();
       } else {
@@ -98,53 +144,48 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
     }
   };
 
-  const handleToggleEnabled = async (enabled: boolean) => {
-    const newSettings = { ...settings, isEnabled: enabled };
-    setSettings(newSettings);
-    await handleSaveSettings({ isEnabled: enabled });
+  // Reset form to original state
+  const handleReset = () => {
+    setFormData(originalData);
+    setWebhookSecretInput('');
+    setErrorMessage('');
+    setSuccessMessage('');
   };
 
-  const handleToggleAutoCreate = async (autoCreate: boolean) => {
-    const newSettings = { ...settings, autoCreateProspect: autoCreate };
-    setSettings(newSettings);
-    await handleSaveSettings({ autoCreateProspect: autoCreate });
+  // Field handlers - only update local state
+  const handleToggleEnabled = (enabled: boolean) => {
+    setFormData(prev => ({ ...prev, isEnabled: enabled }));
   };
 
-  const handleToggleAIEnrich = async (enrichWithAI: boolean) => {
-    const newSettings = { ...settings, enrichWithAI };
-    setSettings(newSettings);
-    await handleSaveSettings({ enrichWithAI });
+  const handleToggleAutoCreate = (autoCreate: boolean) => {
+    setFormData(prev => ({ ...prev, autoCreateProspect: autoCreate }));
   };
 
-  const handleAddEvent = async () => {
+  const handleToggleAIEnrich = (enrichWithAI: boolean) => {
+    setFormData(prev => ({ ...prev, enrichWithAI }));
+  };
+
+  const handleAddEvent = () => {
     if (!newEvent.trim()) return;
-    if (settings.trackedEvents.includes(newEvent.trim())) {
+    const currentEvents = formData.trackedEvents || [];
+    if (currentEvents.includes(newEvent.trim())) {
       setErrorMessage('이미 추가된 이벤트입니다.');
       return;
     }
 
-    const updatedEvents = [...settings.trackedEvents, newEvent.trim()];
-    const newSettings = { ...settings, trackedEvents: updatedEvents };
-    setSettings(newSettings);
+    const updatedEvents = [...currentEvents, newEvent.trim()];
+    setFormData(prev => ({ ...prev, trackedEvents: updatedEvents }));
     setNewEvent('');
-    await handleSaveSettings({ trackedEvents: updatedEvents });
+    setErrorMessage('');
   };
 
-  const handleRemoveEvent = async (eventToRemove: string) => {
-    const updatedEvents = settings.trackedEvents.filter(e => e !== eventToRemove);
-    const newSettings = { ...settings, trackedEvents: updatedEvents };
-    setSettings(newSettings);
-    await handleSaveSettings({ trackedEvents: updatedEvents });
+  const handleRemoveEvent = (eventToRemove: string) => {
+    const updatedEvents = (formData.trackedEvents || []).filter(e => e !== eventToRemove);
+    setFormData(prev => ({ ...prev, trackedEvents: updatedEvents }));
   };
 
-  const handleWebhookSecretChange = async (secret: string) => {
-    await handleSaveSettings({ webhookSecret: secret || null });
-  };
-
-  const handleSignalStrengthChange = async (strength: 'high' | 'medium' | 'low') => {
-    const newSettings = { ...settings, defaultSignalStrength: strength };
-    setSettings(newSettings);
-    await handleSaveSettings({ defaultSignalStrength: strength });
+  const handleSignalStrengthChange = (strength: 'high' | 'medium' | 'low') => {
+    setFormData(prev => ({ ...prev, defaultSignalStrength: strength }));
   };
 
   const handleTest = async () => {
@@ -190,6 +231,29 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Report form state to parent component
+  useEffect(() => {
+    if (onFormStateChange) {
+      if (isFormDirty) {
+        onFormStateChange({
+          isDirty: isFormDirty,
+          isSaving,
+          onSave: handleSubmit,
+          onReset: handleReset,
+        });
+      } else {
+        onFormStateChange(null);
+      }
+    }
+  }, [isFormDirty, isSaving, onFormStateChange]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      onFormStateChange?.(null);
+    };
+  }, [onFormStateChange]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -206,7 +270,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
       </div>
 
       {/* Connection Status */}
-      {settings.isEnabled && (
+      {formData.isEnabled && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
           <div className="flex items-center gap-2">
             <IconCheck className="w-5 h-5 text-emerald-600" />
@@ -258,9 +322,10 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
         </label>
         <input
           type="password"
+          value={webhookSecretInput}
+          onChange={(e) => setWebhookSecretInput(e.target.value)}
           placeholder="Mixpanel Webhook Secret"
           className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          onBlur={(e) => handleWebhookSecretChange(e.target.value)}
         />
         <p className="mt-1.5 text-xs text-slate-500">
           보안 강화를 위해 Mixpanel에서 설정한 Webhook Secret을 입력하세요.
@@ -277,7 +342,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
-              checked={settings.isEnabled}
+              checked={formData.isEnabled ?? false}
               onChange={(e) => handleToggleEnabled(e.target.checked)}
               className="sr-only peer"
             />
@@ -292,7 +357,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
         <p className="text-xs text-slate-500">이 이벤트가 발생하면 CRM에 자동으로 Prospect를 생성합니다.</p>
 
         <div className="flex flex-wrap gap-2">
-          {settings.trackedEvents.map((event) => (
+          {(formData.trackedEvents || []).map((event) => (
             <span
               key={event}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-800 text-sm rounded-full"
@@ -315,7 +380,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
             onChange={(e) => setNewEvent(e.target.value)}
             placeholder="새 이벤트명 (예: user_registered)"
             className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            onKeyPress={(e) => e.key === 'Enter' && handleAddEvent()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
           />
           <button
             onClick={handleAddEvent}
@@ -335,7 +400,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
           </div>
           <input
             type="checkbox"
-            checked={settings.autoCreateProspect}
+            checked={formData.autoCreateProspect ?? true}
             onChange={(e) => handleToggleAutoCreate(e.target.checked)}
             className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
           />
@@ -348,7 +413,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
           </div>
           <input
             type="checkbox"
-            checked={settings.enrichWithAI}
+            checked={formData.enrichWithAI ?? true}
             onChange={(e) => handleToggleAIEnrich(e.target.checked)}
             className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
           />
@@ -361,7 +426,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
           기본 Signal Strength
         </label>
         <select
-          value={settings.defaultSignalStrength}
+          value={formData.defaultSignalStrength ?? 'medium'}
           onChange={(e) => handleSignalStrengthChange(e.target.value as 'high' | 'medium' | 'low')}
           className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
@@ -378,7 +443,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
       <div className="border-t border-slate-200 pt-6">
         <button
           onClick={handleTest}
-          disabled={isTesting || !settings.isEnabled}
+          disabled={isTesting || !originalData.isEnabled}
           className="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {isTesting ? (
@@ -392,6 +457,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
         </button>
         <p className="mt-1.5 text-xs text-slate-500">
           테스트 Prospect를 생성하여 연동이 정상 작동하는지 확인합니다.
+          {!originalData.isEnabled && ' (먼저 설정을 저장하고 활성화하세요)'}
         </p>
       </div>
 

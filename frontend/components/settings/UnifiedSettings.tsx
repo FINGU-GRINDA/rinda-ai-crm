@@ -1,9 +1,11 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { SettingsTabType } from '../../types';
 import { SettingsTabBar } from './SettingsTabBar';
-import { IconX, IconSettings } from '../Icons';
+import { IconX, IconSettings, IconLoader } from '../Icons';
 import GeminiAPIManager from '../../services/geminiApiManager';
 import { getSlackSettings } from '../../services/slackIntegrationService';
+import type { MixpanelFormState } from './tabs/MixpanelIntegrationTab';
+import type { SlackFormState } from './tabs/SlackIntegrationTab';
 
 // Lazy load tab components
 const AISettingsTab = lazy(() => import('./tabs/AISettingsTab').then(m => ({ default: m.AISettingsTab })));
@@ -44,6 +46,20 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
     calendar: false,
     mixpanel: false,
   });
+  const [mixpanelFormState, setMixpanelFormState] = useState<MixpanelFormState | null>(null);
+  const [slackFormState, setSlackFormState] = useState<SlackFormState | null>(null);
+
+  const handleMixpanelFormStateChange = useCallback((state: MixpanelFormState | null) => {
+    setMixpanelFormState(state);
+  }, []);
+
+  const handleSlackFormStateChange = useCallback((state: SlackFormState | null) => {
+    setSlackFormState(state);
+  }, []);
+
+  // Get the active form state based on current tab
+  const activeFormState = activeTab === 'mixpanel' ? mixpanelFormState :
+                          activeTab === 'slack' ? slackFormState : null;
 
   // Update connection status on open and when settings change
   const updateConnectionStatus = () => {
@@ -54,6 +70,8 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
              JSON.parse(localStorage.getItem('rinda_email_settings') || '{}').isConnected,
       calendar: !!localStorage.getItem('rinda_calendar_settings') &&
                 JSON.parse(localStorage.getItem('rinda_calendar_settings') || '{}').isConnected,
+      mixpanel: !!localStorage.getItem('rinda_mixpanel_settings') &&
+                JSON.parse(localStorage.getItem('rinda_mixpanel_settings') || '{}').isEnabled,
     });
   };
 
@@ -97,7 +115,12 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
           />
         );
       case 'slack':
-        return <SlackIntegrationTab onSettingsChange={handleSettingsChange} />;
+        return (
+          <SlackIntegrationTab
+            onSettingsChange={handleSettingsChange}
+            onFormStateChange={handleSlackFormStateChange}
+          />
+        );
       case 'email':
         return <EmailIntegrationTab onSettingsChange={handleSettingsChange} />;
       case 'calendar':
@@ -105,7 +128,12 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
       case 'notifications':
         return <NotificationSettingsTab onSettingsChange={handleSettingsChange} />;
       case 'mixpanel':
-        return <MixpanelIntegrationTab onSettingsChange={handleSettingsChange} />;
+        return (
+          <MixpanelIntegrationTab
+            onSettingsChange={handleSettingsChange}
+            onFormStateChange={handleMixpanelFormStateChange}
+          />
+        );
       default:
         return null;
     }
@@ -178,12 +206,32 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 bg-slate-50 flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-md hover:shadow-lg"
-          >
-            닫기
-          </button>
+          {activeFormState?.isDirty ? (
+            <>
+              <button
+                onClick={activeFormState.onReset}
+                disabled={activeFormState.isSaving}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={activeFormState.onSave}
+                disabled={activeFormState.isSaving}
+                className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50"
+              >
+                {activeFormState.isSaving && <IconLoader className="w-4 h-4 animate-spin" />}
+                {activeFormState.isSaving ? '저장 중...' : '설정 저장'}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onClose}
+              className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-md hover:shadow-lg"
+            >
+              닫기
+            </button>
+          )}
         </div>
       </div>
     </div>
