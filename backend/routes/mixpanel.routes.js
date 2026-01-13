@@ -1,27 +1,33 @@
 import express from 'express';
 import {
-  handleWebhook,
+  getConnectionStatus,
   getSettings,
   updateSettings,
   getStatus,
-  getWebhookInfo,
-  testWebhook
+  getSyncStatus,
+  syncNow,
+  testConnection,
+  testEvent
 } from '../controllers/mixpanel.controller.js';
 
 const router = express.Router();
 
-// Webhook endpoint (receives events from Mixpanel)
-router.post('/webhook', handleWebhook);
+// Connection status (check if env vars are configured)
+router.get('/connection-status', getConnectionStatus);
 
 // Settings management
 router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
 
-// Status and info
+// Status and sync info
 router.get('/status', getStatus);
-router.get('/webhook-info', getWebhookInfo);
+router.get('/sync-status', getSyncStatus);
 
-// Test endpoint
-router.post('/test', testWebhook);
+// Sync endpoints
+router.post('/sync', syncNow);
+
+// Test endpoints
+router.post('/test', testConnection);
+router.post('/test-event', testEvent);
 
 export default router;

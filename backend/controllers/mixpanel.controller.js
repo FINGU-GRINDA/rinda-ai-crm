@@ -1,47 +1,19 @@
 import { mixpanelService } from '../services/mixpanel.service.js';
+import { mixpanelApiClient } from '../services/mixpanelApiClient.js';
+import { triggerManualSync, getMixpanelSyncJobStatus } from '../jobs/mixpanelSync.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Handle Mixpanel webhook
- * POST /api/mixpanel/webhook
+ * Get Mixpanel connection status
+ * GET /api/mixpanel/connection-status
  */
-export const handleWebhook = async (req, res) => {
+export const getConnectionStatus = (req, res) => {
   try {
-    const signature = req.headers['x-mixpanel-signature'];
-    const rawBody = JSON.stringify(req.body);
-
-    // Verify signature if configured
-    if (!mixpanelService.verifyWebhookSignature(rawBody, signature)) {
-      logger.warn('Invalid Mixpanel webhook signature');
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-
-    // Handle single event or batch
-    const body = req.body;
-
-    if (Array.isArray(body)) {
-      // Batch of events
-      const result = await mixpanelService.processBatchEvents(body);
-      return res.json({
-        success: true,
-        ...result
-      });
-    } else if (body.event) {
-      // Single event
-      const result = await mixpanelService.processWebhookEvent(body);
-      return res.json({
-        success: true,
-        ...result
-      });
-    } else {
-      // Unknown format
-      logger.warn('Unknown Mixpanel webhook format:', body);
-      return res.status(400).json({ error: 'Unknown webhook format' });
-    }
-
+    const status = mixpanelApiClient.getConnectionStatus();
+    res.json(status);
   } catch (error) {
-    logger.error('Mixpanel webhook error:', error);
-    res.status(500).json({ error: 'Internal server error', message: error.message });
+    logger.error('Error getting connection status:', error);
+    res.status(500).json({ error: 'Failed to get connection status' });
   }
 };
 
@@ -52,15 +24,7 @@ export const handleWebhook = async (req, res) => {
 export const getSettings = (req, res) => {
   try {
     const settings = mixpanelService.getSettings();
-
-    // Mask sensitive data
-    const maskedSettings = {
-      ...settings,
-      apiSecret: settings.apiSecret ? '********' : null,
-      webhookSecret: settings.webhookSecret ? '********' : null
-    };
-
-    res.json(maskedSettings);
+    res.json(settings);
   } catch (error) {
     logger.error('Error getting Mixpanel settings:', error);
     res.status(500).json({ error: 'Failed to get settings' });
@@ -82,15 +46,8 @@ export const updateSettings = (req, res) => {
 
     const updatedSettings = mixpanelService.updateSettings(updates);
 
-    // Mask sensitive data in response
-    const maskedSettings = {
-      ...updatedSettings,
-      apiSecret: updatedSettings.apiSecret ? '********' : null,
-      webhookSecret: updatedSettings.webhookSecret ? '********' : null
-    };
-
     logger.info('Mixpanel settings updated');
-    res.json(maskedSettings);
+    res.json(updatedSettings);
   } catch (error) {
     logger.error('Error updating Mixpanel settings:', error);
     res.status(500).json({ error: 'Failed to update settings' });
@@ -112,25 +69,101 @@ export const getStatus = (req, res) => {
 };
 
 /**
- * Get webhook configuration info
- * GET /api/mixpanel/webhook-info
+ * Get sync job status
+ * GET /api/mixpanel/sync-status
  */
-export const getWebhookInfo = (req, res) => {
+export const getSyncStatus = (req, res) => {
   try {
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const info = mixpanelService.getWebhookInfo(baseUrl);
-    res.json(info);
+    const settings = mixpanelService.getSettings();
+    const jobStatus = getMixpanelSyncJobStatus();
+
+    res.json({
+      lastSyncAt: settings.lastSyncAt,
+      syncInterval: settings.syncInterval,
+      isEnabled: settings.isEnabled,
+      ...jobStatus
+    });
   } catch (error) {
-    logger.error('Error getting webhook info:', error);
-    res.status(500).json({ error: 'Failed to get webhook info' });
+    logger.error('Error getting sync status:', error);
+    res.status(500).json({ error: 'Failed to get sync status' });
   }
 };
 
 /**
- * Test Mixpanel webhook with sample data
+ * Trigger manual sync
+ * POST /api/mixpanel/sync
+ */
+export const syncNow = async (req, res) => {
+  try {
+    // Check if credentials are configured
+    if (!mixpanelApiClient.hasCredentials()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Mixpanel credentials not configured. Set MIXPANEL_PROJECT_ID and MIXPANEL_PROJECT_SECRET in environment variables.'
+      });
+    }
+
+    // Check if integration is enabled
+    const settings = mixpanelService.getSettings();
+    if (!settings.isEnabled) {
+      return res.status(400).json({
+        success: false,
+        error: 'Mixpanel integration is disabled. Enable it first.'
+      });
+    }
+
+    logger.info('Manual Mixpanel sync triggered');
+    const result = await triggerManualSync();
+
+    res.json({
+      success: true,
+      message: 'Sync completed',
+      ...result
+    });
+  } catch (error) {
+    logger.error('Manual sync error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Test Mixpanel connection
  * POST /api/mixpanel/test
  */
-export const testWebhook = async (req, res) => {
+export const testConnection = async (req, res) => {
+  try {
+    const result = await mixpanelApiClient.testConnection();
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        authType: result.authType,
+        eventsFetched: result.eventsFetched
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    logger.error('Connection test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Test event processing with sample data
+ * POST /api/mixpanel/test-event
+ */
+export const testEvent = async (req, res) => {
   try {
     const sampleEvent = {
       event: req.body.event || '$signup',
@@ -143,8 +176,8 @@ export const testWebhook = async (req, res) => {
       }
     };
 
-    logger.info('Testing Mixpanel webhook with sample event');
-    const result = await mixpanelService.processWebhookEvent(sampleEvent);
+    logger.info('Testing Mixpanel event processing with sample event');
+    const result = await mixpanelService.processEvent(sampleEvent);
 
     res.json({
       success: true,
@@ -152,16 +185,18 @@ export const testWebhook = async (req, res) => {
       result
     });
   } catch (error) {
-    logger.error('Mixpanel test error:', error);
+    logger.error('Event test error:', error);
     res.status(500).json({ error: 'Test failed', message: error.message });
   }
 };
 
 export default {
-  handleWebhook,
+  getConnectionStatus,
   getSettings,
   updateSettings,
   getStatus,
-  getWebhookInfo,
-  testWebhook
+  getSyncStatus,
+  syncNow,
+  testConnection,
+  testEvent
 };

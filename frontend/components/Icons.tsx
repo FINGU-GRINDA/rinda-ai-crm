@@ -43,7 +43,8 @@ import {
   ArrowUp,
   ArrowDown,
   Check,
-  Download
+  Download,
+  RefreshCw
 } from 'lucide-react';
 
 export const IconUsers = (props: any) => <Users {...props} />;
@@ -89,3 +90,4 @@ export const IconTable = (props: any) => <Table2 {...props} />;
 export const IconArrowUp = (props: any) => <ArrowUp {...props} />;
 export const IconArrowDown = (props: any) => <ArrowDown {...props} />;
 export const IconDownload = (props: any) => <Download {...props} />;
+export const IconRefresh = (props: any) => <RefreshCw {...props} />;

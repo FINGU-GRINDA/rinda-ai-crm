@@ -1,7 +1,7 @@
 import { prospectRepository, customerRepository, notificationRepository, settingsRepository } from '../database/repositories/index.js';
 import { geminiClient } from './geminiClient.js';
+import { mixpanelApiClient } from './mixpanelApiClient.js';
 import { logger } from '../utils/logger.js';
-import crypto from 'crypto';
 
 class MixpanelService {
   constructor() {
@@ -9,19 +9,19 @@ class MixpanelService {
   }
 
   /**
-   * Get Mixpanel settings
+   * Get Mixpanel settings (non-sensitive config stored in DB)
+   * Credentials are stored in environment variables, not here
    * @returns {Object} Mixpanel settings
    */
   getSettings() {
     return settingsRepository.get('mixpanel') || {
       isEnabled: false,
-      projectToken: null,
-      apiSecret: null,
-      webhookSecret: null,
       trackedEvents: this.defaultEvents,
       autoCreateProspect: true,
       defaultSignalStrength: 'medium',
-      enrichWithAI: true
+      enrichWithAI: true,
+      syncInterval: 'hourly', // 'hourly' | 'every_4_hours' | 'daily'
+      lastSyncAt: null
     };
   }
 
@@ -31,51 +31,116 @@ class MixpanelService {
    * @returns {Object} Updated settings
    */
   updateSettings(updates) {
-    return settingsRepository.update('mixpanel', updates);
+    // Filter out any credential fields (they should only be in env vars)
+    const { projectToken, apiSecret, webhookSecret, projectId, projectSecret, serviceAccountUsername, serviceAccountSecret, ...safeUpdates } = updates;
+
+    return settingsRepository.update('mixpanel', safeUpdates);
   }
 
   /**
-   * Verify webhook signature (if secret is configured)
-   * @param {string} payload - Raw request body
-   * @param {string} signature - X-Mixpanel-Signature header
-   * @returns {boolean} Is valid
+   * Sync events from Mixpanel Raw Export API
+   * This is the main sync method called by the scheduled job
+   * @returns {Object} Sync result
    */
-  verifyWebhookSignature(payload, signature) {
+  async syncEvents() {
     const settings = this.getSettings();
 
-    if (!settings.webhookSecret) {
-      // No secret configured, skip verification
-      return true;
+    if (!settings.isEnabled) {
+      logger.info('Mixpanel integration is disabled, skipping sync');
+      return { synced: false, reason: 'integration_disabled' };
     }
 
-    if (!signature) {
-      logger.warn('Mixpanel webhook signature missing');
-      return false;
+    if (!mixpanelApiClient.hasCredentials()) {
+      throw new Error('Mixpanel credentials not configured. Set MIXPANEL_PROJECT_ID and MIXPANEL_PROJECT_SECRET in environment variables.');
     }
 
-    const expectedSignature = crypto
-      .createHmac('sha256', settings.webhookSecret)
-      .update(payload)
-      .digest('hex');
+    // Determine date range for sync
+    const { fromDate, toDate } = this.buildDateRange(settings.lastSyncAt);
 
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
+    logger.info(`Syncing Mixpanel events from ${fromDate} to ${toDate}`);
 
-    if (!isValid) {
-      logger.warn('Mixpanel webhook signature mismatch');
+    try {
+      // Fetch all events from Mixpanel
+      const rawEvents = await mixpanelApiClient.fetchRawEvents({
+        fromDate,
+        toDate,
+        limit: 10000
+      });
+
+      logger.info(`Fetched ${rawEvents.length} events from Mixpanel`);
+
+      if (rawEvents.length === 0) {
+        // Update lastSyncAt even if no events
+        this.updateSettings({ lastSyncAt: new Date().toISOString() });
+        return {
+          synced: true,
+          total: 0,
+          processed: 0,
+          created: 0,
+          updated: 0,
+          skipped: 0,
+          errors: []
+        };
+      }
+
+      // Filter by tracked events
+      const trackedEvents = settings.trackedEvents || this.defaultEvents;
+      const filteredEvents = rawEvents.filter(event => {
+        const eventName = event.event || event.properties?.event;
+        return trackedEvents.some(e => e.toLowerCase() === eventName?.toLowerCase());
+      });
+
+      logger.info(`Filtered to ${filteredEvents.length} tracked events`);
+
+      // Process events (reuse existing logic)
+      const result = await this.processBatchEvents(filteredEvents);
+
+      // Update lastSyncAt timestamp
+      this.updateSettings({ lastSyncAt: new Date().toISOString() });
+
+      return {
+        synced: true,
+        fromDate,
+        toDate,
+        ...result
+      };
+    } catch (error) {
+      logger.error('Mixpanel sync error:', error);
+      throw error;
     }
-
-    return isValid;
   }
 
   /**
-   * Process Mixpanel webhook event
+   * Build date range for sync
+   * @param {string|null} lastSyncAt - ISO timestamp of last sync
+   * @returns {Object} { fromDate, toDate } in YYYY-MM-DD format
+   */
+  buildDateRange(lastSyncAt) {
+    const now = new Date();
+    const toDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    let fromDate;
+    if (lastSyncAt) {
+      // Sync from last sync with 1 hour overlap to catch any delayed events
+      const lastSync = new Date(lastSyncAt);
+      lastSync.setHours(lastSync.getHours() - 1); // 1 hour overlap
+      fromDate = lastSync.toISOString().split('T')[0];
+    } else {
+      // First sync: get last 7 days
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      fromDate = sevenDaysAgo.toISOString().split('T')[0];
+    }
+
+    return { fromDate, toDate };
+  }
+
+  /**
+   * Process Mixpanel event (used by both sync and test)
    * @param {Object} eventData - Mixpanel event data
    * @returns {Object} Processing result
    */
-  async processWebhookEvent(eventData) {
+  async processEvent(eventData) {
     const settings = this.getSettings();
 
     if (!settings.isEnabled) {
@@ -84,12 +149,14 @@ class MixpanelService {
     }
 
     try {
-      const { event, properties } = eventData;
+      // Handle both webhook format and raw export format
+      const event = eventData.event || eventData.properties?.event;
+      const properties = eventData.properties || eventData;
 
       // Check if this event should be tracked
       const trackedEvents = settings.trackedEvents || this.defaultEvents;
       const isTrackedEvent = trackedEvents.some(e =>
-        e.toLowerCase() === event.toLowerCase()
+        e.toLowerCase() === event?.toLowerCase()
       );
 
       if (!isTrackedEvent) {
@@ -125,7 +192,6 @@ class MixpanelService {
       }
 
       // Check for existing prospect
-      const searchKey = userData.companyName || userData.email;
       const existingProspect = userData.companyName
         ? prospectRepository.findByCompanyName(userData.companyName)
         : prospectRepository.findAll({ search: userData.email, limit: 1 })[0];
@@ -156,7 +222,7 @@ class MixpanelService {
       return { processed: false, reason: 'auto_create_disabled' };
 
     } catch (error) {
-      logger.error('Error processing Mixpanel webhook:', error);
+      logger.error('Error processing Mixpanel event:', error);
       return { processed: false, error: error.message };
     }
   }
@@ -188,7 +254,10 @@ class MixpanelService {
       industry: properties.industry,
       companySize: properties.company_size || properties.employees,
       role: properties.role || properties.job_title,
-      useCase: properties.use_case
+      useCase: properties.use_case,
+      // Raw export specific
+      time: properties.time,
+      insertId: properties.$insert_id
     };
 
     // Try to extract company from email domain
@@ -337,9 +406,22 @@ ${userData.companySize ? `규모: ${userData.companySize}` : ''}
       errors: []
     };
 
+    // Track processed insert_ids to avoid duplicates within batch
+    const processedIds = new Set();
+
     for (const eventData of events) {
       try {
-        const result = await this.processWebhookEvent(eventData);
+        // Deduplicate by insert_id if available
+        const insertId = eventData.properties?.$insert_id || eventData.$insert_id;
+        if (insertId && processedIds.has(insertId)) {
+          results.skipped++;
+          continue;
+        }
+        if (insertId) {
+          processedIds.add(insertId);
+        }
+
+        const result = await this.processEvent(eventData);
 
         if (result.processed) {
           results.processed++;
@@ -363,40 +445,18 @@ ${userData.companySize ? `규모: ${userData.companySize}` : ''}
    */
   getStatus() {
     const settings = this.getSettings();
+    const connectionStatus = mixpanelApiClient.getConnectionStatus();
 
     return {
       isEnabled: settings.isEnabled,
-      hasProjectToken: !!settings.projectToken,
-      hasWebhookSecret: !!settings.webhookSecret,
+      credentialsConfigured: connectionStatus.configured,
+      authType: connectionStatus.authType,
+      projectId: connectionStatus.projectId,
       trackedEvents: settings.trackedEvents || this.defaultEvents,
       autoCreateProspect: settings.autoCreateProspect,
-      enrichWithAI: settings.enrichWithAI
-    };
-  }
-
-  /**
-   * Generate webhook URL info
-   * @param {string} baseUrl - Server base URL
-   * @returns {Object} Webhook configuration info
-   */
-  getWebhookInfo(baseUrl) {
-    return {
-      webhookUrl: `${baseUrl}/api/mixpanel/webhook`,
-      supportedEvents: this.defaultEvents,
-      instructions: {
-        ko: [
-          '1. Mixpanel 프로젝트 설정 > Webhooks로 이동',
-          '2. 위 Webhook URL을 추가',
-          '3. 추적할 이벤트 선택 (예: $signup, registration)',
-          '4. (선택) Webhook Secret 설정 후 여기에 입력'
-        ],
-        en: [
-          '1. Go to Mixpanel Project Settings > Webhooks',
-          '2. Add the Webhook URL above',
-          '3. Select events to track (e.g., $signup, registration)',
-          '4. (Optional) Set Webhook Secret and enter it here'
-        ]
-      }
+      enrichWithAI: settings.enrichWithAI,
+      syncInterval: settings.syncInterval,
+      lastSyncAt: settings.lastSyncAt
     };
   }
 }

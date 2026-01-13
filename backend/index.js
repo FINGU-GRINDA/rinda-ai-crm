@@ -33,6 +33,7 @@ import { captureRawBody } from './middleware/slackVerify.js';
 
 // Import jobs
 import { initializeProspectCollectionJob, stopProspectCollectionJob } from './jobs/prospectCollector.js';
+import { initializeMixpanelSyncJob, stopMixpanelSyncJob } from './jobs/mixpanelSync.js';
 
 // Import utilities
 import { logger } from './utils/logger.js';
@@ -189,6 +190,7 @@ const server = app.listen(PORT, () => {
 
   // Initialize background jobs
   initializeProspectCollectionJob();
+  initializeMixpanelSyncJob();
 });
 
 // Graceful shutdown
@@ -196,6 +198,7 @@ const gracefulShutdown = (signal) => {
   logger.info(`${signal} received. Shutting down gracefully...`);
 
   stopProspectCollectionJob();
+  stopMixpanelSyncJob();
 
   server.close(() => {
     logger.info('HTTP server closed');
