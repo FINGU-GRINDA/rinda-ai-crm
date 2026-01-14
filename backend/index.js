@@ -22,6 +22,7 @@ import icpRoutes from './routes/icp.routes.js';
 import settingsRoutesNew, { notificationsRouter } from './routes/settings.routes.new.js';
 import migrationRoutes from './routes/migration.routes.js';
 import slackEventRoutes from './routes/slackEvent.routes.js';
+import slackApiRoutes from './routes/slackApi.routes.js';
 import gmailRoutes from './routes/gmail.routes.js';
 import calendarRoutes from './routes/calendar.routes.js';
 import mixpanelRoutes from './routes/mixpanel.routes.js';
@@ -117,7 +118,7 @@ app.use(trackRequestTime);
 app.use(requestLogger);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_, res) => {
   res.json({
     status: 'ok',
     timestamp: Date.now(),
@@ -149,7 +150,8 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/migrate', migrationRoutes);
 
 // External integrations
-app.use('/api/slack', slackEventRoutes);
+app.use('/api/slack', slackEventRoutes);  // Event API (inbound webhooks)
+app.use('/api/slack', slackApiRoutes);     // Web API (fetch message history, etc.)
 app.use('/api/gmail', gmailRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/mixpanel', mixpanelRoutes);

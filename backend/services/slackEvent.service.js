@@ -4,7 +4,44 @@ import { logger } from '../utils/logger.js';
 
 class SlackEventService {
   constructor() {
-    this.csChannelId = process.env.SLACK_CS_CHANNEL_ID;
+    this.monitoredChannels = null;
+    this._initialized = false;
+  }
+
+  /**
+   * Lazily load monitored channels from environment variables
+   * @private
+   */
+  _ensureInitialized() {
+    if (this._initialized) return;
+
+    // Load all monitored channel IDs from environment
+    this.monitoredChannels = new Set([
+      process.env.CS_CHANNEL_ID,
+      process.env.SALES_CHANNEL_ID,
+      process.env.MEETING_NOTES_CHANNEL_ID
+    ].filter(Boolean)); // Remove undefined/null values
+
+    // Log configured channels (for debugging)
+    if (this.monitoredChannels.size > 0) {
+      logger.info(`Slack monitoring ${this.monitoredChannels.size} channels:`, Array.from(this.monitoredChannels));
+    } else {
+      logger.warn('No Slack channels configured for monitoring');
+    }
+
+    this._initialized = true;
+  }
+
+  /**
+   * Get the channel type based on channel ID
+   * @param {string} channelId - Slack channel ID
+   * @returns {string} Channel type
+   */
+  getChannelType(channelId) {
+    if (channelId === process.env.CS_CHANNEL_ID) return 'CS';
+    if (channelId === process.env.SALES_CHANNEL_ID) return 'SALES';
+    if (channelId === process.env.MEETING_NOTES_CHANNEL_ID) return 'MEETING_NOTES';
+    return 'UNKNOWN';
   }
 
   /**
@@ -24,6 +61,7 @@ class SlackEventService {
    */
   async processEvent(event) {
     const eventType = event.type;
+    console.log(event);
 
     switch (eventType) {
       case 'message':
@@ -41,39 +79,57 @@ class SlackEventService {
    * @param {Object} event - Message event
    */
   async handleMessageEvent(event) {
+    this._ensureInitialized();
+
+    // Handle message deletion
+    if (event.subtype === 'message_deleted') {
+      return await this.handleMessageDeleted(event);
+    }
+
+    // Handle message edit
+    if (event.subtype === 'message_changed') {
+      return await this.handleMessageEdited(event);
+    }
+
     // Ignore bot messages
     if (event.bot_id || event.subtype === 'bot_message') {
       return { handled: false, reason: 'bot_message' };
     }
 
-    // Check if message is from the CS channel
-    const isCSChannel = this.csChannelId && event.channel === this.csChannelId;
+    // Check if message is from a monitored channel
+    const isMonitoredChannel = this.monitoredChannels.has(event.channel);
 
-    // Save message to database
-    const savedMessage = slackRepository.saveMessage({
-      slackTs: event.ts,
-      channelId: event.channel,
-      userId: event.user,
-      userName: event.username || null,
-      text: event.text,
-      threadTs: event.thread_ts || null
-    });
-
-    // If from CS channel, process for CRM
-    if (isCSChannel) {
-      return await this.processCSMessage(savedMessage, event);
+    // If from a monitored channel, process with AI
+    if (isMonitoredChannel) {
+      // Save messages to database
+      const savedMessage = slackRepository.saveMessage({
+        slackTs: event.ts,
+        channelId: event.channel,
+        userId: event.user,
+        userName: event.username || null,
+        text: event.text,
+        threadTs: event.thread_ts || null
+      });
+      // return await this.processMonitoredChannelMessage(savedMessage, event);
+      console.log(savedMessage);
+      return { handled: true, processed: true };
     }
 
-    return { handled: true, messageId: savedMessage.id };
+    // Non-monitored channel: just saved, not processed
+    return { handled: true, processed: false };
   }
 
   /**
-   * Process customer service channel message
+   * Process message from a monitored channel with AI
    * @param {Object} savedMessage - Saved message from DB
    * @param {Object} event - Original Slack event
    */
-  async processCSMessage(savedMessage, event) {
+  async processMonitoredChannelMessage(savedMessage, event) {
     try {
+      // Log which channel type we're processing
+      const channelType = this.getChannelType(event.channel);
+      logger.info(`Processing message from ${channelType} channel`);
+
       // Parse message for customer inquiry
       const parsedData = await this.parseCustomerInquiry(event.text);
 
@@ -145,7 +201,7 @@ class SlackEventService {
       };
 
     } catch (error) {
-      logger.error('Error processing CS message:', error);
+      logger.error('Error processing monitored channel message:', error);
       slackRepository.markProcessed(savedMessage.id);
       return { handled: true, error: error.message };
     }
@@ -199,6 +255,68 @@ class SlackEventService {
   }
 
   /**
+   * Handle message deletion event
+   * @param {Object} event - Message deleted event
+   */
+  async handleMessageDeleted(event) {
+    try {
+      const deletedTs = event.deleted_ts;
+      const channelId = event.channel;
+      const previousMessage = event.previous_message;
+
+      logger.info(`Message deleted: ${deletedTs} in channel ${channelId}`);
+
+      // Mark message as deleted in database
+      const marked = slackRepository.markDeleted(deletedTs, channelId);
+
+      if (!marked) {
+        logger.warn(`Deleted message ${deletedTs} not found in database`);
+      }
+
+      return {
+        handled: true,
+        action: 'deleted',
+        deletedTs,
+        channelId,
+        found: marked,
+        previousText: previousMessage?.text
+      };
+    } catch (error) {
+      logger.error('Error handling message deletion:', error);
+      return { handled: true, error: error.message };
+    }
+  }
+
+  /**
+   * Handle message edit event
+   * @param {Object} event - Message changed event
+   */
+  async handleMessageEdited(event) {
+    try {
+      const message = event.message;
+
+      // Update message text in database
+      slackRepository.updateMessageText(
+        message.ts,
+        event.channel,
+        message.text
+      );
+
+      logger.info(`Message edited: ${message.ts} in channel ${event.channel}`);
+
+      return {
+        handled: true,
+        action: 'edited',
+        messageTs: message.ts,
+        newText: message.text
+      };
+    } catch (error) {
+      logger.error('Error handling message edit:', error);
+      return { handled: true, error: error.message };
+    }
+  }
+
+  /**
    * Handle app mention event
    * @param {Object} event - App mention event
    */
@@ -223,6 +341,8 @@ class SlackEventService {
    * @returns {Object} Status information
    */
   getStatus() {
+    this._ensureInitialized();
+
     const settings = settingsRepository.getSlackSettings();
     const messageCount = slackRepository.getCount();
     const unprocessedCount = slackRepository.findUnprocessed(1).length;
@@ -230,7 +350,12 @@ class SlackEventService {
     return {
       eventApiEnabled: settings.eventApiEnabled || false,
       webhookEnabled: settings.isEnabled || false,
-      csChannelConfigured: !!this.csChannelId,
+      monitoredChannelsCount: this.monitoredChannels.size,
+      monitoredChannels: {
+        cs: !!process.env.CS_CHANNEL_ID,
+        sales: !!process.env.SALES_CHANNEL_ID,
+        meetingNotes: !!process.env.MEETING_NOTES_CHANNEL_ID
+      },
       totalMessages: messageCount,
       unprocessedMessages: unprocessedCount
     };
