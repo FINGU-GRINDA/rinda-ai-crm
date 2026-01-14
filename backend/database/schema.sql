@@ -169,6 +169,8 @@ CREATE TABLE IF NOT EXISTS slack_messages (
     customer_id TEXT,
     prospect_id TEXT,
     processed INTEGER DEFAULT 0,
+    deleted INTEGER DEFAULT 0,
+    deleted_at TEXT,
     received_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
     FOREIGN KEY (prospect_id) REFERENCES prospects(id) ON DELETE SET NULL
@@ -177,6 +179,7 @@ CREATE TABLE IF NOT EXISTS slack_messages (
 CREATE INDEX IF NOT EXISTS idx_slack_customer ON slack_messages(customer_id);
 CREATE INDEX IF NOT EXISTS idx_slack_prospect ON slack_messages(prospect_id);
 CREATE INDEX IF NOT EXISTS idx_slack_processed ON slack_messages(processed);
+CREATE INDEX IF NOT EXISTS idx_slack_deleted ON slack_messages(deleted);
 CREATE INDEX IF NOT EXISTS idx_slack_received ON slack_messages(received_at);
 
 -- ========================================

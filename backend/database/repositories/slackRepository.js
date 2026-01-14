@@ -189,6 +189,110 @@ class SlackRepository {
   }
 
   /**
+   * Mark message as deleted (soft delete)
+   * @param {string} slackTs - Message timestamp
+   * @param {string} channelId - Channel ID
+   * @returns {boolean} Whether message was found and updated
+   */
+  markDeleted(slackTs, channelId) {
+    const db = getDatabase();
+    const deletedAt = new Date().toISOString();
+
+    const result = db.prepare(`
+      UPDATE slack_messages
+      SET deleted = 1, deleted_at = ?
+      WHERE slack_ts = ? AND channel_id = ?
+    `).run(deletedAt, slackTs, channelId);
+
+    if (result.changes > 0) {
+      logger.info(`Message ${slackTs} marked as deleted in channel ${channelId}`);
+    }
+
+    return result.changes > 0;
+  }
+
+  /**
+   * Update message text (for edited messages)
+   * @param {string} slackTs - Message timestamp
+   * @param {string} channelId - Channel ID
+   * @param {string} newText - Updated message text
+   * @returns {boolean} Whether message was found and updated
+   */
+  updateMessageText(slackTs, channelId, newText) {
+    const db = getDatabase();
+
+    const result = db.prepare(`
+      UPDATE slack_messages
+      SET text = ?
+      WHERE slack_ts = ? AND channel_id = ?
+    `).run(newText, slackTs, channelId);
+
+    if (result.changes > 0) {
+      logger.info(`Message ${slackTs} text updated in channel ${channelId}`);
+    }
+
+    return result.changes > 0;
+  }
+
+  /**
+   * Find all deleted messages
+   * @returns {Array} Deleted messages
+   */
+  findDeleted() {
+    const db = getDatabase();
+    const messages = db.prepare('SELECT * FROM slack_messages WHERE deleted = 1 ORDER BY deleted_at DESC').all();
+    return messages.map(m => this._toCamelCase(m));
+  }
+
+  /**
+   * Find deleted messages in a specific channel
+   * @param {string} channelId - Channel ID
+   * @returns {Array} Deleted messages
+   */
+  findDeletedByChannel(channelId) {
+    const db = getDatabase();
+    const messages = db.prepare('SELECT * FROM slack_messages WHERE deleted = 1 AND channel_id = ? ORDER BY deleted_at DESC').all(channelId);
+    return messages.map(m => this._toCamelCase(m));
+  }
+
+  /**
+   * Find all active (non-deleted) messages
+   * @returns {Array} Active messages
+   */
+  findActive() {
+    const db = getDatabase();
+    const messages = db.prepare('SELECT * FROM slack_messages WHERE deleted = 0 OR deleted IS NULL ORDER BY received_at DESC').all();
+    return messages.map(m => this._toCamelCase(m));
+  }
+
+  /**
+   * Find messages by thread timestamp
+   * @param {string} threadTs - Thread timestamp
+   * @returns {Array} Messages in thread
+   */
+  findByThreadTs(threadTs) {
+    const db = getDatabase();
+    const messages = db.prepare('SELECT * FROM slack_messages WHERE thread_ts = ? AND (deleted = 0 OR deleted IS NULL) ORDER BY received_at ASC').all(threadTs);
+    return messages.map(m => this._toCamelCase(m));
+  }
+
+  /**
+   * Find thread parent messages (messages with replies that are not deleted)
+   * @returns {Array} Thread parent messages
+   */
+  findThreadParents() {
+    const db = getDatabase();
+    const messages = db.prepare(`
+      SELECT DISTINCT m.* FROM slack_messages m
+      WHERE m.thread_ts IS NULL
+      AND (m.deleted = 0 OR m.deleted IS NULL)
+      AND EXISTS (SELECT 1 FROM slack_messages WHERE thread_ts = m.slack_ts AND (deleted = 0 OR deleted IS NULL))
+      ORDER BY m.received_at DESC
+    `).all();
+    return messages.map(m => this._toCamelCase(m));
+  }
+
+  /**
    * Convert object keys from snake_case to camelCase
    * @private
    */
