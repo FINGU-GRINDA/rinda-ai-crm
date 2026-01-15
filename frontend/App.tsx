@@ -63,6 +63,9 @@ type MobileBottomTab = 'home' | 'search' | 'notifications' | 'settings';
 const App: React.FC = () => {
   const isMobile = useIsMobile();
 
+  // Server Health State
+  const [isServerHealthy, setIsServerHealthy] = useState<boolean | null>(null);
+
   // Customer State
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(true);
@@ -184,6 +187,13 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Check server health
+  const checkServerHealth = useCallback(async () => {
+    const health = await apiClient.checkHealth();
+    setIsServerHealthy(health !== null);
+    return health !== null;
+  }, []);
+
   // Fetch customers from backend API
   const fetchCustomers = useCallback(async () => {
     setCustomersLoading(true);
@@ -232,9 +242,13 @@ const App: React.FC = () => {
 
   // Initial load
   useEffect(() => {
-    fetchCustomers();
-    fetchProspectsFromBackend();
-  }, [fetchCustomers, fetchProspectsFromBackend]);
+    const init = async () => {
+      await checkServerHealth();
+      fetchCustomers();
+      fetchProspectsFromBackend();
+    };
+    init();
+  }, [checkServerHealth, fetchCustomers, fetchProspectsFromBackend]);
 
   // Load contextual suggestions
   useEffect(() => {
@@ -657,7 +671,7 @@ const App: React.FC = () => {
     );
   }
 
-  const showServerWarning = customersError && customers.length === 0;
+  const showServerWarning = isServerHealthy === false;
 
   return (
     <BackgroundTaskProvider onProposalComplete={handleBackgroundProposalComplete}>
@@ -672,7 +686,16 @@ const App: React.FC = () => {
               </svg>
               <span className="text-sm font-medium">백엔드 서버에 연결할 수 없습니다. 데이터가 저장되지 않을 수 있습니다.</span>
             </div>
-            <button onClick={fetchCustomers} className="text-amber-700 hover:text-amber-900 text-sm font-medium underline">
+            <button
+              onClick={async () => {
+                const healthy = await checkServerHealth();
+                if (healthy) {
+                  fetchCustomers();
+                  fetchProspectsFromBackend();
+                }
+              }}
+              className="text-amber-700 hover:text-amber-900 text-sm font-medium underline"
+            >
               다시 시도
             </button>
           </div>

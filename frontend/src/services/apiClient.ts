@@ -7,11 +7,47 @@
 // The proxy in vite.config.ts will forward /api/* requests to the backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// Health check response type
+export interface HealthCheckResponse {
+  status: string;
+  timestamp: number;
+  version: string;
+  database: string;
+}
+
 class APIClient {
   private baseURL: string;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+  }
+
+  /**
+   * Check server health status
+   */
+  async checkHealth(): Promise<HealthCheckResponse | null> {
+    try {
+      const response = await fetch(`${this.baseURL}/health`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+
+      // Validate the response has the expected structure
+      if (data.status === 'ok' && data.database === 'connected') {
+        return data as HealthCheckResponse;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Health check failed:', error);
+      return null;
+    }
   }
 
   /**
