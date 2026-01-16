@@ -97,6 +97,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               id="search-input"
               type="text"
               placeholder="고객 검색... (Ctrl+K)"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
