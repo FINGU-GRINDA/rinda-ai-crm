@@ -28,26 +28,27 @@ class GeminiAPIManager {
   }
 
   /**
-   * API Key 로드 (환경변수 우선, localStorage 백업)
+   * API Key 로드 (사용자 제공 키 우선, 환경변수 백업)
+   * 사용자가 직접 입력한 키가 환경변수보다 우선됩니다.
    */
   private loadApiKey(): void {
-    // 1. 환경변수 우선 (Vite는 import.meta.env 사용)
-    const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (envKey && envKey !== 'PLACEHOLDER_API_KEY') {
-      this.apiKey = envKey;
-      return;
-    }
-
-    // 2. localStorage에서 로드
+    // 1. localStorage 우선 (사용자가 직접 입력한 키)
     const storedKey = localStorage.getItem('gemini_api_key');
     if (storedKey) {
       try {
         // Base64 디코딩 (간단한 난독화)
         this.apiKey = atob(storedKey);
+        return;
       } catch (e) {
         console.error('Failed to decode API key from localStorage:', e);
         localStorage.removeItem('gemini_api_key');
       }
+    }
+
+    // 2. 환경변수에서 로드 (Vite는 import.meta.env 사용)
+    const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (envKey && envKey !== 'PLACEHOLDER_API_KEY') {
+      this.apiKey = envKey;
     }
   }
 

@@ -1,0 +1,33 @@
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Install dependencies for health checks
+RUN apk add --no-cache postgresql-client curl
+
+# Copy package files
+COPY package.json ./
+COPY bun.lockb* ./
+
+# Install dependencies using bun
+RUN bun install --frozen-lockfile || bun install
+
+# Copy source code and configuration files
+COPY src ./src
+COPY tsconfig.json ./
+COPY drizzle.config.ts ./
+# Copy migration files (for schema types)
+COPY drizzle ./drizzle
+# Copy .env files
+COPY .env* ./
+
+# Expose health check port
+EXPOSE 3010
+
+# Health check - HTTP endpoint (more comprehensive than redis-cli ping)
+# Checks: Redis connection, Worker status, Queue status, Memory
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -sf http://localhost:3010/readyz || exit 1
+
+# Start the worker process
+CMD ["bun", "run", "src/worker.ts"]
