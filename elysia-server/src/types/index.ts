@@ -211,10 +211,17 @@ export interface CollectionSettings {
 
 export interface MixpanelSettings {
   enabled?: boolean
+  isEnabled?: boolean
   projectToken?: string
   apiSecret?: string
   autoCreateLeads?: boolean
+  autoCreateProspect?: boolean
   eventMappings?: Record<string, string>
+  trackedEvents?: string[]
+  defaultSignalStrength?: string
+  enrichWithAI?: boolean
+  syncFrequency?: string // 'hourly' | 'every_4_hours' | 'daily'
+  lastSyncAt?: number | null
 }
 
 // Combined settings type for all application settings

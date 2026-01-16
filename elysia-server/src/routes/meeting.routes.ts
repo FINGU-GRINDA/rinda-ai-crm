@@ -1,13 +1,15 @@
 import { Elysia, t } from "elysia"
 import { meetingRepository } from "../repositories"
+import { ErrorCode, error, success, successList } from "../utils/response"
 
 export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
   // Get recent meetings
   .get(
     "/recent",
     async ({ query }) => {
-      const limit = query.limit ? parseInt(query.limit, 10) : 10
-      return meetingRepository.findRecent(limit)
+      const limit = query.limit ? parseInt(query.limit, 10) : 50
+      const meetings = await meetingRepository.findRecent(limit)
+      return successList(meetings)
     },
     {
       query: t.Object({
@@ -22,7 +24,8 @@ export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
     async ({ query }) => {
       const startDate = parseInt(query.startDate, 10)
       const endDate = parseInt(query.endDate, 10)
-      return meetingRepository.findByDateRange(startDate, endDate)
+      const meetings = await meetingRepository.findByDateRange(startDate, endDate)
+      return successList(meetings)
     },
     {
       query: t.Object({
@@ -39,9 +42,9 @@ export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
       const meeting = await meetingRepository.findById(params.id)
       if (!meeting) {
         set.status = 404
-        return { error: "Meeting not found" }
+        return error("Meeting not found", ErrorCode.MEETING_NOT_FOUND)
       }
-      return meeting
+      return success(meeting)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -55,9 +58,9 @@ export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
       const meeting = await meetingRepository.update(params.id, body)
       if (!meeting) {
         set.status = 404
-        return { error: "Meeting not found" }
+        return error("Meeting not found", ErrorCode.MEETING_NOT_FOUND)
       }
-      return meeting
+      return success(meeting)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -83,7 +86,7 @@ export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
     "/:id",
     async ({ params }) => {
       await meetingRepository.delete(params.id)
-      return { success: true }
+      return success({ deleted: true })
     },
     {
       params: t.Object({ id: t.String() }),
@@ -97,9 +100,9 @@ export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
       const meeting = await meetingRepository.updateSummary(params.id, body)
       if (!meeting) {
         set.status = 404
-        return { error: "Meeting not found" }
+        return error("Meeting not found", ErrorCode.MEETING_NOT_FOUND)
       }
-      return meeting
+      return success(meeting)
     },
     {
       params: t.Object({ id: t.String() }),

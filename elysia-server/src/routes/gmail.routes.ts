@@ -1,39 +1,45 @@
 import { Elysia, t } from "elysia"
 import { emailRepository } from "../repositories"
 import { gmailService } from "../services/gmail.service"
+import { ErrorCode, error, success, successList } from "../utils/response"
+
+// Get frontend URL from environment or default
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000"
 
 export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
   // Get Gmail status
   .get("/status", async () => {
-    return gmailService.getStatus()
+    const status = await gmailService.getStatus()
+    return success(status)
   })
 
   // Get OAuth URL
   .get("/oauth/url", ({ set }) => {
     try {
       const url = gmailService.getAuthUrl()
-      return { url }
+      return success({ url })
     } catch (_error) {
       set.status = 503
-      return { error: "Gmail service not configured" }
+      return error("Gmail service not configured", ErrorCode.SERVICE_UNAVAILABLE)
     }
   })
 
-  // OAuth callback
+  // OAuth callback - redirects to frontend
   .get(
     "/oauth/callback",
     async ({ query, set }) => {
       if (!query.code) {
-        set.status = 400
-        return { error: "Missing authorization code" }
+        set.redirect = `${FRONTEND_URL}/settings?error=gmail_missing_code`
+        return
       }
 
       try {
         await gmailService.handleCallback(query.code)
-        return { success: true, message: "Gmail connected successfully" }
+        set.redirect = `${FRONTEND_URL}/settings?gmail=connected`
+        return
       } catch (_error) {
-        set.status = 500
-        return { error: "OAuth callback failed" }
+        set.redirect = `${FRONTEND_URL}/settings?error=gmail_auth_failed`
+        return
       }
     },
     {
@@ -50,10 +56,10 @@ export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
       try {
         const maxResults = query.maxResults ? parseInt(query.maxResults, 10) : 50
         const result = await gmailService.syncEmails(maxResults)
-        return result
-      } catch (error) {
+        return success(result)
+      } catch (err) {
         set.status = 500
-        return { error: error instanceof Error ? error.message : "Unknown error" }
+        return error(err instanceof Error ? err.message : "Unknown error", ErrorCode.INTERNAL_ERROR)
       }
     },
     {
@@ -67,8 +73,24 @@ export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
   .get(
     "/emails",
     async ({ query }) => {
+      const limit = query.limit ? parseInt(query.limit, 10) : 100
+      const emails = await emailRepository.findRecent(limit)
+      return successList(emails)
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+    },
+  )
+
+  // Get unmatched emails (not linked to customers)
+  .get(
+    "/emails/unmatched",
+    async ({ query }) => {
       const limit = query.limit ? parseInt(query.limit, 10) : 50
-      return emailRepository.findRecent(limit)
+      const emails = await emailRepository.findUnmatched(limit)
+      return successList(emails)
     },
     {
       query: t.Object({
@@ -81,7 +103,8 @@ export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
   .get(
     "/emails/customer/:customerId",
     async ({ params }) => {
-      return emailRepository.findByCustomerId(params.customerId)
+      const emails = await emailRepository.findByCustomerId(params.customerId)
+      return successList(emails)
     },
     {
       params: t.Object({ customerId: t.String() }),
@@ -95,9 +118,9 @@ export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
       const email = await emailRepository.findById(params.id)
       if (!email) {
         set.status = 404
-        return { error: "Email not found" }
+        return error("Email not found", ErrorCode.EMAIL_NOT_FOUND)
       }
-      return email
+      return success(email)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -111,9 +134,9 @@ export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
       const email = await emailRepository.linkToCustomer(params.id, body.customerId)
       if (!email) {
         set.status = 404
-        return { error: "Email not found" }
+        return error("Email not found", ErrorCode.EMAIL_NOT_FOUND)
       }
-      return email
+      return success(email)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -129,10 +152,10 @@ export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
     async ({ body, set }) => {
       try {
         const messageId = await gmailService.sendEmail(body.to, body.subject, body.body)
-        return { success: true, messageId }
-      } catch (error) {
+        return success({ messageId })
+      } catch (err) {
         set.status = 500
-        return { error: error instanceof Error ? error.message : "Unknown error" }
+        return error(err instanceof Error ? err.message : "Unknown error", ErrorCode.INTERNAL_ERROR)
       }
     },
     {
@@ -147,5 +170,5 @@ export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
   // Disconnect Gmail
   .post("/disconnect", async () => {
     await gmailService.disconnect()
-    return { success: true }
+    return success({ disconnected: true })
   })

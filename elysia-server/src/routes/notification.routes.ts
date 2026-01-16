@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia"
 import { notificationRepository } from "../repositories"
+import { ErrorCode, error, success, successList } from "../utils/response"
 
 export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
   // Get all notifications
@@ -7,7 +8,8 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
     "/",
     async ({ query }) => {
       const limit = query.limit ? parseInt(query.limit, 10) : 50
-      return notificationRepository.findAll(limit)
+      const notifications = await notificationRepository.findAll(limit)
+      return successList(notifications)
     },
     {
       query: t.Object({
@@ -21,7 +23,8 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
     "/unread",
     async ({ query }) => {
       const limit = query.limit ? parseInt(query.limit, 10) : 50
-      return notificationRepository.findUnread(limit)
+      const notifications = await notificationRepository.findUnread(limit)
+      return successList(notifications)
     },
     {
       query: t.Object({
@@ -33,7 +36,7 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
   // Get unread count
   .get("/unread/count", async () => {
     const count = await notificationRepository.getUnreadCount()
-    return { count }
+    return success({ count })
   })
 
   // Get notification by ID
@@ -43,9 +46,9 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
       const notification = await notificationRepository.findById(params.id)
       if (!notification) {
         set.status = 404
-        return { error: "Notification not found" }
+        return error("Notification not found", ErrorCode.NOTIFICATION_NOT_FOUND)
       }
-      return notification
+      return success(notification)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -55,8 +58,10 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
   // Create notification
   .post(
     "/",
-    async ({ body }) => {
-      return notificationRepository.create(body)
+    async ({ body, set }) => {
+      const notification = await notificationRepository.create(body)
+      set.status = 201
+      return success(notification)
     },
     {
       body: t.Object({
@@ -88,9 +93,9 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
       const notification = await notificationRepository.markAsRead(params.id)
       if (!notification) {
         set.status = 404
-        return { error: "Notification not found" }
+        return error("Notification not found", ErrorCode.NOTIFICATION_NOT_FOUND)
       }
-      return notification
+      return success(notification)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -100,7 +105,7 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
   // Mark all notifications as read
   .put("/read-all", async () => {
     await notificationRepository.markAllAsRead()
-    return { success: true }
+    return success({ markedRead: true })
   })
 
   // Delete notification
@@ -108,7 +113,7 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
     "/:id",
     async ({ params }) => {
       await notificationRepository.delete(params.id)
-      return { success: true }
+      return success({ deleted: true })
     },
     {
       params: t.Object({ id: t.String() }),
@@ -122,7 +127,7 @@ export const notificationRoutes = new Elysia({ prefix: "/api/notifications" })
       const days = query.days ? parseInt(query.days, 10) : 30
       const olderThanMs = days * 24 * 60 * 60 * 1000
       await notificationRepository.deleteOld(olderThanMs)
-      return { success: true }
+      return success({ deleted: true, olderThanDays: days })
     },
     {
       query: t.Object({

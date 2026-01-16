@@ -2,8 +2,10 @@ import { Elysia, t } from "elysia"
 import { customerRepository, prospectRepository } from "../repositories"
 import { ErrorCode, error, success, successList } from "../utils/response"
 
-export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
-  // Get all prospects with filtering
+// Leads routes - alias for prospects (for frontend compatibility)
+// The old backend maps /api/leads to prospect routes
+export const leadsRoutes = new Elysia({ prefix: "/api/leads" })
+  // Get all leads with filtering
   .get(
     "/",
     async ({ query }) => {
@@ -34,34 +36,13 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
     },
   )
 
-  // Get prospect stats
+  // Get lead stats
   .get("/stats", async () => {
     const stats = await prospectRepository.getStats()
     return success(stats)
   })
 
-  // Get unconverted prospects
-  .get("/unconverted", async () => {
-    const prospects = await prospectRepository.findUnconverted()
-    return successList(prospects)
-  })
-
-  // Get recent prospects
-  .get(
-    "/recent",
-    async ({ query }) => {
-      const limit = query.limit ? parseInt(query.limit, 10) : 10
-      const prospects = await prospectRepository.getRecent(limit)
-      return successList(prospects)
-    },
-    {
-      query: t.Object({
-        limit: t.Optional(t.String()),
-      }),
-    },
-  )
-
-  // Bulk create prospects
+  // Bulk create leads
   .post(
     "/bulk",
     async ({ body, set }) => {
@@ -95,14 +76,14 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
     },
   )
 
-  // Get prospect by ID
+  // Get lead by ID
   .get(
     "/:id",
     async ({ params, set }) => {
       const prospect = await prospectRepository.findById(params.id)
       if (!prospect) {
         set.status = 404
-        return error("Prospect not found", ErrorCode.PROSPECT_NOT_FOUND)
+        return error("Lead not found", ErrorCode.PROSPECT_NOT_FOUND)
       }
       return success(prospect)
     },
@@ -111,7 +92,7 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
     },
   )
 
-  // Create prospect
+  // Create lead
   .post(
     "/",
     async ({ body, set }) => {
@@ -136,14 +117,14 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
     },
   )
 
-  // Update prospect
+  // Update lead
   .put(
     "/:id",
     async ({ params, body, set }) => {
       const prospect = await prospectRepository.update(params.id, body)
       if (!prospect) {
         set.status = 404
-        return error("Prospect not found", ErrorCode.PROSPECT_NOT_FOUND)
+        return error("Lead not found", ErrorCode.PROSPECT_NOT_FOUND)
       }
       return success(prospect)
     },
@@ -161,7 +142,7 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
     },
   )
 
-  // Delete prospect
+  // Delete lead
   .delete(
     "/:id",
     async ({ params }) => {
@@ -173,17 +154,17 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
     },
   )
 
-  // Convert prospect to customer
+  // Convert lead to customer
   .post(
     "/:id/convert",
     async ({ params, body, set }) => {
       const prospect = await prospectRepository.findById(params.id)
       if (!prospect) {
         set.status = 404
-        return error("Prospect not found", ErrorCode.PROSPECT_NOT_FOUND)
+        return error("Lead not found", ErrorCode.PROSPECT_NOT_FOUND)
       }
 
-      // Create customer from prospect
+      // Create customer from lead
       const customer = await customerRepository.create({
         name: prospect.companyName,
         website: prospect.website,
@@ -192,7 +173,7 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
         status: body.status || "new",
       })
 
-      // Mark prospect as converted
+      // Mark lead as converted
       await prospectRepository.markAsConverted(params.id, customer.id)
 
       return success({
@@ -207,17 +188,5 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
           t.Union([t.Literal("new"), t.Literal("contact"), t.Literal("negotiation")]),
         ),
       }),
-    },
-  )
-
-  // Search prospects
-  .get(
-    "/search/:query",
-    async ({ params }) => {
-      const prospects = await prospectRepository.search(params.query)
-      return successList(prospects)
-    },
-    {
-      params: t.Object({ query: t.String() }),
     },
   )

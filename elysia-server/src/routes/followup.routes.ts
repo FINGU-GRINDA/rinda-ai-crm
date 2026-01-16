@@ -1,15 +1,18 @@
 import { Elysia, t } from "elysia"
 import { customerRepository, followUpRepository } from "../repositories"
+import { ErrorCode, error, success, successList } from "../utils/response"
 
 export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
   // Get pending scheduled follow-ups
   .get("/pending", async () => {
-    return followUpRepository.findPendingScheduled()
+    const followups = await followUpRepository.findPendingScheduled()
+    return successList(followups)
   })
 
   // Get due follow-ups
   .get("/due", async () => {
-    return followUpRepository.findDueScheduled()
+    const followups = await followUpRepository.findDueScheduled()
+    return successList(followups)
   })
 
   // Get follow-ups by date range
@@ -18,7 +21,8 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
     async ({ query }) => {
       const startDate = parseInt(query.startDate, 10)
       const endDate = parseInt(query.endDate, 10)
-      return followUpRepository.findScheduledByDateRange(startDate, endDate)
+      const followups = await followUpRepository.findScheduledByDateRange(startDate, endDate)
+      return successList(followups)
     },
     {
       query: t.Object({
@@ -31,13 +35,14 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
   // Create follow-up history entry
   .post(
     "/history",
-    async ({ body }) => {
+    async ({ body, set }) => {
       const history = await followUpRepository.createHistory(body)
 
       // Update customer's last follow-up time
       await customerRepository.updateFollowUp(body.customerId)
 
-      return history
+      set.status = 201
+      return success(history)
     },
     {
       body: t.Object({
@@ -63,9 +68,9 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
       const history = await followUpRepository.updateHistoryStatus(params.id, body.status)
       if (!history) {
         set.status = 404
-        return { error: "Follow-up history not found" }
+        return error("Follow-up history not found", ErrorCode.FOLLOWUP_NOT_FOUND)
       }
-      return history
+      return success(history)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -78,8 +83,10 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
   // Create scheduled follow-up
   .post(
     "/scheduled",
-    async ({ body }) => {
-      return followUpRepository.createScheduled(body)
+    async ({ body, set }) => {
+      const scheduled = await followUpRepository.createScheduled(body)
+      set.status = 201
+      return success(scheduled)
     },
     {
       body: t.Object({
@@ -105,9 +112,9 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
       const scheduled = await followUpRepository.completeScheduled(params.id)
       if (!scheduled) {
         set.status = 404
-        return { error: "Scheduled follow-up not found" }
+        return error("Scheduled follow-up not found", ErrorCode.FOLLOWUP_NOT_FOUND)
       }
-      return scheduled
+      return success(scheduled)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -121,9 +128,9 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
       const scheduled = await followUpRepository.cancelScheduled(params.id)
       if (!scheduled) {
         set.status = 404
-        return { error: "Scheduled follow-up not found" }
+        return error("Scheduled follow-up not found", ErrorCode.FOLLOWUP_NOT_FOUND)
       }
-      return scheduled
+      return success(scheduled)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -135,7 +142,7 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
     "/scheduled/:id",
     async ({ params }) => {
       await followUpRepository.deleteScheduled(params.id)
-      return { success: true }
+      return success({ deleted: true })
     },
     {
       params: t.Object({ id: t.String() }),

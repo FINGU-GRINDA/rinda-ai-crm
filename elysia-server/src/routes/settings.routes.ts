@@ -1,10 +1,12 @@
 import { Elysia, t } from "elysia"
 import { settingsRepository } from "../repositories"
+import { ErrorCode, error, success } from "../utils/response"
 
 export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
   // Get all settings
   .get("/", async () => {
-    return settingsRepository.getAll()
+    const settings = await settingsRepository.getAll()
+    return success(settings)
   })
 
   // Get specific setting by dynamic key
@@ -14,9 +16,9 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
       const value = await settingsRepository.getByKey(params.key)
       if (value === null) {
         set.status = 404
-        return { error: "Setting not found" }
+        return error("Setting not found", ErrorCode.SETTING_NOT_FOUND)
       }
-      return { key: params.key, value }
+      return success({ key: params.key, value })
     },
     {
       params: t.Object({ key: t.String() }),
@@ -27,7 +29,8 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
   .put(
     "/:key",
     async ({ params, body }) => {
-      return settingsRepository.setByKey(params.key, body.value as string)
+      const result = await settingsRepository.setByKey(params.key, body.value as string)
+      return success(result)
     },
     {
       params: t.Object({ key: t.String() }),
@@ -37,13 +40,15 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
 
   // Slack settings
   .get("/slack", async () => {
-    return settingsRepository.getSlackSettings()
+    const settings = await settingsRepository.getSlackSettings()
+    return success(settings)
   })
 
   .put(
     "/slack",
     async ({ body }) => {
-      return settingsRepository.updateSlackSettings(body)
+      const result = await settingsRepository.updateSlackSettings(body)
+      return success(result)
     },
     {
       body: t.Object({
@@ -65,13 +70,15 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
 
   // Email settings
   .get("/email", async () => {
-    return settingsRepository.getEmailSettings()
+    const settings = await settingsRepository.getEmailSettings()
+    return success(settings)
   })
 
   .put(
     "/email",
     async ({ body }) => {
-      return settingsRepository.updateEmailSettings(body)
+      const result = await settingsRepository.updateEmailSettings(body)
+      return success(result)
     },
     {
       body: t.Object({
@@ -86,13 +93,15 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
 
   // Calendar settings
   .get("/calendar", async () => {
-    return settingsRepository.getCalendarSettings()
+    const settings = await settingsRepository.getCalendarSettings()
+    return success(settings)
   })
 
   .put(
     "/calendar",
     async ({ body }) => {
-      return settingsRepository.updateCalendarSettings(body)
+      const result = await settingsRepository.updateCalendarSettings(body)
+      return success(result)
     },
     {
       body: t.Object({
@@ -107,13 +116,15 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
 
   // Notification settings
   .get("/notifications", async () => {
-    return settingsRepository.getNotificationSettings()
+    const settings = await settingsRepository.getNotificationSettings()
+    return success(settings)
   })
 
   .put(
     "/notifications",
     async ({ body }) => {
-      return settingsRepository.updateNotificationSettings(body)
+      const result = await settingsRepository.updateNotificationSettings(body)
+      return success(result)
     },
     {
       body: t.Object({
@@ -144,13 +155,15 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
 
   // Collection settings
   .get("/collection", async () => {
-    return settingsRepository.getCollectionSettings()
+    const settings = await settingsRepository.getCollectionSettings()
+    return success(settings)
   })
 
   .put(
     "/collection",
     async ({ body }) => {
-      return settingsRepository.updateCollectionSettings(body)
+      const result = await settingsRepository.updateCollectionSettings(body)
+      return success(result)
     },
     {
       body: t.Object({
@@ -163,13 +176,15 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
 
   // Mixpanel settings
   .get("/mixpanel", async () => {
-    return settingsRepository.getMixpanelSettings()
+    const settings = await settingsRepository.getMixpanelSettings()
+    return success(settings)
   })
 
   .put(
     "/mixpanel",
     async ({ body }) => {
-      return settingsRepository.updateMixpanelSettings(body)
+      const result = await settingsRepository.updateMixpanelSettings(body)
+      return success(result)
     },
     {
       body: t.Object({
@@ -185,5 +200,5 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
   // Initialize default settings
   .post("/initialize", async () => {
     await settingsRepository.initializeDefaults()
-    return { success: true }
+    return success({ initialized: true })
   })

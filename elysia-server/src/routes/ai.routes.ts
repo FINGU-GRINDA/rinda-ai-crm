@@ -1,14 +1,16 @@
 import { Elysia, t } from "elysia"
 import { customerRepository, meetingRepository } from "../repositories"
 import { geminiService } from "../services/gemini.service"
+import { ErrorCode, error, success } from "../utils/response"
 
 export const aiRoutes = new Elysia({ prefix: "/api/ai" })
   // Check AI status
   .get("/status", () => {
-    return {
+    return success({
       available: geminiService.isAvailable(),
+      serverKeyConfigured: geminiService.isAvailable(),
       model: "gemini-2.0-flash",
-    }
+    })
   })
 
   // Generate content
@@ -17,16 +19,16 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
     async ({ body, set }) => {
       if (!geminiService.isAvailable()) {
         set.status = 503
-        return { error: "AI service not available" }
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
       }
 
       const result = await geminiService.generateContent(body.prompt)
       if (!result) {
         set.status = 500
-        return { error: "Failed to generate content" }
+        return error("Failed to generate content", ErrorCode.INTERNAL_ERROR)
       }
 
-      return { content: result }
+      return success({ content: result })
     },
     {
       body: t.Object({
@@ -41,13 +43,13 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
     async ({ params, set }) => {
       if (!geminiService.isAvailable()) {
         set.status = 503
-        return { error: "AI service not available" }
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
       }
 
       const customer = await customerRepository.findById(params.customerId)
       if (!customer) {
         set.status = 404
-        return { error: "Customer not found" }
+        return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
       }
 
       const enrichment = await geminiService.enrichCompany(
@@ -57,7 +59,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
 
       if (!enrichment) {
         set.status = 500
-        return { error: "Failed to enrich customer data" }
+        return error("Failed to enrich customer data", ErrorCode.INTERNAL_ERROR)
       }
 
       // Save enrichment
@@ -70,7 +72,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
         salesOpportunity: enrichment.salesOpportunity,
       })
 
-      return saved
+      return success(saved)
     },
     {
       params: t.Object({ customerId: t.String() }),
@@ -83,13 +85,13 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
     async ({ params, body, set }) => {
       if (!geminiService.isAvailable()) {
         set.status = 503
-        return { error: "AI service not available" }
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
       }
 
       const customer = await customerRepository.findById(params.customerId)
       if (!customer) {
         set.status = 404
-        return { error: "Customer not found" }
+        return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
       }
 
       const proposal = await geminiService.generateProposal(
@@ -100,7 +102,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
 
       if (!proposal) {
         set.status = 500
-        return { error: "Failed to generate proposal" }
+        return error("Failed to generate proposal", ErrorCode.INTERNAL_ERROR)
       }
 
       // Save proposal
@@ -109,7 +111,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
         content: proposal.content,
       })
 
-      return saved
+      return success(saved)
     },
     {
       params: t.Object({ customerId: t.String() }),
@@ -125,25 +127,25 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
     async ({ params, set }) => {
       if (!geminiService.isAvailable()) {
         set.status = 503
-        return { error: "AI service not available" }
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
       }
 
       const meeting = await meetingRepository.findById(params.meetingId)
       if (!meeting) {
         set.status = 404
-        return { error: "Meeting not found" }
+        return error("Meeting not found", ErrorCode.MEETING_NOT_FOUND)
       }
 
       if (!meeting.transcription) {
         set.status = 400
-        return { error: "Meeting has no transcription" }
+        return error("Meeting has no transcription", ErrorCode.MISSING_AUDIO_OR_TRANSCRIPTION)
       }
 
       const summary = await geminiService.summarizeMeeting(meeting.transcription)
 
       if (!summary) {
         set.status = 500
-        return { error: "Failed to summarize meeting" }
+        return error("Failed to summarize meeting", ErrorCode.INTERNAL_ERROR)
       }
 
       // Update meeting with summary
@@ -157,7 +159,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
         nextSteps: JSON.stringify(summary.nextSteps),
       })
 
-      return updated
+      return success(updated)
     },
     {
       params: t.Object({ meetingId: t.String() }),
@@ -170,11 +172,11 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
     async ({ body, set }) => {
       if (!geminiService.isAvailable()) {
         set.status = 503
-        return { error: "AI service not available" }
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
       }
 
       const result = await geminiService.parseCustomerInquiry(body.text)
-      return result
+      return success(result)
     },
     {
       body: t.Object({

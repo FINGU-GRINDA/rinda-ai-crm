@@ -6,6 +6,7 @@ import GeminiAPIManager from '../../services/geminiApiManager';
 import { getSlackSettings } from '../../services/slackIntegrationService';
 import type { MixpanelFormState } from './tabs/MixpanelIntegrationTab';
 import type { SlackFormState } from './tabs/SlackIntegrationTab';
+import type { AIFormState } from './tabs/AISettingsTab';
 
 // Lazy load tab components
 const AISettingsTab = lazy(() => import('./tabs/AISettingsTab').then(m => ({ default: m.AISettingsTab })));
@@ -48,6 +49,7 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
   });
   const [mixpanelFormState, setMixpanelFormState] = useState<MixpanelFormState | null>(null);
   const [slackFormState, setSlackFormState] = useState<SlackFormState | null>(null);
+  const [aiFormState, setAiFormState] = useState<AIFormState | null>(null);
 
   const handleMixpanelFormStateChange = useCallback((state: MixpanelFormState | null) => {
     setMixpanelFormState(state);
@@ -57,9 +59,14 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
     setSlackFormState(state);
   }, []);
 
+  const handleAiFormStateChange = useCallback((state: AIFormState | null) => {
+    setAiFormState(state);
+  }, []);
+
   // Get the active form state based on current tab
   const activeFormState = activeTab === 'mixpanel' ? mixpanelFormState :
-                          activeTab === 'slack' ? slackFormState : null;
+                          activeTab === 'slack' ? slackFormState :
+                          activeTab === 'ai' ? aiFormState : null;
 
   // Update connection status on open and when settings change
   const updateConnectionStatus = () => {
@@ -106,7 +113,12 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'ai':
-        return <AISettingsTab onSettingsChange={handleSettingsChange} />;
+        return (
+          <AISettingsTab
+            onSettingsChange={handleSettingsChange}
+            onFormStateChange={handleAiFormStateChange}
+          />
+        );
       case 'prospect':
         return (
           <ProspectSettingsTab

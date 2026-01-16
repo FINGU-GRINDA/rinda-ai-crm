@@ -86,6 +86,15 @@ export const emailRepository = {
       .orderBy(desc(emailMessages.date))
   },
 
+  findUnmatched: async (limit: number = 50): Promise<EmailMessage[]> => {
+    return db
+      .select()
+      .from(emailMessages)
+      .where(sql`${emailMessages.customerId} IS NULL`)
+      .orderBy(desc(emailMessages.date))
+      .limit(limit)
+  },
+
   linkToCustomer: async (emailId: string, customerId: string): Promise<EmailMessage | null> => {
     const [email] = await db
       .update(emailMessages)

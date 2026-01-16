@@ -6,6 +6,7 @@ import { customerRoutes } from "./customer.routes"
 import { followUpRoutes } from "./followup.routes"
 import { gmailRoutes } from "./gmail.routes"
 import { icpRoutes } from "./icp.routes"
+import { leadsRoutes } from "./leads.routes"
 import { meetingRoutes } from "./meeting.routes"
 import { mixpanelRoutes } from "./mixpanel.routes"
 import { notificationRoutes } from "./notification.routes"
@@ -18,6 +19,7 @@ export const routes = new Elysia()
   // Core routes
   .use(customerRoutes)
   .use(prospectRoutes)
+  .use(leadsRoutes) // Alias for prospects (frontend compatibility)
   .use(contactRoutes)
   .use(meetingRoutes)
   .use(notificationRoutes)

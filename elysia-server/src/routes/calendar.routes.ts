@@ -1,38 +1,44 @@
 import { Elysia, t } from "elysia"
 import { calendarService } from "../services/calendar.service"
+import { ErrorCode, error, success, successList } from "../utils/response"
+
+// Get frontend URL from environment or default
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000"
 
 export const calendarRoutes = new Elysia({ prefix: "/api/calendar" })
   // Get calendar status
   .get("/status", async () => {
-    return calendarService.getStatus()
+    const status = await calendarService.getStatus()
+    return success(status)
   })
 
   // Get OAuth URL
   .get("/oauth/url", ({ set }) => {
     try {
       const url = calendarService.getAuthUrl()
-      return { url }
+      return success({ url })
     } catch (_error) {
       set.status = 503
-      return { error: "Calendar service not configured" }
+      return error("Calendar service not configured", ErrorCode.SERVICE_UNAVAILABLE)
     }
   })
 
-  // OAuth callback
+  // OAuth callback - redirects to frontend
   .get(
     "/oauth/callback",
     async ({ query, set }) => {
       if (!query.code) {
-        set.status = 400
-        return { error: "Missing authorization code" }
+        set.redirect = `${FRONTEND_URL}/settings?error=calendar_missing_code`
+        return
       }
 
       try {
         await calendarService.handleCallback(query.code)
-        return { success: true, message: "Calendar connected successfully" }
+        set.redirect = `${FRONTEND_URL}/settings?calendar=connected`
+        return
       } catch (_error) {
-        set.status = 500
-        return { error: "OAuth callback failed" }
+        set.redirect = `${FRONTEND_URL}/settings?error=calendar_auth_failed`
+        return
       }
     },
     {
@@ -51,10 +57,11 @@ export const calendarRoutes = new Elysia({ prefix: "/api/calendar" })
         const timeMin = query.timeMin ? new Date(query.timeMin) : undefined
         const timeMax = query.timeMax ? new Date(query.timeMax) : undefined
 
-        return calendarService.getUpcomingEvents({ maxResults, timeMin, timeMax })
-      } catch (error) {
+        const events = await calendarService.getUpcomingEvents({ maxResults, timeMin, timeMax })
+        return successList(events)
+      } catch (err) {
         set.status = 500
-        return { error: error instanceof Error ? error.message : "Unknown error" }
+        return error(err instanceof Error ? err.message : "Unknown error", ErrorCode.INTERNAL_ERROR)
       }
     },
     {
@@ -74,12 +81,12 @@ export const calendarRoutes = new Elysia({ prefix: "/api/calendar" })
         const event = await calendarService.getEventById(params.eventId)
         if (!event) {
           set.status = 404
-          return { error: "Event not found" }
+          return error("Event not found", ErrorCode.NOT_FOUND)
         }
-        return event
-      } catch (error) {
+        return success(event)
+      } catch (err) {
         set.status = 500
-        return { error: error instanceof Error ? error.message : "Unknown error" }
+        return error(err instanceof Error ? err.message : "Unknown error", ErrorCode.INTERNAL_ERROR)
       }
     },
     {
@@ -100,10 +107,11 @@ export const calendarRoutes = new Elysia({ prefix: "/api/calendar" })
           attendees: body.attendees,
           location: body.location,
         })
-        return { success: true, eventId }
-      } catch (error) {
+        set.status = 201
+        return success({ eventId })
+      } catch (err) {
         set.status = 500
-        return { error: error instanceof Error ? error.message : "Unknown error" }
+        return error(err instanceof Error ? err.message : "Unknown error", ErrorCode.INTERNAL_ERROR)
       }
     },
     {
@@ -121,5 +129,5 @@ export const calendarRoutes = new Elysia({ prefix: "/api/calendar" })
   // Disconnect calendar
   .post("/disconnect", async () => {
     await calendarService.disconnect()
-    return { success: true }
+    return success({ disconnected: true })
   })

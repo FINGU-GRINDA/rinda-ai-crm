@@ -6,6 +6,7 @@ import { slackEventService } from "../services/slack-event.service"
 import { slackWebhookService } from "../services/slack-webhook.service"
 import type { SlackSettings } from "../types"
 import { logger } from "../utils/logger"
+import { ErrorCode, error, success, successList } from "../utils/response"
 
 // Slack signature verification
 function verifySlackSignature(timestamp: string, body: string, signature: string): boolean {
@@ -31,7 +32,7 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
       if (!verifySlackSignature(timestamp, rawBody, signature)) {
         logger.warn("Invalid Slack signature")
         set.status = 401
-        return { error: "Invalid signature" }
+        return error("Invalid signature", ErrorCode.INVALID_SIGNATURE)
       }
     }
 
@@ -51,8 +52,8 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
       setImmediate(async () => {
         try {
           await slackEventService.processEvent(event)
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : String(error)
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err)
           logger.error({ error: errorMsg }, "Error processing Slack event")
         }
       })
@@ -65,7 +66,8 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
 
   // Get Slack integration status
   .get("/status", async () => {
-    return slackEventService.getStatus()
+    const status = await slackEventService.getStatus()
+    return success(status)
   })
 
   // Get recent messages
@@ -75,7 +77,8 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
       const limit = query.limit ? parseInt(query.limit, 10) : 50
       const channelId = query.channelId
 
-      return slackRepository.findRecent({ channelId, limit })
+      const messages = await slackRepository.findRecent({ channelId, limit })
+      return successList(messages)
     },
     {
       query: t.Object({
@@ -90,7 +93,8 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
     "/messages/unprocessed",
     async ({ query }) => {
       const limit = query.limit ? parseInt(query.limit, 10) : 50
-      return slackRepository.findUnprocessed(limit)
+      const messages = await slackRepository.findUnprocessed(limit)
+      return successList(messages)
     },
     {
       query: t.Object({
@@ -101,8 +105,21 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
 
   // Get deleted messages
   .get("/messages/deleted", async () => {
-    return slackRepository.findDeleted()
+    const messages = await slackRepository.findDeleted()
+    return successList(messages)
   })
+
+  // Get messages for a specific customer
+  .get(
+    "/messages/customer/:customerId",
+    async ({ params }) => {
+      const messages = await slackRepository.findByCustomerId(params.customerId)
+      return successList(messages)
+    },
+    {
+      params: t.Object({ customerId: t.String() }),
+    },
+  )
 
   // Process a message manually
   .post(
@@ -111,7 +128,7 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
       const message = await slackRepository.findById(params.id)
       if (!message) {
         set.status = 404
-        return { error: "Message not found" }
+        return error("Message not found", ErrorCode.NOT_FOUND)
       }
 
       const result = await slackEventService.processMonitoredChannelMessage(message, {
@@ -121,12 +138,52 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
         text: message.text || "",
       })
 
-      return result
+      return success(result)
     },
     {
       params: t.Object({ id: t.String() }),
     },
   )
+
+  // Toggle Slack Event API on/off
+  .post("/toggle", async () => {
+    const settings = await settingsRepository.getSlackSettings()
+    const newState = !settings.eventApiEnabled
+    await settingsRepository.updateSlackSettings({ eventApiEnabled: newState })
+    return success({
+      eventApiEnabled: newState,
+      message: newState ? "Slack Event API enabled" : "Slack Event API disabled",
+    })
+  })
+
+  // Bulk reprocess all unprocessed messages
+  .post("/reprocess", async () => {
+    const unprocessed = await slackRepository.findUnprocessed()
+    let processed = 0
+    let failed = 0
+
+    for (const message of unprocessed) {
+      try {
+        await slackEventService.processMonitoredChannelMessage(message, {
+          type: "message",
+          channel: message.channelId || "",
+          ts: message.slackTs || "",
+          text: message.text || "",
+        })
+        processed++
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        logger.warn({ messageId: message.id, error: errorMsg }, "Failed to reprocess message")
+        failed++
+      }
+    }
+
+    return success({
+      total: unprocessed.length,
+      processed,
+      failed,
+    })
+  })
 
   // Webhook routes
   .post(
@@ -141,7 +198,7 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
         })
       }
 
-      return { valid: isValid }
+      return success({ valid: isValid })
     },
     {
       body: t.Object({
@@ -155,12 +212,12 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
 
     if (!settings.webhookUrl || !settings.isValidated) {
       set.status = 400
-      return { error: "Webhook not configured" }
+      return error("Webhook not configured", ErrorCode.INVALID_REQUEST)
     }
 
     const sent = await slackWebhookService.sendNotification({
       text: "🧪 RINDA CRM 테스트 알림입니다!",
     })
 
-    return { sent }
+    return success({ sent })
   })

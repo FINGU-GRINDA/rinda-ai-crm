@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia"
 import { contactRepository } from "../repositories"
+import { ErrorCode, error, success } from "../utils/response"
 
 export const contactRoutes = new Elysia({ prefix: "/api/contacts" })
   // Get contact by ID
@@ -9,9 +10,9 @@ export const contactRoutes = new Elysia({ prefix: "/api/contacts" })
       const contact = await contactRepository.findById(params.id)
       if (!contact) {
         set.status = 404
-        return { error: "Contact not found" }
+        return error("Contact not found", ErrorCode.CONTACT_NOT_FOUND)
       }
-      return contact
+      return success(contact)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -25,9 +26,9 @@ export const contactRoutes = new Elysia({ prefix: "/api/contacts" })
       const contact = await contactRepository.update(params.id, body)
       if (!contact) {
         set.status = 404
-        return { error: "Contact not found" }
+        return error("Contact not found", ErrorCode.CONTACT_NOT_FOUND)
       }
-      return contact
+      return success(contact)
     },
     {
       params: t.Object({ id: t.String() }),
@@ -45,7 +46,7 @@ export const contactRoutes = new Elysia({ prefix: "/api/contacts" })
     "/:id",
     async ({ params }) => {
       await contactRepository.delete(params.id)
-      return { success: true }
+      return success({ deleted: true })
     },
     {
       params: t.Object({ id: t.String() }),
@@ -59,9 +60,9 @@ export const contactRoutes = new Elysia({ prefix: "/api/contacts" })
       const contact = await contactRepository.setPrimary(params.id, body.customerId)
       if (!contact) {
         set.status = 404
-        return { error: "Contact not found" }
+        return error("Contact not found", ErrorCode.CONTACT_NOT_FOUND)
       }
-      return contact
+      return success(contact)
     },
     {
       params: t.Object({ id: t.String() }),

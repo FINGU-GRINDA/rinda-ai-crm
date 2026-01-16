@@ -12,10 +12,13 @@ interface MixpanelSettings {
 }
 
 interface ConnectionStatus {
-  configured: boolean;
-  authType: 'project_secret' | 'service_account' | null;
-  projectId: string | null;
-  message: string;
+  data: {
+    configured: boolean;
+    authType: 'project_secret' | 'service_account' | null;
+    projectId: string | null;
+    message: string;
+  }
+  success: boolean;
 }
 
 export interface MixpanelFormState {
@@ -325,8 +328,6 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
     );
   }
 
-  const credentialsConfigured = connectionStatus?.configured ?? false;
-
   return (
     <div className="space-y-6">
       <div>
@@ -335,7 +336,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
       </div>
 
       {/* Connection Status */}
-      {credentialsConfigured ? (
+      {connectionStatus?.success ? (
         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
           <div className="flex items-center gap-2">
             <IconCheck className="w-5 h-5 text-emerald-600" />
@@ -344,8 +345,8 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
                 Mixpanel API 연결됨
               </span>
               <p className="text-xs text-emerald-700">
-                인증 방식: {connectionStatus?.authType === 'service_account' ? 'Service Account' : 'Project Secret'}
-                {connectionStatus?.projectId && ` (Project ID: ${connectionStatus.projectId})`}
+                인증 방식: {connectionStatus.data.authType === 'service_account' ? 'Service Account' : 'Project Secret'}
+                {connectionStatus?.data.projectId && ` (Project ID: ${connectionStatus.data.projectId})`}
               </p>
             </div>
           </div>
@@ -367,7 +368,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
       )}
 
       {/* Setup Guide (if not configured) */}
-      {!credentialsConfigured && (
+      {!connectionStatus?.success && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <span className="text-xl">💡</span>
@@ -401,7 +402,7 @@ MIXPANEL_SYNC_ENABLED=true`}
       )}
 
       {/* Configuration (only if credentials are configured) */}
-      {credentialsConfigured && (
+      {connectionStatus?.success && (
         <>
           {/* Test Connection Button */}
           <div className="flex items-center gap-3">

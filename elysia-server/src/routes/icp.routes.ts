@@ -1,11 +1,13 @@
 import { Elysia, t } from "elysia"
 import { icpRepository } from "../repositories"
+import { ErrorCode, error, success, successList } from "../utils/response"
 
 export const icpRoutes = new Elysia({ prefix: "/api/icp" })
   // Get all ICP profiles
   .get("/", async () => {
     const profiles = await icpRepository.findAll()
-    return profiles.map((p) => icpRepository.parseProfile(p))
+    const parsed = profiles.map((p) => icpRepository.parseProfile(p))
+    return successList(parsed)
   })
 
   // Get ICP profile by ID
@@ -15,9 +17,9 @@ export const icpRoutes = new Elysia({ prefix: "/api/icp" })
       const profile = await icpRepository.findById(params.id)
       if (!profile) {
         set.status = 404
-        return { error: "ICP profile not found" }
+        return error("ICP profile not found", ErrorCode.ICP_NOT_FOUND)
       }
-      return icpRepository.parseProfile(profile)
+      return success(icpRepository.parseProfile(profile))
     },
     {
       params: t.Object({ id: t.String() }),
@@ -27,7 +29,7 @@ export const icpRoutes = new Elysia({ prefix: "/api/icp" })
   // Create ICP profile
   .post(
     "/",
-    async ({ body }) => {
+    async ({ body, set }) => {
       const stringified = icpRepository.stringifyData({
         industries: body.industries,
         keywords: body.keywords,
@@ -40,7 +42,8 @@ export const icpRoutes = new Elysia({ prefix: "/api/icp" })
         ...stringified,
       })
 
-      return icpRepository.parseProfile(profile)
+      set.status = 201
+      return success(icpRepository.parseProfile(profile))
     },
     {
       body: t.Object({
@@ -71,10 +74,10 @@ export const icpRoutes = new Elysia({ prefix: "/api/icp" })
 
       if (!profile) {
         set.status = 404
-        return { error: "ICP profile not found" }
+        return error("ICP profile not found", ErrorCode.ICP_NOT_FOUND)
       }
 
-      return icpRepository.parseProfile(profile)
+      return success(icpRepository.parseProfile(profile))
     },
     {
       params: t.Object({ id: t.String() }),
@@ -93,7 +96,7 @@ export const icpRoutes = new Elysia({ prefix: "/api/icp" })
     "/:id",
     async ({ params }) => {
       await icpRepository.delete(params.id)
-      return { success: true }
+      return success({ deleted: true })
     },
     {
       params: t.Object({ id: t.String() }),
