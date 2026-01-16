@@ -1,8 +1,5 @@
 import { EmailMessage, EmailIntegration, Customer } from '../types';
 import { apiClient } from '../src/services/apiClient';
-import GeminiAPIManager from './geminiApiManager';
-
-const getAi = () => GeminiAPIManager.getInstance().getAiInstance();
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -216,12 +213,22 @@ export const matchEmailToCustomer = async (
   email: EmailMessage,
   customers: Customer[]
 ): Promise<string | null> => {
-  // Use AI to match email to customer
-  const modelId = "gemini-2.0-flash";
+  // Try to match by email domain first (faster fallback)
+  try {
+    const customer = customers.find(c =>
+      email.from.toLowerCase().includes(c.website.toLowerCase()) ||
+      email.to.toLowerCase().includes(c.website.toLowerCase())
+    );
+    if (customer) return customer.id;
+  } catch (error) {
+    console.error('Email domain matching failed:', error);
+  }
 
-  const customerList = customers.map(c => `${c.name} (${c.website})`).join(', ');
+  // Use backend AI if domain matching fails
+  try {
+    const customerList = customers.map(c => `${c.name} (${c.website})`).join(', ');
 
-  const prompt = `
+    const prompt = `
     다음 이메일이 어떤 고객사와 관련된 것인지 판단해주세요.
 
     이메일 제목: ${email.subject}
@@ -233,21 +240,20 @@ export const matchEmailToCustomer = async (
 
     이메일이 특정 고객사와 관련이 있다면, 고객사 이름만 반환해주세요.
     관련이 없다면 "없음"을 반환해주세요.
-    고객사 이름은 정확히 일치해야 합니다.
-  `;
+    `;
 
-  try {
-    const response = await getAi().models.generateContent({
-      model: modelId,
-      contents: prompt
+    const response = await apiClient.request('/api/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt })
     });
 
-    const matchedName = response.text?.trim() || '';
-    const customer = customers.find(c => c.name === matchedName || email.from.includes(c.website));
+    const result = (response as any).data || {};
+    const matchedName = (result.content || '').trim();
+    const customer = customers.find(c => c.name === matchedName);
 
     return customer ? customer.id : null;
   } catch (error) {
-    console.error('Email matching failed:', error);
+    console.error('Email matching with AI failed:', error);
     // Fallback: try to match by email domain
     const customer = customers.find(c =>
       email.from.toLowerCase().includes(c.website.toLowerCase()) ||
@@ -273,9 +279,8 @@ export const analyzeEmailForStatusUpdate = async (
   email: EmailMessage,
   customer: Customer
 ): Promise<{ suggestedStatus?: string; insights: string }> => {
-  const modelId = "gemini-2.0-flash";
-
-  const prompt = `
+  try {
+    const prompt = `
     다음 이메일을 분석하여 고객의 영업 단계를 판단해주세요.
 
     고객사: ${customer.name}
@@ -293,22 +298,28 @@ export const analyzeEmailForStatusUpdate = async (
       "suggestedStatus": "상태 또는 null",
       "insights": "인사이트 요약"
     }
-  `;
+    `;
 
-  try {
-    const response = await getAi().models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
+    const response = await apiClient.request('/api/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt })
     });
 
-    const result = JSON.parse(response.text || '{}');
-    return {
-      suggestedStatus: result.suggestedStatus || undefined,
-      insights: result.insights || '이메일을 분석했습니다.'
-    };
+    const result = (response as any).data || {};
+    const text = result.content || '{}';
+
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      return {
+        suggestedStatus: parsed.suggestedStatus || undefined,
+        insights: parsed.insights || '이메일을 분석했습니다.'
+      };
+    } catch {
+      return {
+        insights: '이메일을 확인했습니다.'
+      };
+    }
   } catch (error) {
     console.error('Email analysis failed:', error);
     return {

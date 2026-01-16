@@ -3,7 +3,6 @@ import { Customer } from '../types';
 import { CreditCard, Mic } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 import { FollowUpSchedulerHeader } from './followup';
-import GeminiAPIManager from '../services/geminiApiManager';
 import {
   IconPlus,
   IconSearch,
@@ -56,7 +55,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenBusinessCardScanner,
   onOpenMeetingRecorder,
 }) => {
-  const isApiConfigured = GeminiAPIManager.getInstance().isApiKeyConfigured();
 
   return (
     <>
@@ -176,11 +174,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <Tooltip text="CRM 설정">
               <button
                 onClick={onOpenSettings}
-                className={`p-2 rounded-lg transition-colors ${
-                  isApiConfigured
-                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    : 'bg-amber-100 text-amber-700 hover:bg-amber-200 animate-pulse'
-                }`}
+                className="p-2 rounded-lg transition-colors bg-slate-100 text-slate-600 hover:bg-slate-200"
               >
                 <IconSettings className="w-4 h-4" />
               </button>

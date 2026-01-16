@@ -1,9 +1,7 @@
 import { Customer, ContextualSuggestion, ScheduledFollowUp } from '../types';
-import GeminiAPIManager from './geminiApiManager';
 import { getDueFollowUps, getUpcomingFollowUps } from './autoFollowUpService';
 import { getUpcomingMeetings } from './calendarIntegrationService';
-
-const getAi = () => GeminiAPIManager.getInstance().getAiInstance();
+import { apiClient } from '../src/services/apiClient';
 
 // Contextual Suggestions Storage
 const SUGGESTIONS_KEY = 'rinda_contextual_suggestions';
@@ -136,58 +134,14 @@ export const detectRiskSignals = async (
   customer: Customer,
   allCustomers: Customer[]
 ): Promise<ContextualSuggestion | null> => {
-  const modelId = "gemini-3-flash-preview";
-  
   const now = Date.now();
   const lastContact = customer.lastFollowUpAt || customer.lastEnrichedAt || 0;
   const daysSinceLastContact = Math.floor((now - lastContact) / (1000 * 60 * 60 * 24));
-  
-  const context = `
-    고객사: ${customer.name}
-    산업: ${customer.industry}
-    현재 상태: ${customer.status}
-    마지막 접촉: ${lastContact > 0 ? `${Math.floor((now - lastContact) / (1000 * 60 * 60 * 24))}일 전` : '없음'}
-    메모: ${customer.notes ? customer.notes.substring(0, 500) : '없음'}
-    ${customer.enrichedData ? `
-    최근 뉴스: ${customer.enrichedData.recentNews.join(', ')}
-    ` : ''}
-  `;
-
-  const prompt = `
-    다음 고객에 대한 위험 신호가 있는지 분석해주세요.
-    
-    ${context}
-    
-    다음 상황을 위험 신호로 간주합니다:
-    - 오랫동안 연락이 없는 경우 (30일 이상)
-    - 경쟁사와의 관계가 보이는 경우
-    - 부정적인 뉴스나 변화
-    - 거래 단계가 멈춰있는 경우
-    
-    위험 신호가 감지되면 JSON 형식으로 반환:
-    {
-      "hasRisk": true,
-      "riskReason": "위험 신호 이유",
-      "priority": "high" | "medium"
-    }
-    
-    위험 신호가 없으면:
-    {
-      "hasRisk": false
-    }
-  `;
 
   try {
-    const response = await getAi().models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
+    const response = await apiClient.detectRiskSignals(customer.id);
+    const result = (response as any).data;
 
-    const result = JSON.parse(response.text || '{}');
-    
     if (result.hasRisk) {
       return {
         id: `suggest_risk_${customer.id}_${Date.now()}`,
@@ -202,7 +156,7 @@ export const detectRiskSignals = async (
     }
   } catch (error) {
     console.error('Risk detection failed:', error);
-    
+
     // Fallback: check for obvious risk signals
     if (daysSinceLastContact >= 30 && customer.status !== 'won' && customer.status !== 'lost') {
       return {
@@ -217,7 +171,7 @@ export const detectRiskSignals = async (
       };
     }
   }
-  
+
   return null;
 };
 

@@ -146,6 +146,81 @@ class APIClient {
     });
   }
 
+  /**
+   * Generate follow-up strategy for a customer
+   */
+  async generateFollowUpStrategy(customerId: string, isLostDeal: boolean = false) {
+    return this.request(`/api/ai/followup/strategy/${customerId}`, {
+      method: 'POST',
+      body: JSON.stringify({ isLostDeal }),
+    });
+  }
+
+  /**
+   * Generate follow-up message for a customer
+   */
+  async generateFollowUpMessage(
+    customerId: string,
+    strategy: { approach: string; messageTone: string; keyPoints: string[] },
+    isLostDeal: boolean = false
+  ) {
+    return this.request(`/api/ai/followup/message/${customerId}`, {
+      method: 'POST',
+      body: JSON.stringify({ strategy, isLostDeal }),
+    });
+  }
+
+  /**
+   * Calculate optimal follow-up timing for a customer
+   */
+  async calculateFollowUpTiming(customerId: string) {
+    return this.request(`/api/ai/followup/timing/${customerId}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Determine optimal follow-up type (channel) for a customer
+   */
+  async determineFollowUpType(customerId: string) {
+    return this.request(`/api/ai/followup/type/${customerId}`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Parse user intent for AI assistant
+   */
+  async parseAssistantIntent(message: string, customers: { id: string; name: string }[]) {
+    return this.request('/api/ai/assistant/parse-intent', {
+      method: 'POST',
+      body: JSON.stringify({ message, customers }),
+    });
+  }
+
+  /**
+   * Generate AI assistant response
+   */
+  async generateAssistantResponse(
+    message: string,
+    context?: string,
+    conversationHistory?: Array<{ role: string; content: string }>
+  ) {
+    return this.request('/api/ai/assistant/response', {
+      method: 'POST',
+      body: JSON.stringify({ message, context, conversationHistory }),
+    });
+  }
+
+  /**
+   * Detect risk signals for a customer
+   */
+  async detectRiskSignals(customerId: string) {
+    return this.request(`/api/ai/risk/detect/${customerId}`, {
+      method: 'POST',
+    });
+  }
+
   // ==========================
   // Prospect Collection Endpoints
   // ==========================

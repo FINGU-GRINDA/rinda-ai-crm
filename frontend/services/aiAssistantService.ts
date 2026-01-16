@@ -1,10 +1,7 @@
 import { AIMessage, Customer } from '../types';
 import { enrichCustomerData, generateProposalStrategy, generateProposalCoverImage } from './geminiService';
 import { ImageSize } from '../types';
-import GeminiAPIManager from './geminiApiManager';
-
-// Get AI instance from manager
-const getAI = () => GeminiAPIManager.getInstance().getAiInstance();
+import { apiClient } from '../src/services/apiClient';
 
 // AI Assistant conversation storage
 const AI_ASSISTANT_CONVERSATIONS_KEY = 'rinda_ai_assistant_conversations';
@@ -30,7 +27,7 @@ export const clearConversationHistory = (sessionId: string = 'default'): void =>
   localStorage.removeItem(`${AI_ASSISTANT_CONVERSATIONS_KEY}_${sessionId}`);
 };
 
-// Parse user intent from message - using Gemini API directly
+// Parse user intent from message - using backend API
 export const parseUserIntent = async (
   message: string,
   customers: Customer[]
@@ -41,61 +38,18 @@ export const parseUserIntent = async (
   parameters?: Record<string, any>;
 }> => {
   try {
-    const ai = getAI();
-
     // Create customer names list for context
     const customerNames = customers.map(c => ({ id: c.id, name: c.name }));
 
-    const prompt = `
-사용자 메시지를 분석하여 의도를 파악해주세요.
+    const response = await apiClient.parseAssistantIntent(message, customerNames);
+    const result = (response as any).data;
 
-사용자 메시지: "${message}"
-
-등록된 고객 목록:
-${customerNames.map(c => `- ${c.name} (ID: ${c.id})`).join('\n')}
-
-다음 JSON 형식으로 응답해주세요:
-{
-  "intent": "enrich" | "proposal" | "search" | "analyze" | "followup" | "general",
-  "customerId": "고객ID (해당하는 경우)",
-  "customerName": "고객명 (해당하는 경우)",
-  "parameters": {}
-}
-
-의도 설명:
-- enrich: 고객 정보 분석/조사 요청 (예: "삼성전자 분석해줘", "테크플로우 정보 알려줘")
-- proposal: 제안서 생성 요청 (예: "제안서 만들어줘", "삼성전자 제안서 작성해줘")
-- search: 고객 검색 (예: "IT 고객 찾아줘", "삼성 검색")
-- analyze: 통계/분석 요청 (예: "고객 통계 보여줘", "현황 분석해줘")
-- followup: 후속 조치 관련 (예: "팔로업 필요한 고객", "연락해야 할 고객")
-- general: 일반 대화
-
-고객명이 메시지에 언급되면 해당 고객의 ID를 customerId에 포함하세요.
-`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        temperature: 0.3,
-        maxOutputTokens: 512,
-      }
-    });
-
-    const text = response.text || '{}';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        intent: parsed.intent || 'general',
-        customerId: parsed.customerId,
-        customerName: parsed.customerName,
-        parameters: parsed.parameters || {}
-      };
-    }
-
-    return { intent: 'general' };
+    return {
+      intent: result.intent || 'general',
+      customerId: result.customerId,
+      customerName: result.customerName,
+      parameters: result.parameters || {}
+    };
   } catch (error) {
     console.error('Intent parsing failed:', error);
     return { intent: 'general' };
@@ -242,7 +196,7 @@ export const executeAction = async (
   }
 };
 
-// Generate AI assistant response - using Gemini API directly
+// Generate AI assistant response - using backend API
 export const generateResponse = async (
   userMessage: string,
   customers: Customer[],
@@ -271,39 +225,18 @@ export const generateResponse = async (
   `;
 
   try {
-    const ai = getAI();
-
-    // Build conversation context
-    const historyContext = conversationHistory
-      .slice(-5)
-      .map(m => `${m.role === 'user' ? '사용자' : 'AI'}: ${m.content}`)
-      .join('\n');
-
-    const prompt = `
-당신은 RINDA CRM의 AI 어시스턴트입니다. 사용자의 질문에 친절하고 도움이 되게 답변해주세요.
-
-${historyContext ? `이전 대화:\n${historyContext}\n` : ''}
-
-${context}
-
-사용자: ${userMessage}
-
-간결하고 도움이 되는 답변을 해주세요. 한국어로 응답하세요.
-`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        temperature: 0.7,
-        maxOutputTokens: 1024,
-      }
-    });
+    // Call backend API for response generation
+    const response = await apiClient.generateAssistantResponse(
+      userMessage,
+      context,
+      conversationHistory.slice(-5)
+    );
+    const result = (response as any).data;
 
     const assistantMessage: AIMessage = {
       id: `msg_${Date.now()}`,
       role: 'assistant',
-      content: response.text || '죄송합니다. 응답을 생성하지 못했습니다.',
+      content: result.content || '죄송합니다. 응답을 생성하지 못했습니다.',
       timestamp: Date.now(),
       metadata: {
         action: intent.intent,
@@ -331,12 +264,12 @@ ${context}
       };
     }
 
-    // Handle API key errors
-    if (error?.message?.includes('API Key가 설정되지 않았습니다')) {
+    // Handle service unavailable errors
+    if (error?.message?.includes('AI service not available')) {
       return {
         id: `msg_${Date.now()}`,
         role: 'assistant',
-        content: 'API Key가 설정되지 않았습니다. 설정 메뉴에서 Gemini API Key를 입력해주세요.',
+        content: 'AI 서비스를 사용할 수 없습니다. 서버의 Gemini API 키가 설정되어 있는지 확인해주세요.',
         timestamp: Date.now()
       };
     }

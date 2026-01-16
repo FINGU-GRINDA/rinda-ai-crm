@@ -2,7 +2,6 @@ import React, { useState, useEffect, lazy, Suspense, useCallback } from 'react';
 import { SettingsTabType } from '../../types';
 import { SettingsTabBar } from './SettingsTabBar';
 import { IconX, IconSettings, IconLoader } from '../Icons';
-import GeminiAPIManager from '../../services/geminiApiManager';
 import { getSlackSettings } from '../../services/slackIntegrationService';
 import type { MixpanelFormState } from './tabs/MixpanelIntegrationTab';
 import type { SlackFormState } from './tabs/SlackIntegrationTab';
@@ -71,7 +70,7 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
   // Update connection status on open and when settings change
   const updateConnectionStatus = () => {
     setConnectionStatus({
-      ai: GeminiAPIManager.getInstance().isApiKeyConfigured(),
+      ai: false, // AI key is now managed server-side only
       slack: getSlackSettings().isValidated,
       email: !!localStorage.getItem('rinda_email_settings') &&
              JSON.parse(localStorage.getItem('rinda_email_settings') || '{}').isConnected,

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { IconX, IconEye, IconEyeOff, IconCheck, IconLoader, IconExternalLink, IconKey } from './Icons';
-import GeminiAPIManager from '../services/geminiApiManager';
 
 interface ApiKeySettingsProps {
   isOpen: boolean;
@@ -17,10 +16,6 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
 
   useEffect(() => {
     if (isOpen) {
-      // 현재 설정된 API Key 확인
-      const masked = GeminiAPIManager.getInstance().getMaskedApiKey();
-      setCurrentMaskedKey(masked);
-
       // 상태 초기화
       setApiKey('');
       setErrorMessage('');
@@ -43,24 +38,7 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
   }, [apiKey]);
 
   const validateApiKey = async () => {
-    if (apiKey.length < 20) return;
-
-    setIsValidating(true);
-    setValidationStatus('validating');
-    setErrorMessage('');
-
-    const result = await GeminiAPIManager.getInstance().setApiKey(apiKey);
-
-    if (result.success) {
-      setValidationStatus('valid');
-      setErrorMessage('');
-      setCurrentMaskedKey(GeminiAPIManager.getInstance().getMaskedApiKey());
-    } else {
-      setValidationStatus('invalid');
-      setErrorMessage(result.error || '유효하지 않은 API Key입니다.');
-    }
-
-    setIsValidating(false);
+    setErrorMessage('API Key 관리가 서버로 이동되었습니다. 서버 환경설정을 확인해주세요.');
   };
 
   const handleSave = async () => {
@@ -75,7 +53,6 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
   };
 
   const handleClear = () => {
-    GeminiAPIManager.getInstance().clearApiKey();
     setCurrentMaskedKey(null);
     setApiKey('');
     setValidationStatus('idle');
@@ -84,7 +61,7 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
 
   if (!isOpen) return null;
 
-  const isConfigured = GeminiAPIManager.getInstance().isApiKeyConfigured();
+  const isConfigured = false;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">

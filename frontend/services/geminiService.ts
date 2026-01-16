@@ -1,16 +1,11 @@
 import { EnrichedData, ImageSize } from "../types";
-import GeminiAPIManager from "./geminiApiManager";
+import { apiClient } from "../src/services/apiClient";
 
-// Get AI instance from manager
-const getAI = () => GeminiAPIManager.getInstance().getAiInstance();
-
-// 1. Customer Enrichment using Gemini API directly
+// 1. Customer Enrichment using backend API
 export const enrichCustomerData = async (companyName: string, website: string): Promise<EnrichedData> => {
   try {
-    const ai = getAI();
-
     const prompt = `
-당신은 B2B 영업 전문가입니다. 다음 회사에 대한 정보를 조사하고 분석해주세요.
+다음 회사에 대한 정보를 조사하고 분석해주세요.
 
 회사명: ${companyName}
 웹사이트: ${website}
@@ -22,21 +17,18 @@ export const enrichCustomerData = async (companyName: string, website: string): 
   "foundedYear": "설립연도 (모르면 빈 문자열)",
   "recentNews": ["최근 뉴스 또는 동향 1", "최근 뉴스 또는 동향 2", "최근 뉴스 또는 동향 3"],
   "competitors": ["경쟁사 1", "경쟁사 2"],
-  "salesOpportunity": "이 회사에 대한 영업 기회 분석 (어떤 니즈가 있을지, 어떻게 접근하면 좋을지)",
+  "salesOpportunity": "이 회사에 대한 영업 기회 분석",
   "sources": []
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      }
+    const response = await apiClient.request('/api/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt })
     });
 
-    const text = response.text || '';
+    const result = (response as any).data || {};
+    const text = result.content || '';
 
     // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -59,23 +51,17 @@ export const enrichCustomerData = async (companyName: string, website: string): 
     console.error("Enrichment failed:", error);
 
     // Provide more specific error messages
-    if (error?.message?.includes('API Key가 설정되지 않았습니다')) {
-      throw new Error('API Key가 설정되지 않았습니다. 설정 메뉴에서 Gemini API Key를 입력해주세요.');
-    } else if (error?.message?.includes('API key') || error?.message?.includes('INVALID_ARGUMENT')) {
-      throw new Error('API Key가 유효하지 않습니다. 설정에서 올바른 API Key를 입력해주세요.');
-    } else if (error?.message?.includes('RESOURCE_EXHAUSTED')) {
-      throw new Error('API 할당량이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+    if (error?.message?.includes('AI service not available')) {
+      throw new Error('AI 서비스를 사용할 수 없습니다. 서버의 Gemini API 키가 설정되어 있는지 확인해주세요.');
     }
 
     throw new Error(error.message || '고객 정보 수집에 실패했습니다.');
   }
 };
 
-// 2. Proposal Strategy using Gemini API directly
+// 2. Proposal Strategy using backend API
 export const generateProposalStrategy = async (customerName: string, enrichedData: EnrichedData, userNotes: string): Promise<string> => {
   try {
-    const ai = getAI();
-
     const prompt = `
 당신은 B2B 영업 제안서 작성 전문가입니다. 다음 고객 정보를 바탕으로 맞춤형 제안서를 작성해주세요.
 
@@ -90,30 +76,21 @@ export const generateProposalStrategy = async (customerName: string, enrichedDat
 ## 추가 메모
 ${userNotes || '없음'}
 
-## 작성 지침
-1. 고객의 니즈와 상황에 맞춘 제안서를 작성하세요
-2. 구체적인 가치 제안을 포함하세요
-3. 전문적이고 설득력 있는 톤을 유지하세요
-4. Markdown 형식으로 작성하세요
-
-제안서를 작성해주세요:
+제안서를 Markdown 형식으로 작성해주세요:
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        temperature: 0.8,
-        maxOutputTokens: 4096,
-      }
+    const response = await apiClient.request('/api/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt })
     });
 
-    return response.text || "제안서 생성에 실패했습니다.";
+    const result = (response as any).data || {};
+    return result.content || "제안서 생성에 실패했습니다.";
   } catch (error: any) {
     console.error("Proposal strategy generation failed:", error);
 
-    if (error?.message?.includes('API Key가 설정되지 않았습니다')) {
-      throw new Error('API Key가 설정되지 않았습니다. 설정 메뉴에서 Gemini API Key를 입력해주세요.');
+    if (error?.message?.includes('AI service not available')) {
+      throw new Error('AI 서비스를 사용할 수 없습니다. 서버의 Gemini API 키가 설정되어 있는지 확인해주세요.');
     }
 
     throw new Error(error.message || '제안서 생성에 실패했습니다.');

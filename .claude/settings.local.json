@@ -31,7 +31,8 @@
       "Bash(timeout /t 3)",
       "Bash(bun lint:*)",
       "Bash(bun type-check:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }

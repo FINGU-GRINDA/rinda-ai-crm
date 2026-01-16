@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { IconEye, IconEyeOff, IconCheck, IconLoader, IconExternalLink, IconX } from '../../Icons';
-import GeminiAPIManager from '../../../services/geminiApiManager';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -36,10 +35,6 @@ export const AISettingsTab: React.FC<AISettingsTabProps> = ({ onSettingsChange, 
   const isDirty = apiKey.trim().length > 0;
 
   useEffect(() => {
-    // 현재 설정된 API Key 확인
-    const masked = GeminiAPIManager.getInstance().getMaskedApiKey();
-    setCurrentMaskedKey(masked);
-
     // 서버 AI 상태 확인
     fetchServerStatus();
   }, []);
@@ -62,36 +57,8 @@ export const AISettingsTab: React.FC<AISettingsTabProps> = ({ onSettingsChange, 
   };
 
   const handleSave = async () => {
-    if (!apiKey.trim()) {
-      setErrorMessage('API Key를 입력해주세요.');
-      setSuccessMessage('');
-      return;
-    }
-
-    if (apiKey.length < 20) {
-      setErrorMessage('API Key가 너무 짧습니다.');
-      setSuccessMessage('');
-      return;
-    }
-
-    setIsSaving(true);
-    setErrorMessage('');
+    setErrorMessage('API Key 관리가 서버로 이동되었습니다. 서버 환경설정을 통해 GEMINI_API_KEY를 설정하세요.');
     setSuccessMessage('');
-
-    const result = await GeminiAPIManager.getInstance().setApiKey(apiKey);
-
-    if (result.success) {
-      setSuccessMessage('API Key가 저장되었습니다!');
-      setErrorMessage('');
-      setCurrentMaskedKey(GeminiAPIManager.getInstance().getMaskedApiKey());
-      setApiKey(''); // Clear input after successful save
-      onSettingsChange?.();
-    } else {
-      setErrorMessage(result.error || '유효하지 않은 API Key입니다.');
-      setSuccessMessage('');
-    }
-
-    setIsSaving(false);
   };
 
   const handleReset = () => {
@@ -124,7 +91,6 @@ export const AISettingsTab: React.FC<AISettingsTabProps> = ({ onSettingsChange, 
   }, [onFormStateChange]);
 
   const handleClear = () => {
-    GeminiAPIManager.getInstance().clearApiKey();
     setCurrentMaskedKey(null);
     setApiKey('');
     setErrorMessage('');
@@ -132,7 +98,7 @@ export const AISettingsTab: React.FC<AISettingsTabProps> = ({ onSettingsChange, 
     onSettingsChange?.();
   };
 
-  const isConfigured = GeminiAPIManager.getInstance().isApiKeyConfigured();
+  const isConfigured = false;
 
   return (
     <div className="space-y-6">
