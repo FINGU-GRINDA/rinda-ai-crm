@@ -189,6 +189,281 @@ ${customerNeeds.map((n, i) => `${i + 1}. ${n}`).join("\n")}
 
     return this.generateJSON(prompt)
   }
+
+  async generateFollowUpStrategy(
+    customer: { name: string; industry?: string; status: string; notes?: string },
+    enrichedData?: { summary: string; salesOpportunity?: string; recentNews?: string[] },
+    isLostDeal: boolean = false,
+  ): Promise<{
+    recommendedTiming: string
+    approach: string
+    messageTone: string
+    keyPoints: string[]
+    probability: "high" | "medium" | "low"
+    reasoning: string
+  } | null> {
+    const context = `
+고객사: ${customer.name}
+산업: ${customer.industry || "미지정"}
+상태: ${customer.status}
+내부 메모: ${customer.notes || "없음"}
+${enrichedData ? `
+회사 요약: ${enrichedData.summary}
+${isLostDeal ? "" : `세일즈 기회: ${enrichedData.salesOpportunity || "분석중"}`}
+${enrichedData.recentNews ? `최근 뉴스: ${enrichedData.recentNews.join(", ")}` : ""}
+` : ""}`
+
+    const prompt = `당신은 RINDA CRM의 세일즈 전략가입니다.
+${isLostDeal ? `거래를 놓친 고객 "${customer.name}"에 대한 재접촉 전략을 분석해주세요.` : `잠재 고객 "${customer.name}"에 대한 초기 접촉 및 Follow Up 전략을 수립해주세요.`}
+
+${context}
+
+다음을 포함한 JSON 객체를 한국어로 반환해주세요:
+{
+  "recommendedTiming": "최적의 ${isLostDeal ? "재" : ""}접촉 시기 (예: ${isLostDeal ? '"30일 후", "다음 분기 초", "즉시"' : '"즉시", "1주일 후", "다음 달"'})",
+  "approach": "접근 방법 (예: ${isLostDeal ? '"가치 중심 재제안", "경쟁사 대안 제시", "관계 회복"' : '"가치 제안 중심", "니즈 탐색", "케이스 스터디 공유"'})",
+  "messageTone": "메시지 톤 (예: ${isLostDeal ? '"전문적이고 공감적", "솔직하고 직접적"' : '"친근하고 전문적", "간결하고 직접적"'})",
+  "keyPoints": ["핵심 포인트 1", "핵심 포인트 2", "핵심 포인트 3"],
+  "probability": "성공 가능성 ('high', 'medium', 'low')",
+  "reasoning": "전략 선택 이유"
+}`
+
+    const result = await this.generateJSON<{
+      recommendedTiming: string
+      approach: string
+      messageTone: string
+      keyPoints: string[]
+      probability: "high" | "medium" | "low"
+      reasoning: string
+    }>(prompt)
+
+    return result
+  }
+
+  async generateFollowUpMessage(
+    customer: { name: string; industry?: string; status?: string; lostReason?: string },
+    strategy: { approach: string; messageTone: string; keyPoints: string[] },
+    enrichedData?: { summary: string; salesOpportunity?: string },
+    isLostDeal: boolean = false,
+  ): Promise<{
+    subject?: string
+    content: string
+    suggestedChannel: "email" | "call" | "linkedin" | "meeting"
+  } | null> {
+    const context = `
+고객사: ${customer.name}
+산업: ${customer.industry || "미지정"}
+${isLostDeal ? `거래 실패 사유: ${customer.lostReason || "미상"}` : `상태: ${customer.status || "미지정"}`}
+전략: ${strategy.approach}
+톤: ${strategy.messageTone}
+핵심 포인트: ${strategy.keyPoints.join(", ")}
+${enrichedData ? `회사 요약: ${enrichedData.summary}` : ""}`
+
+    const prompt = `당신은 RINDA CRM의 세일즈 커뮤니케이션 전문가입니다.
+${isLostDeal ? "거래를 놓친" : "잠재"} 고객 "${customer.name}"에게 보낼 ${isLostDeal ? "재접촉" : "초기 접촉"} 메시지를 작성해주세요.
+
+${context}
+
+다음을 포함한 JSON 객체를 한국어로 반환해주세요:
+{
+  "subject": "이메일 제목 (이메일인 경우)",
+  "content": "메시지 본문 (전문적이고 설득력 있게, 200-300자)",
+  "suggestedChannel": "권장 채널 ('email', 'call', 'linkedin', 'meeting')"
+}
+
+전략의 접근 방법과 톤을 반영하여, 고객의 관심을 끌고 다음 단계로 이어질 수 있는 메시지를 작성해주세요.
+${isLostDeal ? "과거 거래 실패를 언급하되, 긍정적이고 재기회를 제시하는 방향으로 작성해주세요." : ""}`
+
+    const result = await this.generateJSON<{
+      subject?: string
+      content: string
+      suggestedChannel: "email" | "call" | "linkedin" | "meeting"
+    }>(prompt)
+
+    return result
+  }
+
+  async calculateOptimalFollowUpTiming(
+    customer: { name: string; industry?: string; status: string; notes?: string },
+    daysSinceLastContact: number = 0,
+    enrichedData?: { summary: string; salesOpportunity?: string },
+  ): Promise<{
+    days: number
+    reason: string
+    priority: "high" | "medium" | "low"
+  } | null> {
+    const context = `
+고객사: ${customer.name}
+산업: ${customer.industry || "미지정"}
+상태: ${customer.status}
+마지막 접촉 이후 일수: ${daysSinceLastContact}일
+내부 메모: ${customer.notes || "없음"}
+${enrichedData ? `세일즈 기회: ${enrichedData.salesOpportunity || "분석중"}` : ""}`
+
+    const prompt = `당신은 RINDA CRM의 세일즈 타이밍 전문가입니다.
+다음 고객에 대한 최적의 재접촉 시기를 분석해주세요.
+
+${context}
+
+다음 JSON 형식으로 응답해주세요:
+{
+  "days": 숫자 (권장 재접촉까지의 일수),
+  "reason": "권장 이유 (30자 이내)",
+  "priority": "우선순위 ('high', 'medium', 'low')"
+}`
+
+    const result = await this.generateJSON<{
+      days: number
+      reason: string
+      priority: "high" | "medium" | "low"
+    }>(prompt)
+
+    return result
+  }
+
+  async determineFollowUpType(
+    customer: { name: string; status: string; notes?: string },
+  ): Promise<"email" | "call" | "meeting" | "message" | null> {
+    const prompt = `당신은 RINDA CRM의 커뮤니케이션 채널 전문가입니다.
+다음 고객에게 적절한 접촉 채널을 결정해주세요.
+
+고객: ${customer.name}
+상태: ${customer.status}
+노트: ${customer.notes || "없음"}
+
+고객의 상태와 상황을 고려하여 'email', 'call', 'meeting', 'message' 중 가장 적절한 채널 하나만 영어로 반환해주세요.
+예: "email"`
+
+    const text = await this.generateContent(prompt)
+    if (!text) return null
+
+    const channel = text
+      .toLowerCase()
+      .trim()
+      .match(/email|call|meeting|message/)?.[0] as
+      | "email"
+      | "call"
+      | "meeting"
+      | "message"
+      | undefined
+
+    return channel || "email"
+  }
+
+  async parseUserIntent(
+    message: string,
+    customers: Array<{ id: string; name: string }> = [],
+  ): Promise<{
+    intent: "enrich" | "proposal" | "search" | "analyze" | "followup" | "general"
+    customerId?: string
+    customerName?: string
+    parameters?: Record<string, unknown>
+  } | null> {
+    const customerList = customers.map((c) => `- ${c.name} (ID: ${c.id})`).join("\n")
+
+    const prompt = `당신은 RINDA CRM의 AI 어시스턴트입니다.
+사용자 메시지를 분석하여 의도(intent)를 파악해주세요.
+
+사용자 메시지: "${message}"
+
+이용 가능한 고객:
+${customerList || "없음"}
+
+다음 JSON 형식으로 응답해주세요:
+{
+  "intent": "intent는 다음 중 하나 ('enrich', 'proposal', 'search', 'analyze', 'followup', 'general')",
+  "customerId": "해당 고객 ID (없으면 null)",
+  "customerName": "해당 고객명 (없으면 null)",
+  "parameters": {
+    "키": "값"
+  }
+}
+
+intent 가이드:
+- 'enrich': 고객 정보 조회/분석 요청
+- 'proposal': 제안서 생성 요청
+- 'search': 고객 검색 요청
+- 'analyze': 데이터 분석 요청
+- 'followup': 후속 조치 관련 요청
+- 'general': 일반 대화`
+
+    const result = await this.generateJSON<{
+      intent: "enrich" | "proposal" | "search" | "analyze" | "followup" | "general"
+      customerId?: string
+      customerName?: string
+      parameters?: Record<string, unknown>
+    }>(prompt)
+
+    return result || { intent: "general" }
+  }
+
+  async generateAssistantResponse(
+    userMessage: string,
+    context: string = "",
+    conversationHistory: Array<{ role: string; content: string }> = [],
+  ): Promise<string | null> {
+    const historyText = conversationHistory
+      .slice(-5)
+      .map((msg) => `${msg.role}: ${msg.content}`)
+      .join("\n")
+
+    const prompt = `당신은 RINDA CRM의 친절한 AI 어시스턴트입니다.
+고객 관계 관리(CRM)와 영업 활동에 대한 조언을 제공합니다.
+
+${context ? `컨텍스트:\n${context}\n` : ""}
+${historyText ? `대화 히스토리:\n${historyText}\n` : ""}
+
+사용자 메시지: "${userMessage}"
+
+사용자 메시지에 대해 친절하고 전문적인 응답을 한국어로 제공해주세요.
+CRM 관련 조언이나 다음 단계를 제시해주세요.`
+
+    return this.generateContent(prompt)
+  }
+
+  async detectRiskSignals(
+    customer: { name: string; industry?: string; status: string; notes?: string },
+    daysSinceLastContact: number = 0,
+    enrichedData?: { recentNews?: string[] },
+  ): Promise<{
+    hasRisk: boolean
+    riskReason?: string
+    priority?: "high" | "medium"
+  } | null> {
+    const context = `
+고객사: ${customer.name}
+산업: ${customer.industry || "미지정"}
+상태: ${customer.status}
+마지막 접촉 이후 일수: ${daysSinceLastContact}일
+내부 메모: ${customer.notes || "없음"}
+${enrichedData?.recentNews ? `최근 뉴스: ${enrichedData.recentNews.join(", ")}` : ""}`
+
+    const prompt = `당신은 RINDA CRM의 위험 신호 감지 전문가입니다.
+고객 관계에 잠재적인 위험 신호가 있는지 분석해주세요.
+
+${context}
+
+위험 신호 고려사항:
+- 장시간 연락 없음 (30일 이상)
+- 상태 변화 (예: 활성 → 미활성)
+- 부정적인 뉴스 언급
+- 경쟁사 언급
+
+다음 JSON 형식으로 응답해주세요:
+{
+  "hasRisk": 위험 신호 여부 (true/false),
+  "riskReason": "위험 신호 설명 (있는 경우)",
+  "priority": "우선순위 ('high', 'medium', 없으면 null)"
+}`
+
+    const result = await this.generateJSON<{
+      hasRisk: boolean
+      riskReason?: string
+      priority?: "high" | "medium"
+    }>(prompt)
+
+    return result
+  }
 }
 
 export const geminiService = new GeminiService()

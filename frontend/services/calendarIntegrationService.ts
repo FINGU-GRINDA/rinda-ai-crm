@@ -1,7 +1,5 @@
 import { CalendarEvent, CalendarIntegration, MeetingPreparation, Customer } from '../types';
-import GeminiAPIManager from './geminiApiManager';
-
-const getAi = () => GeminiAPIManager.getInstance().getAiInstance();
+import { apiClient } from '../src/services/apiClient';
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -175,8 +173,6 @@ export const matchEventToCustomer = async (
   event: CalendarEvent,
   customers: Customer[]
 ): Promise<string | null> => {
-  const modelId = "gemini-2.0-flash";
-
   const customerList = customers.map(c => `${c.name} (${c.website})`).join(', ');
 
   const prompt = `
@@ -195,12 +191,13 @@ export const matchEventToCustomer = async (
   `;
 
   try {
-    const response = await getAi().models.generateContent({
-      model: modelId,
-      contents: prompt
+    const response = await apiClient.request('/api/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt })
     });
 
-    const matchedName = response.text?.trim() || '';
+    const result = (response as any).data || {};
+    const matchedName = (result.content || '').trim();
     const customer = customers.find(c =>
       c.name === matchedName ||
       event.title.includes(c.name) ||
@@ -225,8 +222,6 @@ export const generateMeetingPreparation = async (
   customer: Customer,
   event: CalendarEvent
 ): Promise<MeetingPreparation> => {
-  const modelId = "gemini-2.0-flash";
-
   const context = `
     고객사: ${customer.name}
     산업: ${customer.industry}
@@ -260,23 +255,34 @@ export const generateMeetingPreparation = async (
   `;
 
   try {
-    const response = await getAi().models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
+    const response = await apiClient.request('/api/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt })
     });
 
-    const result = JSON.parse(response.text || '{}');
+    const result = (response as any).data || {};
+    const text = result.content || '{}';
 
-    return {
-      customerId: customer.id,
-      summary: result.summary || `${customer.name}와의 미팅 준비`,
-      keyPoints: result.keyPoints || [],
-      suggestedTopics: result.suggestedTopics || [],
-      generatedAt: Date.now()
-    };
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+      return {
+        customerId: customer.id,
+        summary: parsed.summary || `${customer.name}와의 미팅 준비`,
+        keyPoints: parsed.keyPoints || [],
+        suggestedTopics: parsed.suggestedTopics || [],
+        generatedAt: Date.now()
+      };
+    } catch {
+      return {
+        customerId: customer.id,
+        summary: `${customer.name}와의 미팅 준비`,
+        keyPoints: [],
+        suggestedTopics: [],
+        generatedAt: Date.now()
+      };
+    }
   } catch (error) {
     console.error('Meeting preparation generation failed:', error);
     return {

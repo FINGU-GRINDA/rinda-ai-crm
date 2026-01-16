@@ -32,7 +32,6 @@ const ICPSettings = lazy(() => import('./components/ICPSettings').then(m => ({ d
 const AutoFollowUpScheduler = lazy(() => import('./components/AutoFollowUpScheduler').then(m => ({ default: m.AutoFollowUpScheduler })));
 const MeetingPrep = lazy(() => import('./components/MeetingPrep').then(m => ({ default: m.MeetingPrep })));
 import { UnifiedSettings } from './components/settings';
-import GeminiAPIManager from './services/geminiApiManager';
 import { IconSearch, IconX, IconArrowRight } from './components/Icons';
 import { AIAssistant } from './components/AIAssistant';
 
@@ -178,14 +177,6 @@ const App: React.FC = () => {
 
     return { total, enriched, proposals, byStatus };
   }, [customers]);
-
-  // Check API Key on first load
-  useEffect(() => {
-    const isConfigured = GeminiAPIManager.getInstance().isApiKeyConfigured();
-    if (!isConfigured) {
-      setShowSettings(true);
-    }
-  }, []);
 
   // Check server health
   const checkServerHealth = useCallback(async () => {
@@ -1039,7 +1030,7 @@ const App: React.FC = () => {
                 mobileBottomTab === 'settings' ? 'text-blue-600' : 'text-slate-500'
               }`}
             >
-              <Settings className={`w-6 h-6 ${!GeminiAPIManager.getInstance().isApiKeyConfigured() ? 'text-amber-500' : ''}`} />
+              <Settings className="w-6 h-6" />
               <span className="text-xs mt-1 font-medium">설정</span>
             </button>
           </div>

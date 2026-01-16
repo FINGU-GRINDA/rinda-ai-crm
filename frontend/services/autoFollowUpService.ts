@@ -1,10 +1,6 @@
 import { Customer, ScheduledFollowUp, FollowUpAction, FollowUpStats, FollowUpFilterOptions, FollowUpType, FollowUpPriority } from '../types';
-import { GoogleGenAI } from '@google/genai';
 import { getUpcomingMeetings } from './calendarIntegrationService';
-import GeminiAPIManager from './geminiApiManager';
-
-// Gemini API 인스턴스 가져오기 (싱글톤)
-const getAi = () => GeminiAPIManager.getInstance().getAiInstance();
+import { apiClient } from '../src/services/apiClient';
 
 // Scheduled Follow-ups Storage
 const SCHEDULED_FOLLOWUPS_KEY = 'rinda_scheduled_followups';
@@ -40,60 +36,15 @@ export const deleteScheduledFollowUp = (followUpId: string): void => {
 export const calculateOptimalFollowUpTiming = async (
   customer: Customer
 ): Promise<{ days: number; reason: string; priority: 'high' | 'medium' | 'low' }> => {
-  const modelId = "gemini-3-flash-preview";
-  
-  const now = Date.now();
-  const lastContact = customer.lastFollowUpAt || customer.lastEnrichedAt || 0;
-  const daysSinceLastContact = Math.floor((now - lastContact) / (1000 * 60 * 60 * 24));
-  
-  const context = `
-    고객사: ${customer.name}
-    산업: ${customer.industry}
-    현재 상태: ${customer.status}
-    마지막 접촉: ${lastContact > 0 ? `${daysSinceLastContact}일 전` : '없음'}
-    메모: ${customer.notes ? customer.notes.substring(0, 500) : '없음'}
-    ${customer.enrichedData ? `
-    회사 요약: ${customer.enrichedData.summary}
-    세일즈 기회: ${customer.enrichedData.salesOpportunity}
-    ` : ''}
-  `;
-
-  const prompt = `
-    다음 고객에 대한 최적의 Follow-up 시기를 계산해주세요.
-    
-    ${context}
-    
-    다음을 고려하여 판단해주세요:
-    - 고객의 현재 영업 단계
-    - 마지막 접촉으로부터 경과 시간
-    - 고객의 특성과 산업
-    - 세일즈 기회의 긴급성
-    
-    JSON 형식으로 반환:
-    {
-      "days": 숫자 (0 = 즉시, 1-7 = 며칠 후, 14 = 2주 후, 30 = 한 달 후),
-      "reason": "시기 선택 이유",
-      "priority": "high" | "medium" | "low"
-    }
-  `;
-
   try {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
+    const response = await apiClient.calculateFollowUpTiming(customer.id);
+    const result = (response as any).data;
 
-    const result = JSON.parse(response.text || '{}');
-    
     // Validate and set defaults
     let days = result.days ?? 7;
     if (days < 0) days = 0;
     if (days > 90) days = 90;
-    
+
     return {
       days,
       reason: result.reason || '정기적인 Follow-up이 필요합니다.',
@@ -101,11 +52,15 @@ export const calculateOptimalFollowUpTiming = async (
     };
   } catch (error) {
     console.error('Follow-up timing calculation failed:', error);
-    
+
     // Fallback logic
+    const now = Date.now();
+    const lastContact = customer.lastFollowUpAt || customer.lastEnrichedAt || 0;
+    const daysSinceLastContact = Math.floor((now - lastContact) / (1000 * 60 * 60 * 24));
+
     let days = 7;
     let priority: 'high' | 'medium' | 'low' = 'medium';
-    
+
     if (customer.status === 'negotiation') {
       days = 3;
       priority = 'high';
@@ -119,7 +74,7 @@ export const calculateOptimalFollowUpTiming = async (
       days = 0; // Immediate
       priority = 'high';
     }
-    
+
     return {
       days,
       reason: `고객 상태(${customer.status})와 마지막 접촉(${daysSinceLastContact}일 전)을 고려한 Follow-up 시기입니다.`,
@@ -132,40 +87,18 @@ export const calculateOptimalFollowUpTiming = async (
 export const determineFollowUpType = async (
   customer: Customer
 ): Promise<'email' | 'call' | 'meeting' | 'message'> => {
-  const modelId = "gemini-3-flash-preview";
-  
-  const prompt = `
-    다음 고객에게 어떤 방식으로 Follow-up하는 것이 가장 적절한지 판단해주세요.
-    
-    고객사: ${customer.name}
-    상태: ${customer.status}
-    메모: ${customer.notes ? customer.notes.substring(0, 300) : '없음'}
-    
-    다음 중 하나를 선택: email, call, meeting, message
-
-    JSON 형식: { "type": "email" | "call" | "meeting" | "message" }
-  `;
-
   try {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
-
-    const result = JSON.parse(response.text || '{}');
+    const response = await apiClient.determineFollowUpType(customer.id);
+    const result = (response as any).data;
     const type = result.type || 'email';
-    
+
     if (['email', 'call', 'meeting', 'message'].includes(type)) {
       return type as 'email' | 'call' | 'meeting' | 'message';
     }
   } catch (error) {
     console.error('Follow-up type determination failed:', error);
   }
-  
+
   // Fallback
   if (customer.status === 'negotiation') {
     return 'call';
@@ -180,34 +113,19 @@ export const generateFollowUpContent = async (
   customer: Customer,
   type: 'email' | 'call' | 'meeting' | 'message'
 ): Promise<string> => {
-  const modelId = "gemini-3-flash-preview";
-  
-  const context = `
-    고객사: ${customer.name}
-    산업: ${customer.industry}
-    상태: ${customer.status}
-    메모: ${customer.notes || '없음'}
-    ${customer.enrichedData ? `
-    세일즈 기회: ${customer.enrichedData.salesOpportunity}
-    ` : ''}
-  `;
-
-  const prompt = `
-    다음 고객에게 보낼 ${type === 'email' ? '이메일' : type === 'call' ? '전화' : type === 'meeting' ? '미팅' : '메시지'} 내용을 작성해주세요.
-    
-    ${context}
-
-    전문적이고 친근한 톤으로, 간결하게 작성해주세요 (100-200자).
-  `;
-
   try {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt
-    });
+    // For generateFollowUpContent, we use generateFollowUpMessage endpoint
+    // which returns a full message object. We'll extract the content.
+    const strategy = {
+      approach: 'Follow-up based on customer status',
+      messageTone: 'Professional',
+      keyPoints: []
+    };
 
-    return response.text || `${customer.name}와의 Follow-up이 필요합니다.`;
+    const response = await apiClient.generateFollowUpMessage(customer.id, strategy, false);
+    const result = (response as any).data;
+
+    return result.content || `${customer.name}와의 Follow-up이 필요합니다.`;
   } catch (error) {
     console.error('Follow-up content generation failed:', error);
     return `${customer.name}와의 Follow-up이 필요합니다.`;

@@ -184,3 +184,301 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
       }),
     },
   )
+
+  // Follow-up strategy generation
+  .post(
+    "/followup/strategy/:customerId",
+    async ({ params, body, set }) => {
+      if (!geminiService.isAvailable()) {
+        set.status = 503
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
+      }
+
+      const customer = await customerRepository.findById(params.customerId)
+      if (!customer) {
+        set.status = 404
+        return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
+      }
+
+      const isLostDeal = body?.isLostDeal || false
+      const strategy = await geminiService.generateFollowUpStrategy(
+        {
+          name: customer.name,
+          industry: customer.industry || undefined,
+          status: customer.status,
+          notes: customer.notes || undefined,
+        },
+        customer.enrichedData
+          ? {
+              summary: customer.enrichedData.summary,
+              salesOpportunity: customer.enrichedData.salesOpportunity,
+              recentNews: customer.enrichedData.recentNews
+                ? JSON.parse(customer.enrichedData.recentNews)
+                : undefined,
+            }
+          : undefined,
+        isLostDeal,
+      )
+
+      if (!strategy) {
+        set.status = 500
+        return error("Failed to generate follow-up strategy", ErrorCode.INTERNAL_ERROR)
+      }
+
+      return success(strategy)
+    },
+    {
+      params: t.Object({ customerId: t.String() }),
+      body: t.Optional(t.Object({ isLostDeal: t.Optional(t.Boolean()) })),
+    },
+  )
+
+  // Follow-up message generation
+  .post(
+    "/followup/message/:customerId",
+    async ({ params, body, set }) => {
+      if (!geminiService.isAvailable()) {
+        set.status = 503
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
+      }
+
+      const customer = await customerRepository.findById(params.customerId)
+      if (!customer) {
+        set.status = 404
+        return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
+      }
+
+      const isLostDeal = body?.isLostDeal || false
+      const message = await geminiService.generateFollowUpMessage(
+        {
+          name: customer.name,
+          industry: customer.industry || undefined,
+          status: customer.status,
+          lostReason: customer.lostReason || undefined,
+        },
+        body.strategy,
+        customer.enrichedData
+          ? {
+              summary: customer.enrichedData.summary,
+              salesOpportunity: customer.enrichedData.salesOpportunity,
+            }
+          : undefined,
+        isLostDeal,
+      )
+
+      if (!message) {
+        set.status = 500
+        return error("Failed to generate follow-up message", ErrorCode.INTERNAL_ERROR)
+      }
+
+      return success(message)
+    },
+    {
+      params: t.Object({ customerId: t.String() }),
+      body: t.Object({
+        strategy: t.Object({
+          approach: t.String(),
+          messageTone: t.String(),
+          keyPoints: t.Array(t.String()),
+        }),
+        isLostDeal: t.Optional(t.Boolean()),
+      }),
+    },
+  )
+
+  // Calculate optimal follow-up timing
+  .post(
+    "/followup/timing/:customerId",
+    async ({ params, set }) => {
+      if (!geminiService.isAvailable()) {
+        set.status = 503
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
+      }
+
+      const customer = await customerRepository.findById(params.customerId)
+      if (!customer) {
+        set.status = 404
+        return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
+      }
+
+      const now = Date.now()
+      const lastContactTime = customer.lastContactedAt || customer.createdAt || now
+      const daysSinceLastContact = Math.floor((now - lastContactTime) / (1000 * 60 * 60 * 24))
+
+      const timing = await geminiService.calculateOptimalFollowUpTiming(
+        {
+          name: customer.name,
+          industry: customer.industry || undefined,
+          status: customer.status,
+          notes: customer.notes || undefined,
+        },
+        daysSinceLastContact,
+        customer.enrichedData
+          ? {
+              summary: customer.enrichedData.summary,
+              salesOpportunity: customer.enrichedData.salesOpportunity,
+            }
+          : undefined,
+      )
+
+      if (!timing) {
+        set.status = 500
+        return error("Failed to calculate follow-up timing", ErrorCode.INTERNAL_ERROR)
+      }
+
+      return success(timing)
+    },
+    {
+      params: t.Object({ customerId: t.String() }),
+    },
+  )
+
+  // Determine follow-up type (channel)
+  .post(
+    "/followup/type/:customerId",
+    async ({ params, set }) => {
+      if (!geminiService.isAvailable()) {
+        set.status = 503
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
+      }
+
+      const customer = await customerRepository.findById(params.customerId)
+      if (!customer) {
+        set.status = 404
+        return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
+      }
+
+      const type = await geminiService.determineFollowUpType({
+        name: customer.name,
+        status: customer.status,
+        notes: customer.notes || undefined,
+      })
+
+      if (!type) {
+        set.status = 500
+        return error("Failed to determine follow-up type", ErrorCode.INTERNAL_ERROR)
+      }
+
+      return success({ type })
+    },
+    {
+      params: t.Object({ customerId: t.String() }),
+    },
+  )
+
+  // Parse user intent for AI assistant
+  .post(
+    "/assistant/parse-intent",
+    async ({ body, set }) => {
+      if (!geminiService.isAvailable()) {
+        set.status = 503
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
+      }
+
+      const intent = await geminiService.parseUserIntent(body.message, body.customers)
+
+      if (!intent) {
+        set.status = 500
+        return error("Failed to parse intent", ErrorCode.INTERNAL_ERROR)
+      }
+
+      return success(intent)
+    },
+    {
+      body: t.Object({
+        message: t.String(),
+        customers: t.Array(
+          t.Object({
+            id: t.String(),
+            name: t.String(),
+          }),
+        ),
+      }),
+    },
+  )
+
+  // Generate AI assistant response
+  .post(
+    "/assistant/response",
+    async ({ body, set }) => {
+      if (!geminiService.isAvailable()) {
+        set.status = 503
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
+      }
+
+      const response = await geminiService.generateAssistantResponse(
+        body.message,
+        body.context || "",
+        body.conversationHistory || [],
+      )
+
+      if (!response) {
+        set.status = 500
+        return error("Failed to generate response", ErrorCode.INTERNAL_ERROR)
+      }
+
+      return success({ content: response })
+    },
+    {
+      body: t.Object({
+        message: t.String(),
+        context: t.Optional(t.String()),
+        conversationHistory: t.Optional(
+          t.Array(
+            t.Object({
+              role: t.String(),
+              content: t.String(),
+            }),
+          ),
+        ),
+      }),
+    },
+  )
+
+  // Detect risk signals
+  .post(
+    "/risk/detect/:customerId",
+    async ({ params, set }) => {
+      if (!geminiService.isAvailable()) {
+        set.status = 503
+        return error("AI service not available", ErrorCode.SERVICE_UNAVAILABLE)
+      }
+
+      const customer = await customerRepository.findById(params.customerId)
+      if (!customer) {
+        set.status = 404
+        return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
+      }
+
+      const now = Date.now()
+      const lastContactTime = customer.lastContactedAt || customer.createdAt || now
+      const daysSinceLastContact = Math.floor((now - lastContactTime) / (1000 * 60 * 60 * 24))
+
+      const riskSignals = await geminiService.detectRiskSignals(
+        {
+          name: customer.name,
+          industry: customer.industry || undefined,
+          status: customer.status,
+          notes: customer.notes || undefined,
+        },
+        daysSinceLastContact,
+        customer.enrichedData
+          ? {
+              recentNews: customer.enrichedData.recentNews
+                ? JSON.parse(customer.enrichedData.recentNews)
+                : undefined,
+            }
+          : undefined,
+      )
+
+      if (!riskSignals) {
+        set.status = 500
+        return error("Failed to detect risk signals", ErrorCode.INTERNAL_ERROR)
+      }
+
+      return success(riskSignals)
+    },
+    {
+      params: t.Object({ customerId: t.String() }),
+    },
+  )
