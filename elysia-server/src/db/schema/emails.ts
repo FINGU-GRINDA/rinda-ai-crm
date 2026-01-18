@@ -1,5 +1,5 @@
 import { bigint, index, pgTable, text } from "drizzle-orm/pg-core"
-import { customers } from "./customers"
+import { customers, proposals } from "./customers"
 
 export const emailMessages = pgTable(
   "email_messages",
@@ -13,6 +13,9 @@ export const emailMessages = pgTable(
     body: text("body"),
     date: bigint("date", { mode: "number" }),
     customerId: text("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    // Email type and proposal tracking
+    emailType: text("email_type"), // "draft", "sent", "received"
+    relatedProposalId: text("related_proposal_id").references(() => proposals.id, { onDelete: "set null" }),
     syncedAt: bigint("synced_at", { mode: "number" }).notNull(),
   },
   (table) => [

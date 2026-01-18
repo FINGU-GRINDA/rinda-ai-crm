@@ -22,6 +22,10 @@ export const customers = pgTable(
     lostAt: bigint("lost_at", { mode: "number" }),
     lastFollowUpAt: bigint("last_follow_up_at", { mode: "number" }),
     lastEnrichedAt: bigint("last_enriched_at", { mode: "number" }),
+    // Lead tracking fields
+    leadSource: text("lead_source"), // "Meta Ads", "Instagram", "Website", "Referral"
+    initialInquiry: text("initial_inquiry"), // Store first inquiry content
+    sourceOfInquiry: text("source_of_inquiry"), // Detailed source info
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
   },
@@ -62,6 +66,10 @@ export const proposals = pgTable(
     title: text("title").notNull(),
     content: text("content").notNull(),
     imageUrl: text("image_url"),
+    // Proposal status and feedback tracking
+    proposalStatus: text("proposal_status"), // "draft", "sent", "accepted", "rejected"
+    feedback: text("feedback"), // Customer feedback on proposal
+    feedbackReceivedAt: bigint("feedback_received_at", { mode: "number" }),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },
   (table) => [index("idx_proposals_customer").on(table.customerId)],
