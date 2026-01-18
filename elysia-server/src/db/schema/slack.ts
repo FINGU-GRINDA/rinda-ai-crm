@@ -1,23 +1,23 @@
-import { bigint, index, integer, pgTable, text } from "drizzle-orm/pg-core"
+import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
 import { prospects } from "./prospects"
 
 export const slackMessages = pgTable(
   "slack_messages",
   {
-    id: text("id").primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
     slackTs: text("slack_ts").unique(),
     channelId: text("channel_id"),
     userId: text("user_id"),
     userName: text("user_name"),
     text: text("text"),
     threadTs: text("thread_ts"),
-    customerId: text("customer_id").references(() => customers.id, { onDelete: "set null" }),
-    prospectId: text("prospect_id").references(() => prospects.id, { onDelete: "set null" }),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    prospectId: uuid("prospect_id").references(() => prospects.id, { onDelete: "set null" }),
     processed: integer("processed").default(0),
     deleted: integer("deleted").default(0),
-    deletedAt: text("deleted_at"),
-    receivedAt: bigint("received_at", { mode: "number" }).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_slack_customer").on(table.customerId),

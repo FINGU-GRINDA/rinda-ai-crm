@@ -1,4 +1,4 @@
-import { bigint, index, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core"
+import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 export const customerStatusEnum = pgEnum("customer_status", [
   "prospect",
@@ -12,22 +12,22 @@ export const customerStatusEnum = pgEnum("customer_status", [
 export const customers = pgTable(
   "customers",
   {
-    id: text("id").primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull(),
     website: text("website"),
     industry: text("industry"),
     notes: text("notes"),
     status: customerStatusEnum("status").default("new"),
     lostReason: text("lost_reason"),
-    lostAt: bigint("lost_at", { mode: "number" }),
-    lastFollowUpAt: bigint("last_follow_up_at", { mode: "number" }),
-    lastEnrichedAt: bigint("last_enriched_at", { mode: "number" }),
+    lostAt: timestamp("lost_at", { withTimezone: true }),
+    lastFollowUpAt: timestamp("last_follow_up_at", { withTimezone: true }),
+    lastEnrichedAt: timestamp("last_enriched_at", { withTimezone: true }),
     // Lead tracking fields
     leadSource: text("lead_source"), // "Meta Ads", "Instagram", "Website", "Referral"
     initialInquiry: text("initial_inquiry"), // Store first inquiry content
     sourceOfInquiry: text("source_of_inquiry"), // Detailed source info
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
-    updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_customers_status").on(table.status),
@@ -41,7 +41,7 @@ export const customerEnrichments = pgTable(
   "customer_enrichments",
   {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-    customerId: text("customer_id")
+    customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
     summary: text("summary"),
@@ -51,7 +51,7 @@ export const customerEnrichments = pgTable(
     competitors: text("competitors"),
     salesOpportunity: text("sales_opportunity"),
     sources: text("sources"),
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_enrichments_customer").on(table.customerId)],
 )
@@ -59,8 +59,8 @@ export const customerEnrichments = pgTable(
 export const proposals = pgTable(
   "proposals",
   {
-    id: text("id").primaryKey(),
-    customerId: text("customer_id")
+    id: uuid("id").defaultRandom().primaryKey(),
+    customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
@@ -69,8 +69,8 @@ export const proposals = pgTable(
     // Proposal status and feedback tracking
     proposalStatus: text("proposal_status"), // "draft", "sent", "accepted", "rejected"
     feedback: text("feedback"), // Customer feedback on proposal
-    feedbackReceivedAt: bigint("feedback_received_at", { mode: "number" }),
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    feedbackReceivedAt: timestamp("feedback_received_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_proposals_customer").on(table.customerId)],
 )

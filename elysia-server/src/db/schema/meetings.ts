@@ -1,15 +1,15 @@
-import { bigint, index, integer, pgTable, text } from "drizzle-orm/pg-core"
+import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
 
 export const meetingSummaries = pgTable(
   "meeting_summaries",
   {
-    id: text("id").primaryKey(),
-    customerId: text("customer_id")
+    id: uuid("id").defaultRandom().primaryKey(),
+    customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
-    meetingDate: bigint("meeting_date", { mode: "number" }).notNull(),
+    meetingDate: timestamp("meeting_date", { withTimezone: true }).notNull(),
     audioFileUrl: text("audio_file_url"),
     duration: integer("duration"),
     summary: text("summary"),
@@ -20,8 +20,8 @@ export const meetingSummaries = pgTable(
     timelineMentions: text("timeline_mentions"),
     nextSteps: text("next_steps"), // JSON array
     transcription: text("transcription"),
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
-    updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_meetings_customer").on(table.customerId),

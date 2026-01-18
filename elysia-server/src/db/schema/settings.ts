@@ -1,10 +1,10 @@
-import { bigint, pgTable, text } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core"
 import type { AllSettings } from "../../types"
 
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
-  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
 export type Setting = typeof settings.$inferSelect

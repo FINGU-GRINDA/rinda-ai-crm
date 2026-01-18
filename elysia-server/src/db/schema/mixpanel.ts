@@ -1,17 +1,17 @@
-import { bigint, index, integer, pgTable, text } from "drizzle-orm/pg-core"
+import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
 
 export const mixpanelEvents = pgTable(
   "mixpanel_events",
   {
-    id: text("id").primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
     eventName: text("event_name").notNull(),
     distinctId: text("distinct_id"),
     properties: text("properties"), // JSON
-    receivedAt: bigint("received_at", { mode: "number" }).notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
     processed: integer("processed").default(0),
-    customerId: text("customer_id").references(() => customers.id),
-    createdAt: bigint("created_at", { mode: "number" }),
+    customerId: uuid("customer_id").references(() => customers.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_mixpanel_events_distinct_id").on(table.distinctId),

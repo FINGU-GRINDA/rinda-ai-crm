@@ -1,4 +1,4 @@
-import { bigint, index, pgEnum, pgTable, text } from "drizzle-orm/pg-core"
+import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
 
 export const followUpTypeEnum = pgEnum("follow_up_type", ["email", "call", "meeting", "message"])
@@ -9,14 +9,14 @@ export const priorityEnum = pgEnum("priority", ["high", "medium", "low"])
 export const followUpHistory = pgTable(
   "follow_up_history",
   {
-    id: text("id").primaryKey(),
-    customerId: text("customer_id")
+    id: uuid("id").defaultRandom().primaryKey(),
+    customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
     type: followUpTypeEnum("type").notNull(),
     content: text("content"),
     status: followUpStatusEnum("status").default("planned"),
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_followup_customer").on(table.customerId),
@@ -27,17 +27,17 @@ export const followUpHistory = pgTable(
 export const scheduledFollowUps = pgTable(
   "scheduled_follow_ups",
   {
-    id: text("id").primaryKey(),
-    customerId: text("customer_id")
+    id: uuid("id").defaultRandom().primaryKey(),
+    customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
-    scheduledFor: bigint("scheduled_for", { mode: "number" }).notNull(),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
     type: followUpTypeEnum("type").notNull(),
     content: text("content"),
     status: scheduledStatusEnum("status").default("pending"),
     priority: priorityEnum("priority").default("medium"),
     reason: text("reason"),
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_scheduled_customer").on(table.customerId),

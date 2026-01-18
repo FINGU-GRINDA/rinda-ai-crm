@@ -1,4 +1,4 @@
-import { bigint, index, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core"
+import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 // Entity types that can have attachments
 export const attachmentEntityTypeEnum = pgEnum("attachment_entity_type", [
@@ -15,17 +15,17 @@ export const attachmentEntityTypeEnum = pgEnum("attachment_entity_type", [
 export const attachments = pgTable(
   "attachments",
   {
-    id: text("id").primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
     fileName: text("file_name").notNull(),
     fileType: text("file_type"), // MIME type: application/pdf, image/jpeg, etc.
     fileSize: integer("file_size"), // Size in bytes
     fileUrl: text("file_url").notNull(), // Storage URL (S3, cloud storage, or local path)
     entityType: attachmentEntityTypeEnum("entity_type").notNull(),
-    entityId: text("entity_id").notNull(), // ID of the related entity
+    entityId: uuid("entity_id").notNull(), // ID of the related entity
     uploadedBy: text("uploaded_by"), // Optional: user/source tracking
     metadata: text("metadata"), // JSON field for extra data (image dimensions, PDF page count, etc.)
     description: text("description"), // Optional description/notes about the file
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     // Composite index for efficient lookups by entity
