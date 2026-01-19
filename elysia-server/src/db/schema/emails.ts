@@ -15,7 +15,9 @@ export const emailMessages = pgTable(
     customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
     // Email type and proposal tracking
     emailType: text("email_type"), // "draft", "sent", "received"
-    relatedProposalId: uuid("related_proposal_id").references(() => proposals.id, { onDelete: "set null" }),
+    relatedProposalId: uuid("related_proposal_id").references(() => proposals.id, {
+      onDelete: "set null",
+    }),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

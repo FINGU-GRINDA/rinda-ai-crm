@@ -144,6 +144,9 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
       const summary = await geminiService.summarizeMeeting(meeting.transcription)
 
       if (!summary) {
+        await meetingRepository.updateSummary(params.meetingId, {
+          summary: meeting.transcription,
+        })
         set.status = 500
         return error("Failed to summarize meeting", ErrorCode.INTERNAL_ERROR)
       }
@@ -201,20 +204,20 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
       }
 
       const isLostDeal = body?.isLostDeal || false
+      const enrichedData = await customerRepository.getEnrichment(params.customerId)
+
       const strategy = await geminiService.generateFollowUpStrategy(
         {
           name: customer.name,
           industry: customer.industry || undefined,
-          status: customer.status,
+          status: customer.status || "new",
           notes: customer.notes || undefined,
         },
-        customer.enrichedData
+        enrichedData?.summary
           ? {
-              summary: customer.enrichedData.summary,
-              salesOpportunity: customer.enrichedData.salesOpportunity,
-              recentNews: customer.enrichedData.recentNews
-                ? JSON.parse(customer.enrichedData.recentNews)
-                : undefined,
+              summary: enrichedData.summary,
+              salesOpportunity: enrichedData.salesOpportunity || undefined,
+              recentNews: enrichedData.recentNews ? JSON.parse(enrichedData.recentNews) : undefined,
             }
           : undefined,
         isLostDeal,
@@ -249,18 +252,20 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
       }
 
       const isLostDeal = body?.isLostDeal || false
+      const enrichedData = await customerRepository.getEnrichment(params.customerId)
+
       const message = await geminiService.generateFollowUpMessage(
         {
           name: customer.name,
           industry: customer.industry || undefined,
-          status: customer.status,
+          status: customer.status || "new",
           lostReason: customer.lostReason || undefined,
         },
         body.strategy,
-        customer.enrichedData
+        enrichedData?.summary
           ? {
-              summary: customer.enrichedData.summary,
-              salesOpportunity: customer.enrichedData.salesOpportunity,
+              summary: enrichedData.summary,
+              salesOpportunity: enrichedData.salesOpportunity || undefined,
             }
           : undefined,
         isLostDeal,
@@ -301,24 +306,21 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
         return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
       }
 
-      const now = Date.now()
-      const lastContactTime = customer.lastContactedAt || customer.createdAt || now
-      const daysSinceLastContact = Math.floor((now - lastContactTime) / (1000 * 60 * 60 * 24))
+      const now = new Date()
+      const lastContactTime = customer.lastFollowUpAt || customer.createdAt || now
+      const daysSinceLastContact = Math.floor(
+        (now.getTime() - new Date(lastContactTime).getTime()) / (1000 * 60 * 60 * 24),
+      )
 
       const timing = await geminiService.calculateOptimalFollowUpTiming(
         {
           name: customer.name,
           industry: customer.industry || undefined,
-          status: customer.status,
+          status: customer.status || "new",
           notes: customer.notes || undefined,
         },
         daysSinceLastContact,
-        customer.enrichedData
-          ? {
-              summary: customer.enrichedData.summary,
-              salesOpportunity: customer.enrichedData.salesOpportunity,
-            }
-          : undefined,
+        undefined,
       )
 
       if (!timing) {
@@ -350,7 +352,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
 
       const type = await geminiService.determineFollowUpType({
         name: customer.name,
-        status: customer.status,
+        status: customer.status || "new",
         notes: customer.notes || undefined,
       })
 
@@ -450,25 +452,21 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
         return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
       }
 
-      const now = Date.now()
-      const lastContactTime = customer.lastContactedAt || customer.createdAt || now
-      const daysSinceLastContact = Math.floor((now - lastContactTime) / (1000 * 60 * 60 * 24))
+      const now = new Date()
+      const lastContactTime = customer.lastFollowUpAt || customer.createdAt || now
+      const daysSinceLastContact = Math.floor(
+        (now.getTime() - new Date(lastContactTime).getTime()) / (1000 * 60 * 60 * 24),
+      )
 
       const riskSignals = await geminiService.detectRiskSignals(
         {
           name: customer.name,
           industry: customer.industry || undefined,
-          status: customer.status,
+          status: (customer.status as string) || "prospect",
           notes: customer.notes || undefined,
         },
         daysSinceLastContact,
-        customer.enrichedData
-          ? {
-              recentNews: customer.enrichedData.recentNews
-                ? JSON.parse(customer.enrichedData.recentNews)
-                : undefined,
-            }
-          : undefined,
+        undefined,
       )
 
       if (!riskSignals) {

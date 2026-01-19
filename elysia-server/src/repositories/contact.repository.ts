@@ -1,7 +1,6 @@
 import { and, desc, eq } from "drizzle-orm"
 import { db } from "../db"
 import { type CustomerContact, customerContacts, type NewCustomerContact } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 
 export const contactRepository = {
   findByCustomerId: async (customerId: string): Promise<CustomerContact[]> => {
@@ -26,12 +25,9 @@ export const contactRepository = {
   },
 
   create: async (data: Partial<NewCustomerContact>): Promise<CustomerContact> => {
-    const id = generateId()
-    const now = Date.now()
     const [contact] = await db
       .insert(customerContacts)
       .values({
-        id,
         customerId: data.customerId || "",
         name: data.name || "",
         title: data.title,
@@ -40,8 +36,6 @@ export const contactRepository = {
         isPrimary: data.isPrimary || 0,
         source: data.source || "manual",
         businessCardImageUrl: data.businessCardImageUrl,
-        createdAt: now,
-        updatedAt: now,
       })
       .returning()
     if (!contact) throw new Error("Failed to create contact")
@@ -54,7 +48,7 @@ export const contactRepository = {
   ): Promise<CustomerContact | null> => {
     const [contact] = await db
       .update(customerContacts)
-      .set({ ...data, updatedAt: Date.now() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(customerContacts.id, id))
       .returning()
     return contact || null
@@ -69,13 +63,13 @@ export const contactRepository = {
     // First, unset all primary flags for this customer
     await db
       .update(customerContacts)
-      .set({ isPrimary: 0, updatedAt: Date.now() })
+      .set({ isPrimary: 0, updatedAt: new Date() })
       .where(eq(customerContacts.customerId, customerId))
 
     // Then set the specified contact as primary
     const [contact] = await db
       .update(customerContacts)
-      .set({ isPrimary: 1, updatedAt: Date.now() })
+      .set({ isPrimary: 1, updatedAt: new Date() })
       .where(eq(customerContacts.id, id))
       .returning()
 

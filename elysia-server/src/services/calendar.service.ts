@@ -85,7 +85,7 @@ class CalendarService {
     this.oauth2Client.setCredentials({
       access_token: token.accessToken,
       refresh_token: token.refreshToken,
-      expiry_date: token.expiresAt,
+      expiry_date: token.expiresAt ? new Date(token.expiresAt).getTime() : undefined,
     })
 
     // Handle token refresh

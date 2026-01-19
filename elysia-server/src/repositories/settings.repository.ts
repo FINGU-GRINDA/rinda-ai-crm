@@ -47,7 +47,7 @@ export const settingsRepository = {
   // Typed setter for known setting keys
   set: async <K extends SettingsKey>(key: K, value: AllSettings[K]): Promise<Setting> => {
     const valueStr = stringifyValue(value)
-    const now = Date.now()
+    const now = new Date()
 
     const existing = await db.select().from(settings).where(eq(settings.key, key))
 
@@ -72,7 +72,7 @@ export const settingsRepository = {
   // Raw setter for dynamic keys
   setByKey: async (key: string, value: SettingValue | string): Promise<Setting> => {
     const valueStr = stringifyValue(value)
-    const now = Date.now()
+    const now = new Date()
 
     const existing = await db.select().from(settings).where(eq(settings.key, key))
 

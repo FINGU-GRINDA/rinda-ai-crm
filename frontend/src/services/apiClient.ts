@@ -512,6 +512,13 @@ class APIClient {
     });
   }
 
+  async dismissProspect(prospectId: string, reason: string) {
+    return this.request(`/api/leads/${prospectId}/dismiss`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
   async getLeadStats() {
     return this.request('/api/leads/stats');
   }

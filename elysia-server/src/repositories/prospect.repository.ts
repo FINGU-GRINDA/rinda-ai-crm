@@ -1,13 +1,13 @@
 import { and, asc, desc, eq, isNotNull, isNull, like, or, sql } from "drizzle-orm"
 import { db } from "../db"
 import { type NewProspect, type Prospect, prospects } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 
 export interface ProspectQueryOptions {
   signalStrength?: string
   industry?: string
   search?: string
   converted?: boolean
+  dismissed?: boolean
   limit?: number
   offset?: number
   orderBy?: string
@@ -23,6 +23,7 @@ export const prospectRepository = {
       industry,
       search,
       converted,
+      dismissed,
       limit = 100,
       offset = 0,
       orderBy,
@@ -49,6 +50,9 @@ export const prospectRepository = {
           like(prospects.companyName, searchPattern),
           like(prospects.industry, searchPattern),
           like(prospects.notes, searchPattern),
+          like(prospects.contactName, searchPattern),
+          like(prospects.contactEmail, searchPattern),
+          like(prospects.contactPhone, searchPattern),
         ),
       )
     }
@@ -58,6 +62,12 @@ export const prospectRepository = {
       } else {
         conditions.push(isNull(prospects.convertedToCustomerId))
       }
+    }
+    if (dismissed !== undefined) {
+      conditions.push(eq(prospects.dismissed, dismissed))
+    } else {
+      // Default: exclude dismissed prospects
+      conditions.push(eq(prospects.dismissed, false))
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
@@ -108,7 +118,7 @@ export const prospectRepository = {
     return db
       .select()
       .from(prospects)
-      .where(isNull(prospects.convertedToCustomerId))
+      .where(and(isNull(prospects.convertedToCustomerId), eq(prospects.dismissed, false)))
       .orderBy(desc(prospects.detectedAt))
   },
 
@@ -132,18 +142,18 @@ export const prospectRepository = {
           like(prospects.companyName, searchPattern),
           like(prospects.industry, searchPattern),
           like(prospects.notes, searchPattern),
+          like(prospects.contactName, searchPattern),
+          like(prospects.contactEmail, searchPattern),
+          like(prospects.contactPhone, searchPattern),
         ),
       )
       .orderBy(desc(prospects.detectedAt))
   },
 
   create: async (data: Partial<NewProspect>): Promise<Prospect> => {
-    const id = generateId()
-    const now = Date.now()
     const [prospect] = await db
       .insert(prospects)
       .values({
-        id,
         companyName: data.companyName || "",
         website: data.website,
         industry: data.industry,
@@ -153,8 +163,11 @@ export const prospectRepository = {
         signalStrength: data.signalStrength || "medium",
         icpMatch: data.icpMatch,
         notes: data.notes,
-        detectedAt: now,
-        createdAt: now,
+        contactName: data.contactName,
+        contactTitle: data.contactTitle,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+        landingPageUrl: data.landingPageUrl,
       })
       .returning()
     if (!prospect) throw new Error("Failed to create prospect")
@@ -207,11 +220,24 @@ export const prospectRepository = {
     return prospect || null
   },
 
+  dismissProspect: async (prospectId: string, reason: string): Promise<Prospect | null> => {
+    const [prospect] = await db
+      .update(prospects)
+      .set({
+        dismissed: true,
+        dismissedAt: new Date(),
+        dismissReason: reason,
+      })
+      .where(eq(prospects.id, prospectId))
+      .returning()
+    return prospect || null
+  },
+
   getRecent: async (limit: number = 10): Promise<Prospect[]> => {
     return db
       .select()
       .from(prospects)
-      .where(isNull(prospects.convertedToCustomerId))
+      .where(and(isNull(prospects.convertedToCustomerId), eq(prospects.dismissed, false)))
       .orderBy(desc(prospects.detectedAt))
       .limit(limit)
   },
@@ -220,20 +246,26 @@ export const prospectRepository = {
     // Total count
     const totalResult = await db.select({ count: sql<number>`count(*)::int` }).from(prospects)
 
-    // Unconverted count
+    // Unconverted count (excluding dismissed)
     const unconvertedResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(prospects)
-      .where(isNull(prospects.convertedToCustomerId))
+      .where(and(isNull(prospects.convertedToCustomerId), eq(prospects.dismissed, false)))
 
-    // Count by signal strength
+    // Dismissed count
+    const dismissedResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(prospects)
+      .where(eq(prospects.dismissed, true))
+
+    // Count by signal strength (excluding dismissed)
     const bySignal = await db
       .select({
         signalStrength: prospects.signalStrength,
         count: sql<number>`count(*)::int`,
       })
       .from(prospects)
-      .where(isNull(prospects.convertedToCustomerId))
+      .where(and(isNull(prospects.convertedToCustomerId), eq(prospects.dismissed, false)))
       .groupBy(prospects.signalStrength)
 
     const countBySignal: Record<string, number> = {
@@ -248,6 +280,7 @@ export const prospectRepository = {
     return {
       total: totalResult[0]?.count || 0,
       unconvertedCount: unconvertedResult[0]?.count || 0,
+      dismissedCount: dismissedResult[0]?.count || 0,
       countBySignal,
     }
   },

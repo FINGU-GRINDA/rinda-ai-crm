@@ -16,6 +16,7 @@ import { MeetingRecorder } from './components/MeetingRecorder';
 import { FloatingActionButton } from './components/FloatingActionButton';
 import { BusinessCardData, MeetingSummary } from './types';
 import { LostDealModal } from './components/LostDealModal';
+import { DismissProspectModal } from './components/modals';
 
 // New separated components
 import { KanbanBoard, KANBAN_COLUMNS } from './components/KanbanBoard';
@@ -99,6 +100,10 @@ const App: React.FC = () => {
   // Delete Customer States
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+
+  // Dismiss Prospect States
+  const [showDismissProspectModal, setShowDismissProspectModal] = useState(false);
+  const [prospectToDismiss, setProspectToDismiss] = useState<Prospect | null>(null);
 
   // Prospect & ICP States
   const [showICPSettings, setShowICPSettings] = useState(false);
@@ -326,6 +331,9 @@ const App: React.FC = () => {
         if (showDeleteConfirm) {
           setShowDeleteConfirm(false);
           setCustomerToDelete(null);
+        } else if (showDismissProspectModal) {
+          setShowDismissProspectModal(false);
+          setProspectToDismiss(null);
         } else if (selectedCustomerId) {
           setSelectedCustomerId(null);
         }
@@ -345,7 +353,7 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCustomerId, isAddingCustomer, showProposalGenerator, showFollowUpScheduler, showMeetingPrep, showLostDealModal, showDeleteConfirm]);
+  }, [selectedCustomerId, isAddingCustomer, showProposalGenerator, showFollowUpScheduler, showMeetingPrep, showLostDealModal, showDeleteConfirm, showDismissProspectModal]);
 
   // --- Handlers ---
 
@@ -566,6 +574,37 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDismissProspect = (prospectId: string) => {
+    const prospect = prospects.find(p => p.id === prospectId);
+    if (prospect) {
+      setProspectToDismiss(prospect);
+      setShowDismissProspectModal(true);
+    }
+  };
+
+  const handleDismissProspectConfirm = async (reason: string) => {
+    if (!prospectToDismiss) return;
+
+    try {
+      const response = await apiClient.dismissProspect(prospectToDismiss.id, reason) as any;
+
+      if (response.success) {
+        // Refresh prospects list to remove dismissed prospect
+        await fetchProspectsFromBackend();
+
+        // Close modal and reset state
+        setShowDismissProspectModal(false);
+        setProspectToDismiss(null);
+      } else {
+        throw new Error(response.error || '관심 없음 처리에 실패했습니다.');
+      }
+    } catch (err: any) {
+      console.error('Failed to dismiss prospect:', err);
+      setError(err.message || '관심 없음 처리에 실패했습니다.');
+      setTimeout(() => setError(null), 5000);
+    }
+  };
+
   const handleLostDealConfirm = async (reason: string) => {
     if (!selectedCustomer) return;
 
@@ -747,6 +786,7 @@ const App: React.FC = () => {
                 console.log('Selected prospect:', prospectId);
               }}
               onConvertToCustomer={handleConvertProspectToCustomer}
+              onDismissProspect={handleDismissProspect}
             />
           ) : filteredCustomers.length === 0 && searchQuery ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
@@ -808,6 +848,17 @@ const App: React.FC = () => {
           customer={customerToDelete}
           onConfirm={confirmDeleteCustomer}
           onCancel={cancelDeleteCustomer}
+        />
+
+        {/* Dismiss Prospect Modal */}
+        <DismissProspectModal
+          isOpen={showDismissProspectModal}
+          prospect={prospectToDismiss}
+          onConfirm={handleDismissProspectConfirm}
+          onCancel={() => {
+            setShowDismissProspectModal(false);
+            setProspectToDismiss(null);
+          }}
         />
 
         {/* Add Customer Modal */}

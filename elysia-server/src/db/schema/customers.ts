@@ -26,6 +26,7 @@ export const customers = pgTable(
     leadSource: text("lead_source"), // "Meta Ads", "Instagram", "Website", "Referral"
     initialInquiry: text("initial_inquiry"), // Store first inquiry content
     sourceOfInquiry: text("source_of_inquiry"), // Detailed source info
+    landingPageUrl: text("landing_page_url"), // First landing page URL from CS channel
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

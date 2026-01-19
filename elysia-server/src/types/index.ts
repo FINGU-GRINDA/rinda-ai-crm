@@ -154,6 +154,57 @@ export interface CompanyEnrichment {
   salesOpportunity: string
 }
 
+// CS Channel parsed data
+export interface ParsedCSInquiry {
+  companyName: string | null
+  contactName: string | null
+  contactTitle: string | null
+  contactPhone: string | null
+  contactEmail: string | null
+  inquiryDetails: string | null
+  leadSource: string | null
+  landingPageUrl: string | null
+}
+
+// Meeting Notes parsed data
+export interface ParsedMeetingNote {
+  leadCompanyName: string | null
+  decisionMakerName: string | null
+  meetingNote: string | null
+  salesProposal: string | null
+}
+
+// Sales Channel classification
+export interface SalesMessageClassification {
+  messageType: "new_customer" | "existing_customer" | "other"
+  confidence: "high" | "medium" | "low"
+  companyName: string | null
+  reasoning: string
+}
+
+// Sales Channel update data
+export interface SalesUpdateData {
+  updateType: "status_change" | "add_note" | "create_followup" | "update_contact"
+  customerId: string | null
+  customerName: string | null
+  statusChange?: {
+    newStatus: "prospect" | "new" | "contact" | "negotiation" | "won" | "lost"
+    reason?: string
+  }
+  note?: string
+  followUp?: {
+    type: "email" | "call" | "meeting" | "message"
+    content: string
+    scheduledDays: number
+  }
+  contactUpdate?: {
+    name?: string
+    title?: string
+    email?: string
+    phone?: string
+  }
+}
+
 // Settings types
 export interface SlackSettings {
   webhookUrl?: string

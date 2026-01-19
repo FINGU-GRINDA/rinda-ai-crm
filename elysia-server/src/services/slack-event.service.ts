@@ -1,18 +1,34 @@
+import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import { config } from "../config"
+import { db } from "../db"
+import { customerContacts, customers, meetingSummaries } from "../db/schema"
 import {
+  contactRepository,
   customerRepository,
+  meetingRepository,
   notificationRepository,
   prospectRepository,
   settingsRepository,
   slackRepository,
 } from "../repositories"
-import type { SlackEvent, SlackMessage, SlackSettings } from "../types"
+import type {
+  ParsedMeetingNote,
+  SalesMessageClassification,
+  SalesUpdateData,
+  SlackEvent,
+  SlackMessage,
+  SlackSettings,
+} from "../types"
 import { logger } from "../utils/logger"
 import { geminiService } from "./gemini.service"
 
 class SlackEventService {
   private monitoredChannels: Set<string> | null = null
   private initialized = false
+  private channelHandlers: Map<
+    string,
+    (message: SlackMessage, event: SlackEvent) => Promise<Record<string, unknown>>
+  > = new Map()
 
   private ensureInitialized() {
     if (this.initialized) return
@@ -31,6 +47,20 @@ class SlackEventService {
       )
     } else {
       logger.warn("No Slack channels configured for monitoring")
+    }
+
+    // Register handlers
+    if (config.CS_CHANNEL_ID) {
+      this.channelHandlers.set(config.CS_CHANNEL_ID, this.handleCSChannel.bind(this))
+    }
+    if (config.MEETING_NOTES_CHANNEL_ID) {
+      this.channelHandlers.set(
+        config.MEETING_NOTES_CHANNEL_ID,
+        this.handleMeetingNotesChannel.bind(this),
+      )
+    }
+    if (config.SALES_CHANNEL_ID) {
+      this.channelHandlers.set(config.SALES_CHANNEL_ID, this.handleSalesChannel.bind(this))
     }
 
     this.initialized = true
@@ -101,77 +131,20 @@ class SlackEventService {
 
   async processMonitoredChannelMessage(savedMessage: SlackMessage, event: SlackEvent) {
     try {
-      const channelType = this.getChannelType(event.channel)
-      logger.info(`Processing message from ${channelType} channel`)
+      const channelId = event.channel
+      const handler = this.channelHandlers.get(channelId)
 
-      const parsedData = await geminiService.parseCustomerInquiry(event.text)
-
-      if (!parsedData.isInquiry) {
+      if (!handler) {
+        logger.warn(`No handler registered for channel: ${channelId}`)
         await slackRepository.markProcessed(savedMessage.id)
-        return { handled: true, isInquiry: false }
+        return { handled: false, reason: "no_handler" }
       }
 
-      let customerId: string | null = null
-      let prospectId: string | null = null
-
-      if (parsedData.companyName) {
-        const existingCustomer = await customerRepository.findByName(parsedData.companyName)
-
-        if (existingCustomer) {
-          customerId = existingCustomer.id
-
-          const updatedNotes =
-            `${existingCustomer.notes || ""}\n\n[Slack ${new Date().toLocaleString("ko-KR")}]\n${event.text}`.trim()
-          await customerRepository.update(existingCustomer.id, { notes: updatedNotes })
-        } else {
-          const existingProspect = await prospectRepository.findByCompanyName(
-            parsedData.companyName,
-          )
-
-          if (existingProspect) {
-            prospectId = existingProspect.id
-          } else {
-            const newProspect = await prospectRepository.create({
-              companyName: parsedData.companyName,
-              industry: parsedData.industry || undefined,
-              signalStrength: parsedData.urgency === "high" ? "high" : "medium",
-              notes: `[Slack 문의]\n${parsedData.summary || event.text}`,
-              sourceTitle: "Slack CS 채널",
-              sourceUri: `slack://channel/${event.channel}/${event.ts}`,
-            })
-            prospectId = newProspect.id
-
-            await notificationRepository.create({
-              type: "slack",
-              title: "새로운 Slack 문의",
-              message: `${parsedData.companyName}: ${parsedData.summary || "문의 내용 확인 필요"}`,
-              prospectId: newProspect.id,
-              priority: parsedData.urgency || "medium",
-              metadata: JSON.stringify({
-                slackChannel: event.channel,
-                slackTs: event.ts,
-                inquiryType: parsedData.inquiryType,
-              }),
-            })
-          }
-        }
-      }
-
-      await slackRepository.markProcessed(savedMessage.id, {
-        customerId: customerId || undefined,
-        prospectId: prospectId || undefined,
-      })
-
-      return {
-        handled: true,
-        isInquiry: true,
-        customerId,
-        prospectId,
-        parsedData,
-      }
+      const result = await handler(savedMessage, event)
+      return result
     } catch (error) {
-      const errorMsg1 = error instanceof Error ? error.message : String(error)
-      logger.error({ error: errorMsg1 }, "Error processing monitored channel message")
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      logger.error({ error: errorMsg }, "Error processing monitored channel message")
       await slackRepository.markProcessed(savedMessage.id)
       return { handled: true, error: String(error) }
     }
@@ -266,6 +239,458 @@ class SlackEventService {
       totalMessages: messageCount,
       unprocessedMessages: unprocessed.length,
     }
+  }
+
+  // CS Channel Handler
+  private async handleCSChannel(savedMessage: SlackMessage, event: SlackEvent) {
+    logger.info("Processing CS channel message")
+
+    const parsedData = await geminiService.parseCSInquiry(event.text)
+
+    if (!parsedData.companyName) {
+      await slackRepository.markProcessed(savedMessage.id)
+      return { handled: true, isInquiry: false, reason: "no_company_name" }
+    }
+
+    // Create prospect directly
+    const prospect = await prospectRepository.create({
+      companyName: parsedData.companyName,
+      contactName: parsedData.contactName || undefined,
+      contactTitle: parsedData.contactTitle || undefined,
+      contactPhone: parsedData.contactPhone || undefined,
+      contactEmail: parsedData.contactEmail || undefined,
+      notes: parsedData.inquiryDetails || `[Slack CS]\n${event.text}`,
+      landingPageUrl: parsedData.landingPageUrl || undefined,
+      signalStrength: "medium",
+      sourceTitle: "Slack CS Channel",
+      sourceUri: `slack://channel/${event.channel}/${event.ts}`,
+    })
+
+    // Create notification
+    await notificationRepository.create({
+      type: "slack",
+      title: "새로운 CS 문의",
+      message: `${parsedData.companyName}: ${parsedData.inquiryDetails?.substring(0, 100) || "문의 내용 확인 필요"}`,
+      prospectId: prospect.id,
+      priority: "medium",
+      metadata: JSON.stringify({
+        slackChannel: event.channel,
+        slackTs: event.ts,
+        contactName: parsedData.contactName,
+        contactEmail: parsedData.contactEmail,
+      }),
+    })
+
+    await slackRepository.markProcessed(savedMessage.id, { prospectId: prospect.id })
+
+    return {
+      handled: true,
+      channelType: "CS",
+      prospectId: prospect.id,
+      parsedData,
+    }
+  }
+
+  // Meeting Notes Channel Handler
+  private async handleMeetingNotesChannel(savedMessage: SlackMessage, event: SlackEvent) {
+    logger.info("Processing Meeting Notes channel message")
+
+    const parsedNote = await geminiService.parseMeetingNote(event.text)
+
+    if (!parsedNote.leadCompanyName) {
+      await slackRepository.markProcessed(savedMessage.id)
+      return { handled: true, reason: "no_company_name" }
+    }
+
+    // Phase 1: Fuzzy lookup (waterfall)
+    let customerId: string | null = null
+    let createdNewCustomer = false
+
+    // Try 1: Find by company name
+    customerId = await this.findCustomerByName(parsedNote.leadCompanyName)
+
+    // Try 2: Find via contacts if decision maker name provided
+    if (!customerId && parsedNote.decisionMakerName) {
+      customerId = await this.findCustomerByContactName(parsedNote.decisionMakerName)
+    }
+
+    // Try 3: Create prospect → customer flow
+    if (!customerId) {
+      const result = await this.createCustomerFromMeetingNote(parsedNote)
+      customerId = result.customerId
+      createdNewCustomer = true
+    }
+
+    // Phase 2: Find or create meeting
+    let meeting: Awaited<ReturnType<typeof meetingRepository.create>>
+    const existingMeeting = await this.findEmptyMeeting(customerId)
+
+    if (existingMeeting) {
+      meeting = existingMeeting
+    } else {
+      meeting = await meetingRepository.create({
+        customerId,
+        title: `${parsedNote.leadCompanyName} 미팅`,
+        meetingDate: new Date(),
+      })
+    }
+
+    // Phase 3: Update meeting with parsed content
+    if (parsedNote.meetingNote) {
+      await meetingRepository.update(meeting.id, {
+        transcription: parsedNote.meetingNote,
+        summary: parsedNote.meetingNote.substring(0, 500), // Simple summary
+      })
+    }
+
+    // Add sales proposal to customer notes
+    if (parsedNote.salesProposal) {
+      const customer = await customerRepository.findById(customerId)
+      const updatedNotes =
+        `${customer?.notes || ""}\n\n[Sales Proposal - ${new Date().toLocaleString("ko-KR")}]\n${parsedNote.salesProposal}`.trim()
+      await customerRepository.update(customerId, { notes: updatedNotes })
+    }
+
+    await slackRepository.markProcessed(savedMessage.id, { customerId })
+
+    return {
+      handled: true,
+      channelType: "MEETING_NOTES",
+      customerId,
+      meetingId: meeting.id,
+      createdNewCustomer,
+      parsedData: parsedNote,
+    }
+  }
+
+  // Sales Channel Handler
+  private async handleSalesChannel(savedMessage: SlackMessage, event: SlackEvent) {
+    logger.info("Processing Sales channel message")
+
+    // Phase 1: Classify message
+    const classification = await geminiService.classifySalesMessage(event.text)
+
+    if (classification.messageType === "other") {
+      await slackRepository.markProcessed(savedMessage.id)
+      return { handled: true, reason: "not_sales_related" }
+    }
+
+    // Phase 2: Route based on classification
+    if (classification.messageType === "new_customer") {
+      return await this.handleNewCustomerSales(savedMessage, event, classification)
+    } else {
+      return await this.handleExistingCustomerSales(savedMessage, event, classification)
+    }
+  }
+
+  private async handleNewCustomerSales(
+    savedMessage: SlackMessage,
+    event: SlackEvent,
+    classification: SalesMessageClassification,
+  ) {
+    // Use existing parseCustomerInquiry for new customers
+    const parsedData = await geminiService.parseCustomerInquiry(event.text)
+
+    const companyName = parsedData.companyName || classification.companyName
+
+    if (!companyName) {
+      await slackRepository.markProcessed(savedMessage.id)
+      return { handled: true, reason: "no_company_identified" }
+    }
+
+    // Check if already exists
+    const existingCustomer = await customerRepository.findByName(companyName)
+    if (existingCustomer) {
+      // Add note to existing
+      const updatedNotes =
+        `${existingCustomer.notes || ""}\n\n[Slack Sales - ${new Date().toLocaleString("ko-KR")}]\n${event.text}`.trim()
+      await customerRepository.update(existingCustomer.id, { notes: updatedNotes })
+      await slackRepository.markProcessed(savedMessage.id, { customerId: existingCustomer.id })
+
+      return {
+        handled: true,
+        channelType: "SALES",
+        subType: "new_customer_existing",
+        customerId: existingCustomer.id,
+      }
+    }
+
+    // Create prospect
+    const prospect = await prospectRepository.create({
+      companyName,
+      industry: parsedData.industry || undefined,
+      signalStrength: parsedData.urgency === "high" ? "high" : "medium",
+      notes: `[Slack Sales]\n${parsedData.summary || event.text}`,
+      sourceTitle: "Slack Sales Channel",
+      sourceUri: `slack://channel/${event.channel}/${event.ts}`,
+    })
+
+    await slackRepository.markProcessed(savedMessage.id, { prospectId: prospect.id })
+
+    return {
+      handled: true,
+      channelType: "SALES",
+      subType: "new_customer",
+      prospectId: prospect.id,
+    }
+  }
+
+  private async handleExistingCustomerSales(
+    savedMessage: SlackMessage,
+    event: SlackEvent,
+    classification: SalesMessageClassification,
+  ) {
+    // Get customer context
+    let customerContext = ""
+    let customerId: string | null = null
+
+    if (classification.companyName) {
+      const customer = await customerRepository.findByName(classification.companyName)
+      if (customer) {
+        customerId = customer.id
+        customerContext = `회사명: ${customer.name}\n상태: ${customer.status}\n산업: ${customer.industry || "미지정"}`
+      }
+    }
+
+    // Parse update intent
+    const updateData = await geminiService.parseSalesUpdate(event.text, customerContext)
+
+    if (!customerId && updateData.customerName) {
+      const customer = await customerRepository.findByName(updateData.customerName)
+      if (customer) {
+        customerId = customer.id
+      }
+    }
+
+    if (!customerId) {
+      await slackRepository.markProcessed(savedMessage.id)
+      return {
+        handled: true,
+        channelType: "SALES",
+        reason: "customer_not_found",
+        warning: "고객을 찾을 수 없어 처리하지 못했습니다",
+      }
+    }
+
+    // Phase 3: Execute update
+    await this.executeSalesUpdate(customerId, updateData, event)
+
+    await slackRepository.markProcessed(savedMessage.id, { customerId })
+
+    return {
+      handled: true,
+      channelType: "SALES",
+      subType: "existing_customer_update",
+      customerId,
+      updateType: updateData.updateType,
+    }
+  }
+
+  private async executeSalesUpdate(
+    customerId: string,
+    updateData: SalesUpdateData,
+    _event: SlackEvent,
+  ) {
+    switch (updateData.updateType) {
+      case "status_change":
+        if (updateData.statusChange) {
+          await customerRepository.update(customerId, {
+            status: updateData.statusChange.newStatus,
+          })
+
+          if (updateData.statusChange.newStatus === "lost" && updateData.statusChange.reason) {
+            await customerRepository.markAsLost(customerId, updateData.statusChange.reason)
+          }
+        }
+        break
+
+      case "add_note":
+        if (updateData.note) {
+          const customer = await customerRepository.findById(customerId)
+          const updatedNotes =
+            `${customer?.notes || ""}\n\n[Slack Sales - ${new Date().toLocaleString("ko-KR")}]\n${updateData.note}`.trim()
+          await customerRepository.update(customerId, { notes: updatedNotes })
+        }
+        break
+
+      case "create_followup":
+        // Skip for now - followup table not implemented
+        logger.info("Follow-up creation requested but not implemented yet")
+        break
+
+      case "update_contact":
+        if (updateData.contactUpdate) {
+          const contacts = await contactRepository.findByCustomerId(customerId)
+          const primaryContact = contacts.find((c) => c.isPrimary === 1)
+
+          if (primaryContact) {
+            await contactRepository.update(primaryContact.id, {
+              name: updateData.contactUpdate.name || primaryContact.name,
+              title: updateData.contactUpdate.title || primaryContact.title,
+              email: updateData.contactUpdate.email || primaryContact.email,
+              phone: updateData.contactUpdate.phone || primaryContact.phone,
+            })
+          } else if (updateData.contactUpdate.name) {
+            await contactRepository.create({
+              customerId,
+              name: updateData.contactUpdate.name,
+              title: updateData.contactUpdate.title,
+              email: updateData.contactUpdate.email,
+              phone: updateData.contactUpdate.phone,
+              isPrimary: 1,
+            })
+          }
+        }
+        break
+    }
+  }
+
+  // Helper: Fuzzy find customer by company name
+  private async findCustomerByName(companyName: string): Promise<string | null> {
+    // Try 1: Exact match (case-insensitive via SQL)
+    const exactMatch = await db
+      .select()
+      .from(customers)
+      .where(sql`LOWER(${customers.name}) = LOWER(${companyName})`)
+      .limit(1)
+
+    const firstExactMatch = exactMatch[0]
+    if (firstExactMatch) {
+      return firstExactMatch.id
+    }
+
+    // Try 2: Partial match (contains)
+    const partialMatches = await db
+      .select()
+      .from(customers)
+      .where(sql`LOWER(${customers.name}) LIKE LOWER(${`%${companyName}%`})`)
+      .limit(5)
+
+    if (partialMatches.length === 1) {
+      const match = partialMatches[0]
+      if (match) {
+        logger.info(`Fuzzy match found: "${companyName}" → "${match.name}"`)
+        return match.id
+      }
+    }
+
+    if (partialMatches.length > 1) {
+      const firstMatch = partialMatches[0]
+      if (firstMatch) {
+        logger.warn(
+          {
+            searchTerm: companyName,
+            matches: partialMatches.map((c) => c.name),
+          },
+          "Multiple fuzzy matches found - using first",
+        )
+        return firstMatch.id
+      }
+    }
+
+    return null
+  }
+
+  // Helper: Find customer by contact name
+  private async findCustomerByContactName(contactName: string): Promise<string | null> {
+    const contacts = await db
+      .select({
+        customerId: customerContacts.customerId,
+        contactName: customerContacts.name,
+        customerName: customers.name,
+      })
+      .from(customerContacts)
+      .innerJoin(customers, eq(customerContacts.customerId, customers.id))
+      .where(sql`LOWER(${customerContacts.name}) LIKE LOWER(${`%${contactName}%`})`)
+      .limit(5)
+
+    if (contacts.length === 1) {
+      const contact = contacts[0]
+      if (contact) {
+        logger.info(`Found customer via contact: "${contactName}" → "${contact.customerName}"`)
+        return contact.customerId
+      }
+    }
+
+    if (contacts.length > 1) {
+      const firstContact = contacts[0]
+      if (firstContact) {
+        logger.warn(
+          {
+            searchTerm: contactName,
+            matches: contacts.map((c) => `${c.contactName} (${c.customerName})`),
+          },
+          "Multiple contact matches found - using first",
+        )
+        return firstContact.customerId
+      }
+    }
+
+    return null
+  }
+
+  // Helper: Create customer from meeting note
+  private async createCustomerFromMeetingNote(
+    parsedNote: ParsedMeetingNote,
+  ): Promise<{ customerId: string; prospectId?: string }> {
+    if (!parsedNote.leadCompanyName) {
+      throw new Error("Lead company name is required to create customer from meeting note")
+    }
+
+    const existingProspect = await prospectRepository.findByCompanyName(parsedNote.leadCompanyName)
+
+    let prospectId: string | undefined
+
+    if (!existingProspect) {
+      const prospect = await prospectRepository.create({
+        companyName: parsedNote.leadCompanyName,
+        contactName: parsedNote.decisionMakerName || undefined,
+        signalStrength: "high",
+        notes: `[Meeting Note]\n${parsedNote.meetingNote || ""}`,
+        sourceTitle: "Slack Meeting Notes",
+      })
+      prospectId = prospect.id
+    } else {
+      prospectId = existingProspect.id
+    }
+
+    // Convert to customer
+    const customer = await customerRepository.create({
+      name: parsedNote.leadCompanyName,
+      status: "contact",
+      notes: `[Converted from Meeting Note]\n${parsedNote.meetingNote || ""}`,
+      leadSource: "Slack Meeting Notes",
+    })
+
+    // Mark prospect as converted
+    if (prospectId) {
+      await prospectRepository.markAsConverted(prospectId, customer.id)
+    }
+
+    // Create contact if decision maker name exists
+    if (parsedNote.decisionMakerName) {
+      await contactRepository.create({
+        customerId: customer.id,
+        name: parsedNote.decisionMakerName,
+        isPrimary: 1,
+      })
+    }
+
+    return { customerId: customer.id, prospectId }
+  }
+
+  // Helper: Find meeting without transcription
+  private async findEmptyMeeting(customerId: string) {
+    const meetings = await db
+      .select()
+      .from(meetingSummaries)
+      .where(
+        and(eq(meetingSummaries.customerId, customerId), isNull(meetingSummaries.transcription)),
+      )
+      .orderBy(desc(meetingSummaries.meetingDate))
+      .limit(1)
+
+    return meetings[0] || null
   }
 }
 

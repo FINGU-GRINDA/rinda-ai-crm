@@ -75,7 +75,7 @@ class MixpanelService {
           eventName: event.eventName,
           distinctId: event.distinctId,
           properties: JSON.stringify(event.properties),
-          receivedAt: event.time,
+          receivedAt: new Date(event.time * 1000),
         })
         synced++
       } catch (error) {

@@ -6,7 +6,8 @@ import {
   IconSparkles,
   IconExternalLink,
   IconArrowRight,
-  IconCheck
+  IconCheck,
+  IconX
 } from './Icons';
 
 interface Prospect {
@@ -29,6 +30,7 @@ interface ProspectsBoardProps {
   prospects: Prospect[];
   onSelectProspect: (prospectId: string) => void;
   onConvertToCustomer: (prospectId: string) => void;
+  onDismissProspect: (prospectId: string) => void;
 }
 
 const SIGNAL_COLUMNS = [
@@ -64,7 +66,8 @@ const SIGNAL_COLUMNS = [
 export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
   prospects,
   onSelectProspect,
-  onConvertToCustomer
+  onConvertToCustomer,
+  onDismissProspect
 }) => {
   // Group prospects by signal strength
   const groupedProspects = useMemo(() => {
@@ -151,22 +154,34 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div className="flex flex-col gap-3 pt-3 border-t border-slate-100">
           <div className="flex items-center gap-1 text-xs text-slate-500">
             <IconTrendingUp className="w-3 h-3" />
             <span>{formatDate(prospect.detectedAt)}</span>
           </div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onConvertToCustomer(prospect.id);
-            }}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-300 hover:border-blue-600 rounded-lg transition-all group-hover:scale-105"
-          >
-            <IconCheck className="w-3 h-3" />
-            고객 전환
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onConvertToCustomer(prospect.id);
+              }}
+              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 hover:border-blue-700 transition-all group-hover:scale-105"
+            >
+              <IconCheck className="w-3 h-3" />
+              고객 전환
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDismissProspect(prospect.id);
+              }}
+              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 hover:border-slate-300 transition-all group-hover:scale-105"
+            >
+              <IconX className="w-3 h-3" />
+              관심 없음
+            </button>
+          </div>
         </div>
 
         {/* Website */}

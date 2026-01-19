@@ -1,7 +1,6 @@
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, desc, eq, lt, sql } from "drizzle-orm"
 import { db } from "../db"
 import { type NewNotification, type Notification, notifications } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 
 export const notificationRepository = {
   findAll: async (limit: number = 50): Promise<Notification[]> => {
@@ -47,11 +46,9 @@ export const notificationRepository = {
   },
 
   create: async (data: Partial<NewNotification>): Promise<Notification> => {
-    const id = generateId()
     const [notification] = await db
       .insert(notifications)
       .values({
-        id,
         type: data.type || "news",
         title: data.title || "",
         message: data.message || "",
@@ -61,7 +58,6 @@ export const notificationRepository = {
         read: 0,
         actionUrl: data.actionUrl,
         metadata: data.metadata,
-        createdAt: Date.now(),
       })
       .returning()
     if (!notification) throw new Error("Failed to create notification")
@@ -88,10 +84,10 @@ export const notificationRepository = {
   },
 
   deleteOld: async (olderThanMs: number = 30 * 24 * 60 * 60 * 1000): Promise<number> => {
-    const threshold = Date.now() - olderThanMs
+    const threshold = new Date(Date.now() - olderThanMs)
     await db
       .delete(notifications)
-      .where(and(eq(notifications.read, 1), sql`${notifications.createdAt} < ${threshold}`))
+      .where(and(eq(notifications.read, 1), lt(notifications.createdAt, threshold)))
     return 0
   },
 

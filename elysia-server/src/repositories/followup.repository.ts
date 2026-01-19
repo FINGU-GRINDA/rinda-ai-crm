@@ -6,7 +6,6 @@ import {
   type ScheduledFollowUp,
   scheduledFollowUps,
 } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 
 export const followUpRepository = {
   // Follow-up History
@@ -27,12 +26,10 @@ export const followUpRepository = {
     const [history] = await db
       .insert(followUpHistory)
       .values({
-        id: generateId(),
         customerId: data.customerId,
         type: data.type,
         content: data.content,
         status: data.status || "planned",
-        createdAt: Date.now(),
       })
       .returning()
     if (!history) throw new Error("Failed to create follow-up history")
@@ -68,8 +65,8 @@ export const followUpRepository = {
       .orderBy(scheduledFollowUps.scheduledFor)
   },
 
-  findDueScheduled: async (beforeTime?: number): Promise<ScheduledFollowUp[]> => {
-    const time = beforeTime || Date.now()
+  findDueScheduled: async (beforeTime?: Date): Promise<ScheduledFollowUp[]> => {
+    const time = beforeTime || new Date()
     return db
       .select()
       .from(scheduledFollowUps)
@@ -80,8 +77,8 @@ export const followUpRepository = {
   },
 
   findScheduledByDateRange: async (
-    startDate: number,
-    endDate: number,
+    startDate: Date,
+    endDate: Date,
   ): Promise<ScheduledFollowUp[]> => {
     return db
       .select()
@@ -97,7 +94,7 @@ export const followUpRepository = {
 
   createScheduled: async (data: {
     customerId: string
-    scheduledFor: number
+    scheduledFor: Date
     type: "email" | "call" | "meeting" | "message"
     content?: string
     priority?: "high" | "medium" | "low"
@@ -106,7 +103,6 @@ export const followUpRepository = {
     const [scheduled] = await db
       .insert(scheduledFollowUps)
       .values({
-        id: generateId(),
         customerId: data.customerId,
         scheduledFor: data.scheduledFor,
         type: data.type,
@@ -114,7 +110,6 @@ export const followUpRepository = {
         status: "pending",
         priority: data.priority || "medium",
         reason: data.reason,
-        createdAt: Date.now(),
       })
       .returning()
     if (!scheduled) throw new Error("Failed to create scheduled follow-up")

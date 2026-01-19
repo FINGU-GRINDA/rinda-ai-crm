@@ -15,7 +15,6 @@ export const oauthRepository = {
     expiresAt?: number
     scope?: string
   }): Promise<OAuthToken> => {
-    const now = Date.now()
     const existing = await oauthRepository.findByProvider(data.provider)
 
     if (existing) {
@@ -24,9 +23,8 @@ export const oauthRepository = {
         .set({
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
-          expiresAt: data.expiresAt,
+          expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
           scope: data.scope,
-          updatedAt: now,
         })
         .where(eq(oauthTokens.provider, data.provider))
         .returning()
@@ -39,10 +37,8 @@ export const oauthRepository = {
           provider: data.provider,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
-          expiresAt: data.expiresAt,
+          expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
           scope: data.scope,
-          createdAt: now,
-          updatedAt: now,
         })
         .returning()
       if (!token) throw new Error("Failed to create OAuth token")
@@ -59,8 +55,7 @@ export const oauthRepository = {
       .update(oauthTokens)
       .set({
         accessToken,
-        expiresAt,
-        updatedAt: Date.now(),
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       })
       .where(eq(oauthTokens.provider, provider))
       .returning()
@@ -75,6 +70,6 @@ export const oauthRepository = {
   isTokenExpired: async (provider: string): Promise<boolean> => {
     const token = await oauthRepository.findByProvider(provider)
     if (!token || !token.expiresAt) return true
-    return token.expiresAt < Date.now()
+    return token.expiresAt.getTime() < Date.now()
   },
 }

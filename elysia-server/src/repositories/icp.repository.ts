@@ -1,7 +1,6 @@
 import { desc, eq } from "drizzle-orm"
 import { db } from "../db"
 import { type IcpProfile, icpProfiles, type NewIcpProfile } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 
 export const icpRepository = {
   findAll: async (): Promise<IcpProfile[]> => {
@@ -14,20 +13,14 @@ export const icpRepository = {
   },
 
   create: async (data: Partial<NewIcpProfile>): Promise<IcpProfile> => {
-    const id = generateId()
-    const now = Date.now()
-
     const [profile] = await db
       .insert(icpProfiles)
       .values({
-        id,
         name: data.name || "",
         industries: data.industries,
         keywords: data.keywords,
         companySize: data.companySize,
         targetRegions: data.targetRegions,
-        createdAt: now,
-        updatedAt: now,
       })
       .returning()
 
@@ -38,7 +31,7 @@ export const icpRepository = {
   update: async (id: string, data: Partial<NewIcpProfile>): Promise<IcpProfile | null> => {
     const [profile] = await db
       .update(icpProfiles)
-      .set({ ...data, updatedAt: Date.now() })
+      .set(data)
       .where(eq(icpProfiles.id, id))
       .returning()
     return profile || null

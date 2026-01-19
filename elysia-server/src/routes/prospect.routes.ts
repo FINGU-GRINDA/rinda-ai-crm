@@ -89,6 +89,11 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
             ),
             icpMatch: t.Optional(t.String()),
             notes: t.Optional(t.String()),
+            contactName: t.Optional(t.String()),
+            contactTitle: t.Optional(t.String()),
+            contactPhone: t.Optional(t.String()),
+            contactEmail: t.Optional(t.String()),
+            landingPageUrl: t.Optional(t.String()),
           }),
         ),
       }),
@@ -132,6 +137,11 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
         ),
         icpMatch: t.Optional(t.String()),
         notes: t.Optional(t.String()),
+        contactName: t.Optional(t.String()),
+        contactTitle: t.Optional(t.String()),
+        contactPhone: t.Optional(t.String()),
+        contactEmail: t.Optional(t.String()),
+        landingPageUrl: t.Optional(t.String()),
       }),
     },
   )
@@ -157,6 +167,11 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
           t.Union([t.Literal("high"), t.Literal("medium"), t.Literal("low")]),
         ),
         notes: t.Optional(t.String()),
+        contactName: t.Optional(t.String()),
+        contactTitle: t.Optional(t.String()),
+        contactPhone: t.Optional(t.String()),
+        contactEmail: t.Optional(t.String()),
+        landingPageUrl: t.Optional(t.String()),
       }),
     },
   )
@@ -190,7 +205,24 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
         industry: prospect.industry,
         notes: prospect.notes,
         status: body.status || "new",
+        leadSource: prospect.sourceTitle || "Prospect",
+        initialInquiry: prospect.notes,
+        landingPageUrl: prospect.landingPageUrl,
       })
+
+      // Create contact if prospect has contact info
+      if (prospect.contactName || prospect.contactEmail || prospect.contactPhone) {
+        const { contactRepository } = await import("../repositories")
+        await contactRepository.create({
+          customerId: customer.id,
+          name: prospect.contactName || "",
+          title: prospect.contactTitle,
+          email: prospect.contactEmail,
+          phone: prospect.contactPhone,
+          isPrimary: 1,
+          source: "manual",
+        })
+      }
 
       // Mark prospect as converted
       await prospectRepository.markAsConverted(params.id, customer.id)
