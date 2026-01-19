@@ -1,14 +1,10 @@
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm"
+import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm"
 import { db } from "../db"
 import { type NewSlackMessage, type SlackMessage, slackMessages } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 import { logger } from "../utils/logger"
 
 export const slackRepository = {
   saveMessage: async (message: Partial<NewSlackMessage>): Promise<SlackMessage> => {
-    const id = message.id || generateId()
-    const now = Date.now()
-
     // Check for duplicate
     if (message.slackTs) {
       const existing = await db
@@ -28,7 +24,6 @@ export const slackRepository = {
     const [saved] = await db
       .insert(slackMessages)
       .values({
-        id,
         slackTs: message.slackTs,
         channelId: message.channelId,
         userId: message.userId,
@@ -39,12 +34,11 @@ export const slackRepository = {
         prospectId: message.prospectId,
         processed: message.processed || 0,
         deleted: 0,
-        receivedAt: now,
       })
       .returning()
 
     if (!saved) throw new Error("Failed to save Slack message")
-    logger.info(`Slack message saved: ${id}`)
+    logger.info(`Slack message saved: ${saved.id}`)
     return saved
   },
 
@@ -125,21 +119,19 @@ export const slackRepository = {
   },
 
   deleteOld: async (olderThanMs: number = 30 * 24 * 60 * 60 * 1000): Promise<number> => {
-    const threshold = Date.now() - olderThanMs
+    const threshold = new Date(Date.now() - olderThanMs)
 
     await db
       .delete(slackMessages)
-      .where(and(eq(slackMessages.processed, 1), sql`${slackMessages.receivedAt} < ${threshold}`))
+      .where(and(eq(slackMessages.processed, 1), lt(slackMessages.receivedAt, threshold)))
 
     return 0
   },
 
   markDeleted: async (slackTs: string, channelId: string): Promise<boolean> => {
-    const deletedAt = new Date().toISOString()
-
     const _result = await db
       .update(slackMessages)
-      .set({ deleted: 1, deletedAt })
+      .set({ deleted: 1, deletedAt: new Date() })
       .where(and(eq(slackMessages.slackTs, slackTs), eq(slackMessages.channelId, channelId)))
 
     logger.info(`Message ${slackTs} marked as deleted in channel ${channelId}`)

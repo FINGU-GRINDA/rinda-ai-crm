@@ -22,8 +22,8 @@ export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
   .get(
     "/range",
     async ({ query }) => {
-      const startDate = parseInt(query.startDate, 10)
-      const endDate = parseInt(query.endDate, 10)
+      const startDate = new Date(parseInt(query.startDate, 10))
+      const endDate = new Date(parseInt(query.endDate, 10))
       const meetings = await meetingRepository.findByDateRange(startDate, endDate)
       return successList(meetings)
     },
@@ -66,7 +66,7 @@ export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
       params: t.Object({ id: t.String() }),
       body: t.Object({
         title: t.Optional(t.String()),
-        meetingDate: t.Optional(t.Number()),
+        meetingDate: t.Optional(t.Date()),
         audioFileUrl: t.Optional(t.String()),
         duration: t.Optional(t.Number()),
         summary: t.Optional(t.String()),

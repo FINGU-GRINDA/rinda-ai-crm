@@ -1,12 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Customer, CustomerStatus, FollowUpAction, Proposal } from '../types';
+import { Customer, CustomerStatus, FollowUpAction, Proposal, MeetingSummary } from '../types';
 import { Button } from './Button';
 import { ProgressBar } from './ProgressBar';
 import { EnrichmentPanel } from './EnrichmentPanel';
 import { FollowUpPanel } from './FollowUpPanel';
 import { CustomerFollowUpWidget } from './followup';
 import { ProposalViewModal } from './ProposalViewModal';
+import { MeetingDetailModal } from './MeetingDetailModal';
 import {
   IconX,
   IconGlobe,
@@ -15,9 +16,14 @@ import {
   IconFileText,
   IconBrain,
   IconTrendingUp,
-  IconCheck
+  IconCheck,
+  IconMessageSquare,
+  IconRefresh,
+  IconClock,
+  IconCalendar
 } from './Icons';
 import { KANBAN_COLUMNS } from './KanbanBoard';
+import { apiClient } from '../src/services/apiClient';
 
 // Tooltip Component
 const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => (
@@ -30,7 +36,7 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
   </div>
 );
 
-type DetailPanelTab = 'info' | 'action' | 'history';
+type DetailPanelTab = 'info' | 'action' | 'history' | 'meetings';
 
 interface CustomerDetailPanelProps {
   customer: Customer;
@@ -55,6 +61,42 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
 }) => {
   const [detailPanelTab, setDetailPanelTab] = useState<DetailPanelTab>('info');
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
+  const [meetings, setMeetings] = useState<MeetingSummary[]>([]);
+  const [loadingMeetings, setLoadingMeetings] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingSummary | null>(null);
+
+  // Fetch meetings when tab is selected
+  const fetchMeetings = useCallback(async () => {
+    if (!customer.id) return;
+    setLoadingMeetings(true);
+    try {
+      const response = await apiClient.getMeetings(customer.id) as any;
+      if (response.success) {
+        setMeetings(response.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch meetings:', error);
+    } finally {
+      setLoadingMeetings(false);
+    }
+  }, [customer.id]);
+
+  // Fetch on tab selection (lazy loading)
+  useEffect(() => {
+    if (detailPanelTab === 'meetings' && meetings.length === 0) {
+      fetchMeetings();
+    }
+  }, [detailPanelTab, fetchMeetings]);
+
+  const handleDeleteMeeting = useCallback(async (meetingId: string) => {
+    try {
+      await apiClient.deleteMeeting(customer.id, meetingId);
+      setMeetings(prev => prev.filter(m => m.id !== meetingId));
+      setSelectedMeeting(null);
+    } catch (error) {
+      console.error('Failed to delete meeting:', error);
+    }
+  }, [customer.id]);
 
   return (
     <>
@@ -65,6 +107,17 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
           customerName={customer.name}
           isOpen={true}
           onClose={() => setSelectedProposal(null)}
+        />
+      )}
+
+      {/* Meeting Detail Modal */}
+      {selectedMeeting && (
+        <MeetingDetailModal
+          meeting={selectedMeeting}
+          customerName={customer.name}
+          isOpen={true}
+          onClose={() => setSelectedMeeting(null)}
+          onDelete={handleDeleteMeeting}
         />
       )}
 
@@ -216,6 +269,28 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
                 )}
               </div>
             </button>
+            <button
+              onClick={() => setDetailPanelTab('meetings')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                detailPanelTab === 'meetings'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <IconMessageSquare className="w-4 h-4" />
+                <span>미팅</span>
+                {meetings.length > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                    detailPanelTab === 'meetings'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-neutral-100 text-neutral-600'
+                  }`}>
+                    {meetings.length}
+                  </span>
+                )}
+              </div>
+            </button>
           </div>
         </div>
 
@@ -241,6 +316,17 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
             {/* History Tab */}
             {detailPanelTab === 'history' && (
               <HistoryTabContent customer={customer} />
+            )}
+
+            {/* Meetings Tab */}
+            {detailPanelTab === 'meetings' && (
+              <MeetingTabContent
+                customer={customer}
+                meetings={meetings}
+                loading={loadingMeetings}
+                onMeetingClick={setSelectedMeeting}
+                onRefresh={fetchMeetings}
+              />
             )}
           </div>
         </div>
@@ -515,5 +601,151 @@ const HistoryTabContent: React.FC<{
     )}
   </div>
 );
+
+// Meeting Tab Content
+const MeetingTabContent: React.FC<{
+  customer: Customer;
+  meetings: MeetingSummary[];
+  loading: boolean;
+  onMeetingClick: (meeting: MeetingSummary) => void;
+  onRefresh: () => void;
+}> = ({ customer, meetings, loading, onMeetingClick, onRefresh }) => {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin">
+          <IconMessageSquare className="w-8 h-8 text-blue-600" />
+        </div>
+        <span className="ml-3 text-slate-600 text-sm">미팅 이력 불러오는 중...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header with refresh */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-slate-800 flex items-center">
+          <IconMessageSquare className="w-4 h-4 mr-2 text-purple-600" />
+          미팅 이력
+          {meetings.length > 0 && (
+            <span className="ml-2 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-semibold">
+              {meetings.length}개
+            </span>
+          )}
+        </h3>
+        <button
+          onClick={onRefresh}
+          className="text-slate-500 hover:text-slate-700 p-1 hover:bg-slate-100 rounded transition-colors"
+        >
+          <IconRefresh className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Meeting List */}
+      {meetings.length === 0 ? (
+        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
+          <IconMessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-sm text-slate-500 font-medium mb-1">아직 기록된 미팅이 없어요.</p>
+          <p className="text-xs text-slate-400">미팅 녹음 기능으로 첫 미팅을 기록해보세요.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {meetings.map(meeting => (
+            <MeetingCard
+              key={meeting.id}
+              meeting={meeting}
+              onClick={() => onMeetingClick(meeting)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Meeting Card Component
+const MeetingCard: React.FC<{
+  meeting: MeetingSummary;
+  onClick: () => void;
+}> = ({ meeting, onClick }) => {
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      weekday: 'short'
+    });
+  };
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return null;
+    const mins = Math.floor(seconds / 60);
+    return `${mins}분`;
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer group"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-slate-800 text-sm truncate group-hover:text-purple-600 transition-colors">
+            {meeting.title}
+          </h4>
+          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+            <span className="flex items-center gap-1">
+              <IconCalendar className="w-3 h-3" />
+              {formatDate(meeting.meetingDate)}
+            </span>
+            {meeting.duration && (
+              <span className="flex items-center gap-1">
+                <IconClock className="w-3 h-3" />
+                {formatDuration(meeting.duration)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Preview */}
+      {meeting.summary && (
+        <p className="text-sm text-slate-600 line-clamp-2 mb-3 leading-relaxed">
+          {meeting.summary}
+        </p>
+      )}
+
+      {/* Metrics */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {meeting.keyDiscussions && meeting.keyDiscussions.length > 0 && (
+          <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-full flex items-center gap-1">
+            <IconMessageSquare className="w-3 h-3" />
+            논의 {meeting.keyDiscussions.length}
+          </span>
+        )}
+        {meeting.actionItems && meeting.actionItems.length > 0 && (
+          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full flex items-center gap-1">
+            <IconCheck className="w-3 h-3" />
+            액션 {meeting.actionItems.length}
+          </span>
+        )}
+        {meeting.nextSteps && meeting.nextSteps.length > 0 && (
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
+            <IconArrowRight className="w-3 h-3" />
+            다음 {meeting.nextSteps.length}
+          </span>
+        )}
+      </div>
+
+      {/* View More Indicator */}
+      <div className="mt-3 text-xs text-purple-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+        <span>자세히 보기</span>
+        <IconArrowRight className="w-3 h-3" />
+      </div>
+    </div>
+  );
+};
 
 export default CustomerDetailPanel;

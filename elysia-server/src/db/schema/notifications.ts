@@ -1,4 +1,4 @@
-import { bigint, index, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core"
+import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
 import { priorityEnum } from "./followups"
 import { prospects } from "./prospects"
@@ -17,17 +17,17 @@ export const notificationTypeEnum = pgEnum("notification_type", [
 export const notifications = pgTable(
   "notifications",
   {
-    id: text("id").primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
     type: notificationTypeEnum("type").notNull(),
     title: text("title").notNull(),
     message: text("message").notNull(),
-    customerId: text("customer_id").references(() => customers.id, { onDelete: "set null" }),
-    prospectId: text("prospect_id").references(() => prospects.id, { onDelete: "set null" }),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    prospectId: uuid("prospect_id").references(() => prospects.id, { onDelete: "set null" }),
     priority: priorityEnum("priority").default("medium"),
     read: integer("read").default(0),
     actionUrl: text("action_url"),
     metadata: text("metadata"), // JSON
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_notifications_read").on(table.read),

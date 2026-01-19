@@ -19,8 +19,8 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
   .get(
     "/range",
     async ({ query }) => {
-      const startDate = parseInt(query.startDate, 10)
-      const endDate = parseInt(query.endDate, 10)
+      const startDate = new Date(parseInt(query.startDate, 10))
+      const endDate = new Date(parseInt(query.endDate, 10))
       const followups = await followUpRepository.findScheduledByDateRange(startDate, endDate)
       return successList(followups)
     },
@@ -84,7 +84,10 @@ export const followUpRoutes = new Elysia({ prefix: "/api/followups" })
   .post(
     "/scheduled",
     async ({ body, set }) => {
-      const scheduled = await followUpRepository.createScheduled(body)
+      const scheduled = await followUpRepository.createScheduled({
+        ...body,
+        scheduledFor: new Date(body.scheduledFor),
+      })
       set.status = 201
       return success(scheduled)
     },

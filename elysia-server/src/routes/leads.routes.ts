@@ -70,6 +70,11 @@ export const leadsRoutes = new Elysia({ prefix: "/api/leads" })
             ),
             icpMatch: t.Optional(t.String()),
             notes: t.Optional(t.String()),
+            contactName: t.Optional(t.String()),
+            contactTitle: t.Optional(t.String()),
+            contactPhone: t.Optional(t.String()),
+            contactEmail: t.Optional(t.String()),
+            landingPageUrl: t.Optional(t.String()),
           }),
         ),
       }),
@@ -113,6 +118,11 @@ export const leadsRoutes = new Elysia({ prefix: "/api/leads" })
         ),
         icpMatch: t.Optional(t.String()),
         notes: t.Optional(t.String()),
+        contactName: t.Optional(t.String()),
+        contactTitle: t.Optional(t.String()),
+        contactPhone: t.Optional(t.String()),
+        contactEmail: t.Optional(t.String()),
+        landingPageUrl: t.Optional(t.String()),
       }),
     },
   )
@@ -138,6 +148,11 @@ export const leadsRoutes = new Elysia({ prefix: "/api/leads" })
           t.Union([t.Literal("high"), t.Literal("medium"), t.Literal("low")]),
         ),
         notes: t.Optional(t.String()),
+        contactName: t.Optional(t.String()),
+        contactTitle: t.Optional(t.String()),
+        contactPhone: t.Optional(t.String()),
+        contactEmail: t.Optional(t.String()),
+        landingPageUrl: t.Optional(t.String()),
       }),
     },
   )
@@ -171,7 +186,24 @@ export const leadsRoutes = new Elysia({ prefix: "/api/leads" })
         industry: prospect.industry,
         notes: prospect.notes,
         status: body.status || "new",
+        leadSource: prospect.sourceTitle || "Prospect",
+        initialInquiry: prospect.notes,
+        landingPageUrl: prospect.landingPageUrl,
       })
+
+      // Create contact if prospect has contact info
+      if (prospect.contactName || prospect.contactEmail || prospect.contactPhone) {
+        const { contactRepository } = await import("../repositories")
+        await contactRepository.create({
+          customerId: customer.id,
+          name: prospect.contactName || "",
+          title: prospect.contactTitle,
+          email: prospect.contactEmail,
+          phone: prospect.contactPhone,
+          isPrimary: 1,
+          source: "manual",
+        })
+      }
 
       // Mark lead as converted
       await prospectRepository.markAsConverted(params.id, customer.id)
@@ -187,6 +219,31 @@ export const leadsRoutes = new Elysia({ prefix: "/api/leads" })
         status: t.Optional(
           t.Union([t.Literal("new"), t.Literal("contact"), t.Literal("negotiation")]),
         ),
+      }),
+    },
+  )
+
+  // Dismiss lead as "not qualified"
+  .post(
+    "/:id/dismiss",
+    async ({ params, body, set }) => {
+      if (!body.reason || body.reason.trim().length === 0) {
+        set.status = 400
+        return error("Dismiss reason is required", ErrorCode.INVALID_REQUEST)
+      }
+
+      const prospect = await prospectRepository.dismissProspect(params.id, body.reason.trim())
+      if (!prospect) {
+        set.status = 404
+        return error("Lead not found", ErrorCode.PROSPECT_NOT_FOUND)
+      }
+
+      return success(prospect)
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        reason: t.String(),
       }),
     },
   )

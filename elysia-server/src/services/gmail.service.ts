@@ -85,7 +85,7 @@ class GmailService {
     this.oauth2Client.setCredentials({
       access_token: token.accessToken,
       refresh_token: token.refreshToken,
-      expiry_date: token.expiresAt,
+      expiry_date: token.expiresAt ? new Date(token.expiresAt).getTime() : undefined,
     })
 
     // Handle token refresh
@@ -144,7 +144,7 @@ class GmailService {
             fromAddress: getHeader("from"),
             toAddress: getHeader("to"),
             body,
-            date: parseInt(detail.data.internalDate || "0", 10),
+            date: new Date(parseInt(detail.data.internalDate || "0", 10)),
           })
 
           synced++

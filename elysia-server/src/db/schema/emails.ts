@@ -1,19 +1,24 @@
-import { bigint, index, pgTable, text } from "drizzle-orm/pg-core"
-import { customers } from "./customers"
+import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { customers, proposals } from "./customers"
 
 export const emailMessages = pgTable(
   "email_messages",
   {
-    id: text("id").primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
     gmailMessageId: text("gmail_message_id").unique(),
     threadId: text("thread_id"),
     subject: text("subject"),
     fromAddress: text("from_address"),
     toAddress: text("to_address"),
     body: text("body"),
-    date: bigint("date", { mode: "number" }),
-    customerId: text("customer_id").references(() => customers.id, { onDelete: "set null" }),
-    syncedAt: bigint("synced_at", { mode: "number" }).notNull(),
+    date: timestamp("date", { withTimezone: true }),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    // Email type and proposal tracking
+    emailType: text("email_type"), // "draft", "sent", "received"
+    relatedProposalId: uuid("related_proposal_id").references(() => proposals.id, {
+      onDelete: "set null",
+    }),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_emails_customer").on(table.customerId),

@@ -210,7 +210,7 @@ export const customerRoutes = new Elysia({ prefix: "/api/customers" })
       params: t.Object({ id: t.String() }),
       body: t.Object({
         title: t.String(),
-        meetingDate: t.Number(),
+        meetingDate: t.Date(),
         audioFileUrl: t.Optional(t.String()),
         duration: t.Optional(t.Number()),
         summary: t.Optional(t.String()),

@@ -32,7 +32,11 @@
       "Bash(bun lint:*)",
       "Bash(bun type-check:*)",
       "Bash(grep:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Skill(gsd:map-codebase)",
+      "Skill(gsd:map-codebase:*)",
+      "Bash(bun run db:generate:*)",
+      "Bash(git log:*)"
     ]
   }
 }

@@ -1,24 +1,17 @@
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, desc, eq, lt, sql } from "drizzle-orm"
 import { db } from "../db"
 import { type MixpanelEvent, mixpanelEvents, type NewMixpanelEvent } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 
 export const mixpanelRepository = {
   save: async (event: Partial<NewMixpanelEvent>): Promise<MixpanelEvent> => {
-    const id = event.id || generateId()
-    const now = Date.now()
-
     const [saved] = await db
       .insert(mixpanelEvents)
       .values({
-        id,
         eventName: event.eventName || "",
         distinctId: event.distinctId,
         properties: event.properties,
-        receivedAt: event.receivedAt || now,
         processed: event.processed || 0,
         customerId: event.customerId,
-        createdAt: now,
       })
       .returning()
 
@@ -110,11 +103,11 @@ export const mixpanelRepository = {
   },
 
   deleteOld: async (olderThanMs: number = 90 * 24 * 60 * 60 * 1000): Promise<number> => {
-    const threshold = Date.now() - olderThanMs
+    const threshold = new Date(Date.now() - olderThanMs)
 
     await db
       .delete(mixpanelEvents)
-      .where(and(eq(mixpanelEvents.processed, 1), sql`${mixpanelEvents.receivedAt} < ${threshold}`))
+      .where(and(eq(mixpanelEvents.processed, 1), lt(mixpanelEvents.receivedAt, threshold)))
 
     return 0
   },

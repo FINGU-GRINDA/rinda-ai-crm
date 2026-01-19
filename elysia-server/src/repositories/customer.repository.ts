@@ -8,7 +8,6 @@ import {
   proposals,
   scheduledFollowUps,
 } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 
 export interface CustomerQueryOptions {
   status?: string
@@ -116,19 +115,18 @@ export const customerRepository = {
   },
 
   create: async (data: Partial<NewCustomer>): Promise<Customer> => {
-    const id = generateId()
-    const now = Date.now()
     const [customer] = await db
       .insert(customers)
       .values({
-        id,
         name: data.name || "",
         website: data.website,
         industry: data.industry,
         notes: data.notes,
         status: data.status || "new",
-        createdAt: now,
-        updatedAt: now,
+        leadSource: data.leadSource,
+        initialInquiry: data.initialInquiry,
+        sourceOfInquiry: data.sourceOfInquiry,
+        landingPageUrl: data.landingPageUrl,
       })
       .returning()
     if (!customer) throw new Error("Failed to create customer")
@@ -138,7 +136,7 @@ export const customerRepository = {
   update: async (id: string, data: Partial<NewCustomer>): Promise<Customer | null> => {
     const [customer] = await db
       .update(customers)
-      .set({ ...data, updatedAt: Date.now() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(customers.id, id))
       .returning()
     return customer || null
@@ -155,8 +153,8 @@ export const customerRepository = {
       .set({
         status: "lost",
         lostReason: reason,
-        lostAt: Date.now(),
-        updatedAt: Date.now(),
+        lostAt: new Date(),
+        updatedAt: new Date(),
       })
       .where(eq(customers.id, id))
       .returning()
@@ -167,8 +165,8 @@ export const customerRepository = {
     const [customer] = await db
       .update(customers)
       .set({
-        lastFollowUpAt: Date.now(),
-        updatedAt: Date.now(),
+        lastFollowUpAt: new Date(),
+        updatedAt: new Date(),
       })
       .where(eq(customers.id, id))
       .returning()
@@ -191,7 +189,7 @@ export const customerRepository = {
       .groupBy(customers.status)
 
     // Get count of due follow-ups
-    const now = Date.now()
+    const now = new Date()
     const dueFollowUpsResult = await db
       .select({
         count: sql<number>`count(*)::int`,
@@ -270,14 +268,13 @@ export const customerRepository = {
       .values({
         customerId,
         ...data,
-        createdAt: Date.now(),
       })
       .returning()
 
     // Update customer's lastEnrichedAt
     await db
       .update(customers)
-      .set({ lastEnrichedAt: Date.now(), updatedAt: Date.now() })
+      .set({ lastEnrichedAt: new Date(), updatedAt: new Date() })
       .where(eq(customers.id, customerId))
 
     return enrichment
@@ -299,12 +296,10 @@ export const customerRepository = {
     const [proposal] = await db
       .insert(proposals)
       .values({
-        id: generateId(),
         customerId,
         title: data.title,
         content: data.content,
         imageUrl: data.imageUrl,
-        createdAt: Date.now(),
       })
       .returning()
     return proposal

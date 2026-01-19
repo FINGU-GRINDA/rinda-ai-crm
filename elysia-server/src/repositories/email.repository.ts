@@ -1,14 +1,10 @@
 import { desc, eq, sql } from "drizzle-orm"
 import { db } from "../db"
 import { type EmailMessage, emailMessages, type NewEmailMessage } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 import { logger } from "../utils/logger"
 
 export const emailRepository = {
   save: async (email: Partial<NewEmailMessage>): Promise<EmailMessage> => {
-    const id = email.id || generateId()
-    const now = Date.now()
-
     // Check for duplicate
     if (email.gmailMessageId) {
       const existing = await db
@@ -28,7 +24,6 @@ export const emailRepository = {
     const [saved] = await db
       .insert(emailMessages)
       .values({
-        id,
         gmailMessageId: email.gmailMessageId,
         threadId: email.threadId,
         subject: email.subject,
@@ -37,7 +32,7 @@ export const emailRepository = {
         body: email.body,
         date: email.date,
         customerId: email.customerId,
-        syncedAt: now,
+        syncedAt: new Date(),
       })
       .returning()
 
@@ -109,7 +104,7 @@ export const emailRepository = {
     return result[0]?.count || 0
   },
 
-  getLastSyncTime: async (): Promise<number | null> => {
+  getLastSyncTime: async (): Promise<Date | null> => {
     const result = await db
       .select({ syncedAt: emailMessages.syncedAt })
       .from(emailMessages)

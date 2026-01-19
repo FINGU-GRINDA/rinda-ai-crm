@@ -1,5 +1,6 @@
 // Export all schemas
 
+export * from "./schema/attachments"
 export * from "./schema/contacts"
 export * from "./schema/customers"
 export * from "./schema/emails"

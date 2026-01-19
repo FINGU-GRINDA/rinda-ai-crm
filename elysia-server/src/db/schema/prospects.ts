@@ -1,4 +1,4 @@
-import { bigint, index, pgEnum, pgTable, text } from "drizzle-orm/pg-core"
+import { boolean, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
 
 export const signalStrengthEnum = pgEnum("signal_strength", ["high", "medium", "low"])
@@ -6,7 +6,7 @@ export const signalStrengthEnum = pgEnum("signal_strength", ["high", "medium", "
 export const prospects = pgTable(
   "prospects",
   {
-    id: text("id").primaryKey(),
+    id: uuid("id").defaultRandom().primaryKey(),
     companyName: text("company_name").notNull(),
     website: text("website"),
     industry: text("industry"),
@@ -16,16 +16,28 @@ export const prospects = pgTable(
     signalStrength: signalStrengthEnum("signal_strength").default("medium"),
     icpMatch: text("icp_match"),
     notes: text("notes"),
-    detectedAt: bigint("detected_at", { mode: "number" }).notNull(),
-    convertedToCustomerId: text("converted_to_customer_id").references(() => customers.id, {
+
+    // Contact information
+    contactName: text("contact_name"),
+    contactTitle: text("contact_title"),
+    contactPhone: text("contact_phone"),
+    contactEmail: text("contact_email"),
+    landingPageUrl: text("landing_page_url"),
+
+    detectedAt: timestamp("detected_at", { withTimezone: true }).notNull().defaultNow(),
+    convertedToCustomerId: uuid("converted_to_customer_id").references(() => customers.id, {
       onDelete: "set null",
     }),
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    dismissed: boolean("dismissed").notNull().default(false),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    dismissReason: text("dismiss_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_prospects_company").on(table.companyName),
     index("idx_prospects_signal").on(table.signalStrength),
     index("idx_prospects_detected").on(table.detectedAt),
+    index("idx_prospects_email").on(table.contactEmail),
   ],
 )
 

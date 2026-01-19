@@ -1,4 +1,4 @@
-import { bigint, index, integer, pgTable, text } from "drizzle-orm/pg-core"
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 
 export const oauthTokens = pgTable(
   "oauth_tokens",
@@ -7,10 +7,10 @@ export const oauthTokens = pgTable(
     provider: text("provider").notNull().unique(),
     accessToken: text("access_token").notNull(),
     refreshToken: text("refresh_token"),
-    expiresAt: bigint("expires_at", { mode: "number" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
     scope: text("scope"),
-    createdAt: bigint("created_at", { mode: "number" }).notNull(),
-    updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_oauth_provider").on(table.provider)],
 )

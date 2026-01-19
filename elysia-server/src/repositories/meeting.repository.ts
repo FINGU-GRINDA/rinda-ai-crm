@@ -1,7 +1,6 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm"
 import { db } from "../db"
 import { type MeetingSummary, meetingSummaries, type NewMeetingSummary } from "../db/schema"
-import { generateId } from "../utils/id-generator"
 
 export const meetingRepository = {
   findByCustomerId: async (customerId: string): Promise<MeetingSummary[]> => {
@@ -25,7 +24,7 @@ export const meetingRepository = {
       .limit(limit)
   },
 
-  findByDateRange: async (startDate: number, endDate: number): Promise<MeetingSummary[]> => {
+  findByDateRange: async (startDate: Date, endDate: Date): Promise<MeetingSummary[]> => {
     return db
       .select()
       .from(meetingSummaries)
@@ -39,15 +38,12 @@ export const meetingRepository = {
   },
 
   create: async (data: Partial<NewMeetingSummary>): Promise<MeetingSummary> => {
-    const id = generateId()
-    const now = Date.now()
     const [meeting] = await db
       .insert(meetingSummaries)
       .values({
-        id,
         customerId: data.customerId || "",
         title: data.title || "",
-        meetingDate: data.meetingDate || 0,
+        meetingDate: data.meetingDate || new Date(),
         audioFileUrl: data.audioFileUrl,
         duration: data.duration,
         summary: data.summary,
@@ -58,8 +54,6 @@ export const meetingRepository = {
         timelineMentions: data.timelineMentions,
         nextSteps: data.nextSteps,
         transcription: data.transcription,
-        createdAt: now,
-        updatedAt: now,
       })
       .returning()
     if (!meeting) throw new Error("Failed to create meeting summary")
@@ -69,7 +63,7 @@ export const meetingRepository = {
   update: async (id: string, data: Partial<NewMeetingSummary>): Promise<MeetingSummary | null> => {
     const [meeting] = await db
       .update(meetingSummaries)
-      .set({ ...data, updatedAt: Date.now() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(meetingSummaries.id, id))
       .returning()
     return meeting || null
@@ -94,7 +88,7 @@ export const meetingRepository = {
   ): Promise<MeetingSummary | null> => {
     const [meeting] = await db
       .update(meetingSummaries)
-      .set({ ...summaryData, updatedAt: Date.now() })
+      .set({ ...summaryData, updatedAt: new Date() })
       .where(eq(meetingSummaries.id, id))
       .returning()
     return meeting || null

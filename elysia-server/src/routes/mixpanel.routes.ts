@@ -146,7 +146,7 @@ export const mixpanelRoutes = new Elysia({ prefix: "/api/mixpanel" })
         eventName: sampleEvent.event,
         distinctId: sampleEvent.properties.distinct_id,
         properties: JSON.stringify(sampleEvent.properties),
-        receivedAt: Date.now(),
+        receivedAt: new Date(),
       })
 
       return success({
@@ -279,7 +279,7 @@ export const mixpanelRoutes = new Elysia({ prefix: "/api/mixpanel" })
           eventName: event.event || event.eventName,
           distinctId: event.properties?.distinct_id || event.distinctId,
           properties: JSON.stringify(event.properties || {}),
-          receivedAt: Date.now(),
+          receivedAt: new Date(),
         })
         saved++
       } catch (_error) {

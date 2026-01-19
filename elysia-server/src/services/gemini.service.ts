@@ -207,11 +207,15 @@ ${customerNeeds.map((n, i) => `${i + 1}. ${n}`).join("\n")}
 산업: ${customer.industry || "미지정"}
 상태: ${customer.status}
 내부 메모: ${customer.notes || "없음"}
-${enrichedData ? `
+${
+  enrichedData
+    ? `
 회사 요약: ${enrichedData.summary}
 ${isLostDeal ? "" : `세일즈 기회: ${enrichedData.salesOpportunity || "분석중"}`}
 ${enrichedData.recentNews ? `최근 뉴스: ${enrichedData.recentNews.join(", ")}` : ""}
-` : ""}`
+`
+    : ""
+}`
 
     const prompt = `당신은 RINDA CRM의 세일즈 전략가입니다.
 ${isLostDeal ? `거래를 놓친 고객 "${customer.name}"에 대한 재접촉 전략을 분석해주세요.` : `잠재 고객 "${customer.name}"에 대한 초기 접촉 및 Follow Up 전략을 수립해주세요.`}
@@ -321,9 +325,11 @@ ${context}
     return result
   }
 
-  async determineFollowUpType(
-    customer: { name: string; status: string; notes?: string },
-  ): Promise<"email" | "call" | "meeting" | "message" | null> {
+  async determineFollowUpType(customer: {
+    name: string
+    status: string
+    notes?: string
+  }): Promise<"email" | "call" | "meeting" | "message" | null> {
     const prompt = `당신은 RINDA CRM의 커뮤니케이션 채널 전문가입니다.
 다음 고객에게 적절한 접촉 채널을 결정해주세요.
 
@@ -463,6 +469,271 @@ ${context}
     }>(prompt)
 
     return result
+  }
+
+  async parseCSInquiry(messageText: string): Promise<{
+    companyName: string | null
+    contactName: string | null
+    contactTitle: string | null
+    contactPhone: string | null
+    contactEmail: string | null
+    inquiryDetails: string | null
+    leadSource: string | null
+    landingPageUrl: string | null
+  }> {
+    const prompt = `다음 Slack 메시지에서 고객 문의 정보를 추출해주세요.
+메시지는 영어 또는 한국어로 작성되었으며, 구조화된 형식 또는 자유 형식일 수 있습니다.
+
+메시지:
+"""
+${messageText}
+"""
+
+다음 필드를 찾아서 JSON으로 추출해주세요:
+- Company Name / 회사명
+- Contact Person / 담당자명
+- Title / 직함 (담당자명과 같은 줄에 있을 수 있음, 예: "홍길동 / 팀장")
+- Contact Number / 연락처 / 전화번호
+- Email / 이메일
+- Inquiry Details / 문의 내용 / 문의사항
+- Lead Source / 리드 소스 / 유입 경로
+- First Landing Page / 최초 랜딩 페이지 / Landing Page URL
+
+다음 JSON 형식으로 응답해주세요:
+{
+  "companyName": "회사명 (없으면 null)",
+  "contactName": "담당자명 (없으면 null)",
+  "contactTitle": "직함 (없으면 null)",
+  "contactPhone": "전화번호 (없으면 null)",
+  "contactEmail": "이메일 (없으면 null)",
+  "inquiryDetails": "문의 내용 전체 (없으면 null)",
+  "leadSource": "유입 경로 (없으면 null)",
+  "landingPageUrl": "랜딩 페이지 URL (없으면 null)"
+}
+
+참고:
+- 담당자명에 슬래시(/)가 있으면 앞이 이름, 뒤가 직함입니다
+- 전화번호는 +81, +82 등 국제 형식일 수 있습니다
+- URL은 http:// 또는 https://로 시작합니다
+- 찾을 수 없는 필드는 null로 설정하세요`
+
+    const result = await this.generateJSON<{
+      companyName: string | null
+      contactName: string | null
+      contactTitle: string | null
+      contactPhone: string | null
+      contactEmail: string | null
+      inquiryDetails: string | null
+      leadSource: string | null
+      landingPageUrl: string | null
+    }>(prompt)
+
+    return (
+      result || {
+        companyName: null,
+        contactName: null,
+        contactTitle: null,
+        contactPhone: null,
+        contactEmail: null,
+        inquiryDetails: null,
+        leadSource: null,
+        landingPageUrl: null,
+      }
+    )
+  }
+
+  async parseMeetingNote(messageText: string): Promise<{
+    leadCompanyName: string | null
+    decisionMakerName: string | null
+    meetingNote: string | null
+    salesProposal: string | null
+  }> {
+    const prompt = `다음 Slack 메시지에서 미팅 노트 정보를 추출해주세요.
+메시지는 한국어로 작성되었으며, 특정 형식을 따릅니다.
+
+메시지:
+"""
+${messageText}
+"""
+
+메시지 구조:
+- 첫 번째 줄: 리드 회사명 (예: "르베떼")
+- 두 번째 줄: 의사결정자 이름 (예: "백지혜 대표")
+- (Meeting Note) 섹션: 미팅 내용
+- (Sales Proposal & Action Plan) 섹션: 제안 및 액션 플랜
+
+다음 JSON 형식으로 응답해주세요:
+{
+  "leadCompanyName": "리드 회사명 (첫 번째 줄에서 추출)",
+  "decisionMakerName": "의사결정자 이름 (두 번째 줄에서 '대표', '팀장' 등 직함 제거)",
+  "meetingNote": "(Meeting Note) 섹션 전체 내용",
+  "salesProposal": "(Sales Proposal & Action Plan) 섹션 전체 내용"
+}
+
+참고:
+- 의사결정자 이름에서 '대표', '팀장', 'CEO' 등 직함은 제거하고 이름만 추출
+- 섹션이 명확하지 않으면 전체 내용을 meetingNote로 설정
+- 찾을 수 없는 필드는 null로 설정`
+
+    const result = await this.generateJSON<{
+      leadCompanyName: string | null
+      decisionMakerName: string | null
+      meetingNote: string | null
+      salesProposal: string | null
+    }>(prompt)
+
+    return (
+      result || {
+        leadCompanyName: null,
+        decisionMakerName: null,
+        meetingNote: null,
+        salesProposal: null,
+      }
+    )
+  }
+
+  async classifySalesMessage(messageText: string): Promise<{
+    messageType: "new_customer" | "existing_customer" | "other"
+    confidence: "high" | "medium" | "low"
+    companyName: string | null
+    reasoning: string
+  }> {
+    const prompt = `다음 Slack 메시지를 분석하여 새로운 고객에 대한 것인지, 기존 고객에 대한 것인지 판단해주세요.
+
+메시지:
+"""
+${messageText}
+"""
+
+판단 기준:
+- "새로운 고객" (new_customer): 신규 리드, 신규 문의, 처음 연락한 회사
+- "기존 고객" (existing_customer): 이미 알고 있는 고객의 상태 변경, 진행 상황 업데이트, 미팅 결과 등
+- "기타" (other): 일반 대화, 내부 커뮤니케이션
+
+다음 JSON 형식으로 응답해주세요:
+{
+  "messageType": "new_customer" 또는 "existing_customer" 또는 "other",
+  "confidence": "high" 또는 "medium" 또는 "low",
+  "companyName": "언급된 회사명 (없으면 null)",
+  "reasoning": "판단 근거 (한 문장)"
+}`
+
+    const result = await this.generateJSON<{
+      messageType: "new_customer" | "existing_customer" | "other"
+      confidence: "high" | "medium" | "low"
+      companyName: string | null
+      reasoning: string
+    }>(prompt)
+
+    return (
+      result || {
+        messageType: "other",
+        confidence: "low",
+        companyName: null,
+        reasoning: "분류 실패",
+      }
+    )
+  }
+
+  async parseSalesUpdate(
+    messageText: string,
+    customerContext?: string,
+  ): Promise<{
+    updateType: "status_change" | "add_note" | "create_followup" | "update_contact"
+    customerId: string | null
+    customerName: string | null
+    statusChange?: {
+      newStatus: "prospect" | "new" | "contact" | "negotiation" | "won" | "lost"
+      reason?: string
+    }
+    note?: string
+    followUp?: {
+      type: "email" | "call" | "meeting" | "message"
+      content: string
+      scheduledDays: number
+    }
+    contactUpdate?: {
+      name?: string
+      title?: string
+      email?: string
+      phone?: string
+    }
+  }> {
+    const contextInfo = customerContext ? `\n\n관련 고객 정보:\n${customerContext}` : ""
+
+    const prompt = `다음 Slack 메시지에서 고객 업데이트 정보를 추출해주세요.${contextInfo}
+
+메시지:
+"""
+${messageText}
+"""
+
+업데이트 유형을 판단하고 해당 정보를 추출해주세요:
+
+1. status_change: 고객 상태 변경 (예: "계약 성사", "미팅 예정", "협상 중", "거절됨")
+   - 상태: prospect(잠재) / new(신규) / contact(연락중) / negotiation(협상) / won(성사) / lost(실패)
+
+2. add_note: 메모 추가 (예: "미팅 결과", "통화 내용", "진행 상황")
+
+3. create_followup: 후속 조치 생성 (예: "다음 주에 연락", "제안서 보내기")
+
+4. update_contact: 연락처 정보 업데이트 (예: "담당자 변경", "새 이메일")
+
+다음 JSON 형식으로 응답해주세요:
+{
+  "updateType": "status_change" | "add_note" | "create_followup" | "update_contact",
+  "customerId": null,
+  "customerName": "회사명 (없으면 null)",
+  "statusChange": {
+    "newStatus": "상태 (status_change인 경우)",
+    "reason": "변경 이유 (선택)"
+  },
+  "note": "메모 내용 (add_note인 경우)",
+  "followUp": {
+    "type": "email" | "call" | "meeting" | "message",
+    "content": "후속 조치 내용",
+    "scheduledDays": 7 (며칠 후인지 숫자)
+  },
+  "contactUpdate": {
+    "name": "담당자명",
+    "title": "직함",
+    "email": "이메일",
+    "phone": "전화번호"
+  }
+}
+
+참고: 해당하지 않는 필드는 undefined로 설정`
+
+    const result = await this.generateJSON<{
+      updateType: "status_change" | "add_note" | "create_followup" | "update_contact"
+      customerId: string | null
+      customerName: string | null
+      statusChange?: {
+        newStatus: "prospect" | "new" | "contact" | "negotiation" | "won" | "lost"
+        reason?: string
+      }
+      note?: string
+      followUp?: {
+        type: "email" | "call" | "meeting" | "message"
+        content: string
+        scheduledDays: number
+      }
+      contactUpdate?: {
+        name?: string
+        title?: string
+        email?: string
+        phone?: string
+      }
+    }>(prompt)
+
+    return (
+      result || {
+        updateType: "add_note",
+        customerId: null,
+        customerName: null,
+        note: messageText,
+      }
+    )
   }
 }
 
