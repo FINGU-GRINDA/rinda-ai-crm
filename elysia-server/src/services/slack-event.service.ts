@@ -83,6 +83,7 @@ class SlackEventService {
 
     switch (eventType) {
       case "message":
+        console.log(event)
         return this.handleMessageEvent(event)
       case "app_mention":
         return this.handleAppMention(event)
@@ -123,6 +124,10 @@ class SlackEventService {
       })
 
       logger.info(`Saved message: ${savedMessage.id}`)
+
+      // ✅ CRITICAL FIX: Process the message with channel-specific handlers
+      await this.processMonitoredChannelMessage(savedMessage, event)
+
       return { handled: true, processed: true, messageId: savedMessage.id }
     }
 
