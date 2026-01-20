@@ -48,11 +48,15 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
 
   return (
     <div className="bg-white border-b border-slate-200 px-4 md:px-6 overflow-x-auto scrollbar-hide">
-      <div className="flex space-x-1 min-w-max">
+      <div role="tablist" aria-label="고객 카테고리" className="flex space-x-1 min-w-max">
         {tabs.map(tab => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`${tab.id}-panel`}
             onClick={() => onTabChange(tab.id)}
+            tabIndex={activeTab === tab.id ? 0 : -1}
             className={`
               relative px-4 py-3 text-sm font-medium transition-all duration-200
               flex items-center gap-2 whitespace-nowrap min-h-[48px]
@@ -66,6 +70,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
             {tab.icon}
             <span>{tab.label}</span>
             <span
+              aria-label={`${tab.count}개 항목`}
               className={`
                 ml-1 px-2 py-0.5 rounded-full text-xs font-semibold
                 ${

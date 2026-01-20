@@ -787,6 +787,7 @@ const App: React.FC = () => {
               onDeleteCustomer={handleDeleteCustomer}
               onConvertProspect={handleConvertProspectToCustomer}
               onStatusChange={handleKanbanStatusChange}
+              onAddCustomer={() => setIsAddingCustomer(true)}
             />
           ) : (
             <TableView

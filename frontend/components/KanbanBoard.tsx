@@ -12,21 +12,42 @@ import {
 } from './Icons';
 
 // Tooltip Component
-const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => (
-  <div className="group relative flex">
-    {children}
-    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 scale-0 group-hover:scale-100 transition-all bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none">
-      {text}
-      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => {
+  const [showTooltip, setShowTooltip] = React.useState(false);
+  const tooltipId = React.useId();
+
+  return (
+    <div className="group relative flex">
+      <div
+        aria-describedby={showTooltip ? tooltipId : undefined}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onFocus={() => setShowTooltip(true)}
+        onBlur={() => setShowTooltip(false)}
+      >
+        {children}
+      </div>
+      <div
+        id={tooltipId}
+        role="tooltip"
+        className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 transition-all bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-50 pointer-events-none ${
+          showTooltip ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+        }`}
+      >
+        {text}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const KANBAN_COLUMNS: { id: CustomerStatus; title: string; accent: string }[] = [
-  { id: 'new', title: '새로운 고객', accent: 'border-l-neutral-400' },
-  { id: 'contact', title: '연락 중', accent: 'border-l-blue-600' },
-  { id: 'negotiation', title: '제안서 검토 중', accent: 'border-l-blue-600' },
+  { id: 'prospect', title: '발굴 고객', accent: 'border-l-purple-500' },
+  { id: 'new', title: '새로운 고객', accent: 'border-l-slate-400' },
+  { id: 'contact', title: '연락 중', accent: 'border-l-blue-500' },
+  { id: 'negotiation', title: '제안 검토', accent: 'border-l-indigo-600' },
   { id: 'won', title: '계약 완료', accent: 'border-l-emerald-500' },
+  { id: 'lost', title: '종료된 거래', accent: 'border-l-red-500' },
 ];
 
 interface KanbanBoardProps {
@@ -36,6 +57,7 @@ interface KanbanBoardProps {
   onDeleteCustomer: (customer: Customer) => void;
   onConvertProspect: (prospectId: string) => void;
   onStatusChange: (customerId: string, newStatus: CustomerStatus) => Promise<void>;
+  onAddCustomer?: () => void;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -45,10 +67,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onDeleteCustomer,
   onConvertProspect,
   onStatusChange,
+  onAddCustomer,
 }) => {
   const [draggedCustomerId, setDraggedCustomerId] = useState<string | null>(null);
   const [activeKanbanColumn, setActiveKanbanColumn] = useState(0);
   const kanbanScrollRef = useRef<HTMLDivElement>(null);
+  const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const handleDragStart = useCallback((e: React.DragEvent, customerId: string) => {
     setDraggedCustomerId(customerId);
@@ -68,6 +92,43 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     setDraggedCustomerId(null);
   }, [draggedCustomerId, onStatusChange]);
 
+  // Empty state component with contextual messages
+  const EmptyState: React.FC<{ columnId: CustomerStatus }> = ({ columnId }) => {
+    const messages: Record<CustomerStatus, { title: string; subtitle?: string; showCTA: boolean }> = {
+      prospect: { title: '발굴된 고객이 없습니다', subtitle: 'ICP 설정에서 자동 수집을 활성화하세요', showCTA: false },
+      new: { title: '신규 고객이 없습니다', subtitle: '고객을 추가하거나 프로스펙트를 전환하세요', showCTA: true },
+      contact: { title: '연락 중인 고객이 없습니다', subtitle: '신규 고객을 이 단계로 드래그하세요', showCTA: false },
+      negotiation: { title: '제안 검토 중인 고객이 없습니다', subtitle: '제안서를 보낸 고객을 여기로 이동하세요', showCTA: false },
+      won: { title: '계약 완료 고객이 없습니다', subtitle: '계약이 완료되면 여기로 이동하세요', showCTA: false },
+      lost: { title: '종료된 거래가 없습니다', showCTA: false }
+    };
+
+    const message = messages[columnId];
+
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center px-4">
+        <div className="w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center mb-3 opacity-50">
+          <IconBuilding className="w-6 h-6 text-slate-400" />
+        </div>
+        <p className="text-xs text-slate-500 font-medium mb-1">{message.title}</p>
+        {message.subtitle && (
+          <p className="text-[10px] text-slate-400 mb-3">{message.subtitle}</p>
+        )}
+        {message.showCTA && onAddCustomer && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddCustomer();
+            }}
+            className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline"
+          >
+            + 고객 추가
+          </button>
+        )}
+      </div>
+    );
+  };
+
   // Customer Card Component
   const CustomerCard: React.FC<{
     customer: Customer;
@@ -79,9 +140,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     return (
       <div
         key={customer.id}
+        role="button"
+        aria-label={`${customer.name} - ${customer.industry}`}
+        tabIndex={0}
         draggable={!isProspect && showDragHandle}
         onDragStart={!isProspect && showDragHandle ? (e) => handleDragStart(e, customer.id) : undefined}
         onClick={() => onSelectCustomer(customer.id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelectCustomer(customer.id);
+          }
+        }}
         className={`bg-white p-4 rounded-lg shadow-sm border ${
           isProspect
             ? 'border-neutral-300 cursor-pointer'
@@ -211,10 +281,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               key={col.id}
               onClick={() => {
                 setActiveKanbanColumn(idx);
-                kanbanScrollRef.current?.scrollTo({
-                  left: idx * (window.innerWidth * 0.9 + 16),
-                  behavior: 'smooth'
-                });
+                const column = columnRefs.current[idx];
+                if (column && kanbanScrollRef.current) {
+                  const scrollLeft = column.offsetLeft - kanbanScrollRef.current.offsetLeft;
+                  kanbanScrollRef.current.scrollTo({
+                    left: scrollLeft,
+                    behavior: 'smooth'
+                  });
+                }
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 activeKanbanColumn === idx
@@ -238,20 +312,39 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         ref={kanbanScrollRef}
         className="flex-1 overflow-x-auto snap-x snap-mandatory scrollbar-hide"
         onScroll={(e) => {
-          const scrollLeft = e.currentTarget.scrollLeft;
-          const columnWidth = window.innerWidth * 0.9 + 16;
-          const newIndex = Math.round(scrollLeft / columnWidth);
+          const container = e.currentTarget;
+          const scrollLeft = container.scrollLeft;
+          const containerWidth = container.offsetWidth;
+          const scrollCenter = scrollLeft + containerWidth / 2;
+
+          // Find which column is at the center
+          let newIndex = 0;
+          for (let i = 0; i < columnRefs.current.length; i++) {
+            const column = columnRefs.current[i];
+            if (column) {
+              const columnCenter = column.offsetLeft + column.offsetWidth / 2;
+              if (scrollCenter >= columnCenter - column.offsetWidth / 2 &&
+                  scrollCenter < columnCenter + column.offsetWidth / 2) {
+                newIndex = i;
+                break;
+              }
+            }
+          }
+
           if (newIndex !== activeKanbanColumn && newIndex >= 0 && newIndex < KANBAN_COLUMNS.length) {
             setActiveKanbanColumn(newIndex);
           }
         }}
       >
         <div className="flex min-w-max gap-4 px-4 py-4 h-full">
-          {KANBAN_COLUMNS.map((column) => {
+          {KANBAN_COLUMNS.map((column, idx) => {
             const columnCustomers = customers.filter(c => c.status === column.id);
             return (
               <div
                 key={column.id}
+                ref={(el) => (columnRefs.current[idx] = el)}
+                role="region"
+                aria-label={`${column.title} 칼럼 - ${columnCustomers.length}개 항목`}
                 className={`w-[85vw] flex-shrink-0 snap-center flex flex-col rounded-xl bg-white border-l-4 ${column.accent} border-r border-t border-b border-neutral-200 overflow-hidden`}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, column.id)}
@@ -267,12 +360,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 {/* Cards Container */}
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
                   {columnCustomers.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <div className="w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center mb-2 opacity-50">
-                        <IconBuilding className="w-6 h-6 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-400">고객이 없습니다</p>
-                    </div>
+                    <EmptyState columnId={column.id} />
                   ) : (
                     columnCustomers.map(customer => (
                       <CustomerCard key={customer.id} customer={customer} showDragHandle={false} />
@@ -295,6 +383,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         return (
           <div
             key={column.id}
+            role="region"
+            aria-label={`${column.title} 칼럼 - ${columnCustomers.length}개 항목`}
             className={`w-72 md:w-80 flex flex-col h-full rounded-xl transition-all duration-200 bg-white border-l-4 ${column.accent} ${
               draggedCustomerId
                 ? 'border-r-2 border-t-2 border-b-2 border-dashed border-blue-300'
@@ -314,12 +404,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             {/* Cards Container */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[100px]">
               {columnCustomers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <div className="w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center mb-2 opacity-50">
-                    <IconBuilding className="w-6 h-6 text-slate-400" />
-                  </div>
-                  <p className="text-xs text-slate-400">고객이 없습니다</p>
-                </div>
+                <EmptyState columnId={column.id} />
               ) : (
                 columnCustomers.map(customer => (
                   <CustomerCard key={customer.id} customer={customer} showDragHandle={true} />
