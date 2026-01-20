@@ -39,7 +39,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
         id: 'welcome',
         role: 'assistant',
         content: '안녕하세요! RINDA CRM AI 어시스턴트입니다. 무엇을 도와드릴까요?\n\n예시:\n- "삼성전자 분석해줘"\n- "제안서 만들어줘"\n- "고객 통계 보여줘"',
-        timestamp: Date.now()
+        timestamp: new Date().toISOString()
       };
       setMessages([welcomeMessage]);
     } else {
@@ -79,10 +79,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
       }
     } catch (error: any) {
       const errorMessage: AIMessage = {
-        id: `error_${Date.now()}`,
+        id: `error_${Math.random().toString(36).substr(2, 9)}`,
         role: 'assistant',
         content: `죄송합니다. 오류가 발생했습니다: ${error.message}`,
-        timestamp: Date.now()
+        timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -106,7 +106,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
         id: 'welcome',
         role: 'assistant',
         content: '대화 기록이 삭제되었습니다. 무엇을 도와드릴까요?',
-        timestamp: Date.now()
+        timestamp: new Date().toISOString()
       };
       setMessages([welcomeMessage]);
     }

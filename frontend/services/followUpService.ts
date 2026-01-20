@@ -64,8 +64,8 @@ export const suggestFollowUpTiming = (
   strategy: FollowUpStrategy
 ): { days: number; date: Date; reason: string } => {
   const now = Date.now();
-  const lostAt = customer.lostAt || now;
-  const daysSinceLost = Math.floor((now - lostAt) / (1000 * 60 * 60 * 24));
+  const lostAtTimestamp = customer.lostAt ? new Date(customer.lostAt).getTime() : now;
+  const daysSinceLost = Math.floor((now - lostAtTimestamp) / (1000 * 60 * 60 * 24));
   
   let suggestedDays = 30; // 기본값
   

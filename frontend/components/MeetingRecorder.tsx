@@ -182,12 +182,13 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
         audioData: base64Audio,
         customerId: selectedCustomerId,
         title,
-        meetingDate: new Date(meetingDate).getTime()
-      }) as { success: boolean; summary: MeetingSummary };
+        meetingDate: new Date(meetingDate).toISOString()
+      });
 
-      if (result.success) {
-        setSummaryResult(result.summary);
-        onComplete(result.summary);
+      if (result.success && 'data' in result) {
+        const summary = result.data as unknown as MeetingSummary;
+        setSummaryResult(summary);
+        onComplete(summary);
       }
     } catch (err: any) {
       console.error('Summarization failed:', err);

@@ -231,7 +231,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                           {customer && (
                             <p className="text-xs text-slate-500">{customer.name}</p>
                           )}
-                          <p className="text-xs text-slate-400 mt-1">{formatTime(notification.createdAt)}</p>
+                          <p className="text-xs text-slate-400 mt-1">{formatTime(new Date(notification.createdAt).getTime())}</p>
                         </div>
                         <button
                           onClick={(e) => handleDelete(notification.id, e)}
@@ -276,7 +276,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                           {customer && (
                             <p className="text-xs text-slate-400">{customer.name}</p>
                           )}
-                          <p className="text-xs text-slate-400 mt-1">{formatTime(notification.createdAt)}</p>
+                          <p className="text-xs text-slate-400 mt-1">{formatTime(new Date(notification.createdAt).getTime())}</p>
                         </div>
                         <button
                           onClick={(e) => handleDelete(notification.id, e)}

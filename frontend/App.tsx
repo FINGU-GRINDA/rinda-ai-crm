@@ -11,6 +11,8 @@ import { BackgroundTaskProvider } from './contexts/BackgroundTaskContext';
 import { BackgroundTaskToast } from './components/BackgroundTaskToast';
 import { useIsMobile } from './hooks/useMediaQuery';
 import { Home, Search, Bell, Settings } from 'lucide-react';
+import { transformApiCustomer, transformApiProspect, transformApiProposal } from './src/utils/apiTransformers';
+import { isSuccessListResponse, isSuccessResponse, isErrorResponse } from './src/utils/typeGuards';
 import { BusinessCardScanner } from './components/BusinessCardScanner';
 import { MeetingRecorder } from './components/MeetingRecorder';
 import { FloatingActionButton } from './components/FloatingActionButton';
@@ -35,27 +37,6 @@ const MeetingPrep = lazy(() => import('./components/MeetingPrep').then(m => ({ d
 import { UnifiedSettings } from './components/settings';
 import { IconSearch, IconX, IconArrowRight } from './components/Icons';
 import { AIAssistant } from './components/AIAssistant';
-
-// --- Helper Functions ---
-function transformApiCustomer(apiCustomer: any): Customer {
-  return {
-    id: apiCustomer.id,
-    name: apiCustomer.name,
-    website: apiCustomer.website || '',
-    industry: apiCustomer.industry || '미분류',
-    notes: apiCustomer.notes || '',
-    status: apiCustomer.status || 'new',
-    enrichedData: apiCustomer.enrichedData || apiCustomer.enrichment || undefined,
-    proposals: apiCustomer.proposals || [],
-    lastEnrichedAt: apiCustomer.lastEnrichedAt || apiCustomer.last_enriched_at,
-    lostReason: apiCustomer.lostReason || apiCustomer.lost_reason,
-    lostAt: apiCustomer.lostAt || apiCustomer.lost_at,
-    lastFollowUpAt: apiCustomer.lastFollowUpAt || apiCustomer.last_follow_up_at,
-    followUpHistory: apiCustomer.followUpHistory || [],
-    contacts: apiCustomer.contacts || [],
-    meetingSummaries: apiCustomer.meetingSummaries || [],
-  };
-}
 
 // Mobile Bottom Tab Type
 type MobileBottomTab = 'home' | 'search' | 'notifications' | 'settings';
@@ -166,7 +147,7 @@ const App: React.FC = () => {
   const tabCounts = useMemo(() => ({
     active: customers.filter(c => c.status !== 'lost' && c.status !== 'prospect').length,
     leads: customers.filter(c => c.status === 'new').length,
-    prospects: prospects.filter(p => !p.converted).length,
+    prospects: prospects.length,
     lost: customers.filter(c => c.status === 'lost').length
   }), [customers, prospects]);
 
@@ -195,16 +176,17 @@ const App: React.FC = () => {
     setCustomersLoading(true);
     setCustomersError(null);
     try {
-      const response = await apiClient.getCustomers({ limit: 500 }) as any;
-      if (response.success && response.data) {
+      const response = await apiClient.getCustomers({ limit: 500 });
+      if (isSuccessListResponse(response)) {
         const transformedCustomers = response.data.map(transformApiCustomer);
         setCustomers(transformedCustomers);
-      } else {
-        throw new Error(response.error || '고객 목록을 불러오는데 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to fetch customers:', err);
-      setCustomersError(err.message || '고객 목록을 불러오는데 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to fetch customers:', error);
+      setCustomersError(error.message || '고객 목록을 불러오는데 실패했습니다.');
       setCustomers([]);
     } finally {
       setCustomersLoading(false);
@@ -214,23 +196,17 @@ const App: React.FC = () => {
   // Fetch prospects from backend API
   const fetchProspectsFromBackend = useCallback(async () => {
     try {
-      const response = await apiClient.getLeads({ converted: false, limit: 500 }) as any;
-      if (response.success && response.data) {
-        const transformedProspects = response.data.map((p: any) => ({
-          id: p.id,
-          companyName: p.company_name || p.companyName,
-          website: p.website,
-          industry: p.industry,
-          signalStrength: p.signal_strength || p.signalStrength || 'low',
-          sourceArticle: p.source_article || p.sourceArticle,
-          notes: p.notes,
-          detectedAt: p.detected_at || p.detectedAt || Date.now(),
-          converted: p.converted || false
-        }));
+      const response = await apiClient.getLeads({ converted: false, limit: 500 });
+      if (isSuccessListResponse(response)) {
+        const transformedProspects = response.data.map(transformApiProspect);
         setProspects(transformedProspects);
+      } else if (isErrorResponse(response)) {
+        // Fallback to localStorage if backend fails
+        setProspects(getProspects());
       }
-    } catch (err: any) {
-      console.error('Failed to fetch prospects:', err);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to fetch prospects:', error);
       // Fallback to localStorage if backend fails
       setProspects(getProspects());
     }
@@ -376,14 +352,14 @@ const App: React.FC = () => {
       setEnrichmentProgress({ percent: 90, message: '결과 정리 중...' });
 
       try {
-        await apiClient.saveCustomerEnrichment(selectedCustomerId!, data);
+        await apiClient.saveCustomerEnrichment(selectedCustomerId!, data as unknown as Record<string, unknown>);
       } catch (saveErr) {
         console.warn('Failed to save enrichment to backend:', saveErr);
       }
 
       setCustomers(prev => prev.map(c => {
         if (c.id === selectedCustomerId) {
-          return { ...c, enrichedData: data, lastEnrichedAt: Date.now() };
+          return { ...c, enrichedData: data, lastEnrichedAt: new Date().toISOString() };
         }
         return c;
       }));
@@ -407,17 +383,18 @@ const App: React.FC = () => {
         industry: data.industry,
         notes: '',
         status: 'new',
-      }) as any;
+      });
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const newCustomer = transformApiCustomer(response.data);
         setCustomers(prev => [...prev, newCustomer]);
-      } else {
-        throw new Error(response.error || '고객 추가에 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to add customer:', err);
-      setError(err.message || '고객 추가에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to add customer:', error);
+      setError(error.message || '고객 추가에 실패했습니다.');
       setTimeout(() => setError(null), 5000);
     }
     setIsAddingCustomer(false);
@@ -431,16 +408,10 @@ const App: React.FC = () => {
         title: proposalData.title,
         content: proposalData.content,
         imageUrl: proposalData.imageUrl
-      }) as any;
+      });
 
-      if (response.success && response.data) {
-        const newProposal: Proposal = {
-          id: response.data.id,
-          title: response.data.title,
-          content: response.data.content,
-          imageUrl: response.data.imageUrl || response.data.image_url,
-          createdAt: response.data.createdAt || response.data.created_at || Date.now()
-        };
+      if (isSuccessResponse(response)) {
+        const newProposal = transformApiProposal(response.data);
 
         setCustomers(prev => prev.map(c => {
           if (c.id === selectedCustomer.id) {
@@ -448,17 +419,18 @@ const App: React.FC = () => {
           }
           return c;
         }));
-      } else {
-        throw new Error(response.error || '제안서 저장에 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to save proposal:', err);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to save proposal:', error);
       const newProposal: Proposal = {
-        id: Date.now().toString(),
+        id: Math.random().toString(36).substr(2, 9),
         title: proposalData.title,
         content: proposalData.content,
         imageUrl: proposalData.imageUrl,
-        createdAt: Date.now()
+        createdAt: new Date().toISOString()
       };
 
       setCustomers(prev => prev.map(c => {
@@ -488,11 +460,11 @@ const App: React.FC = () => {
     if (task.status !== 'completed' || !task.result) return;
 
     const newProposal: Proposal = {
-      id: Date.now().toString(),
+      id: Math.random().toString(36).substr(2, 9),
       title: task.result.title,
       content: task.result.content,
       imageUrl: task.result.imageUrl,
-      createdAt: Date.now()
+      createdAt: new Date().toISOString()
     };
 
     setCustomers(prev => prev.map(c => {
@@ -518,34 +490,36 @@ const App: React.FC = () => {
     }
 
     try {
-      const response = await apiClient.updateCustomerStatus(selectedCustomerId!, newStatus) as any;
+      const response = await apiClient.updateCustomerStatus(selectedCustomerId!, newStatus);
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data);
         setCustomers(prev => prev.map(c => c.id === selectedCustomerId ? updatedCustomer : c));
-      } else {
-        throw new Error(response.error || '상태 변경에 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to update status:', err);
-      setError(err.message || '상태 변경에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to update status:', error);
+      setError(error.message || '상태 변경에 실패했습니다.');
       setTimeout(() => setError(null), 5000);
     }
   };
 
   const handleKanbanStatusChange = useCallback(async (customerId: string, newStatus: CustomerStatus) => {
     try {
-      const response = await apiClient.updateCustomerStatus(customerId, newStatus) as any;
+      const response = await apiClient.updateCustomerStatus(customerId, newStatus);
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data);
         setCustomers(prev => prev.map(c => c.id === customerId ? updatedCustomer : c));
-      } else {
-        throw new Error(response.error || '상태 변경에 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to update status via drag:', err);
-      setError(err.message || '상태 변경에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to update status via drag:', error);
+      setError(error.message || '상태 변경에 실패했습니다.');
       setTimeout(() => setError(null), 5000);
     }
   }, []);
@@ -556,20 +530,22 @@ const App: React.FC = () => {
 
     try {
       // Use the backend API to convert lead to customer
-      const response = await apiClient.convertLeadToCustomer(prospectId, { status: 'new' }) as any;
+      const response = await apiClient.convertLeadToCustomer(prospectId, { status: 'new' });
 
-      if (response.success && response.data) {
-        const newCustomer = transformApiCustomer(response.data);
+      if (isSuccessResponse(response)) {
+        const responseData = response.data as unknown as { customer: any };
+        const newCustomer = transformApiCustomer(responseData.customer);
         setCustomers(prev => [...prev, newCustomer]);
 
         // Refresh prospects list
         await fetchProspectsFromBackend();
-      } else {
-        throw new Error(response.error || '고객 전환에 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to convert prospect:', err);
-      setError(err.message || '고객 전환에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to convert prospect:', error);
+      setError(error.message || '고객 전환에 실패했습니다.');
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -586,21 +562,22 @@ const App: React.FC = () => {
     if (!prospectToDismiss) return;
 
     try {
-      const response = await apiClient.dismissProspect(prospectToDismiss.id, reason) as any;
+      const response = await apiClient.dismissProspect(prospectToDismiss.id, reason);
 
-      if (response.success) {
+      if (isSuccessResponse(response)) {
         // Refresh prospects list to remove dismissed prospect
         await fetchProspectsFromBackend();
 
         // Close modal and reset state
         setShowDismissProspectModal(false);
         setProspectToDismiss(null);
-      } else {
-        throw new Error(response.error || '관심 없음 처리에 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to dismiss prospect:', err);
-      setError(err.message || '관심 없음 처리에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to dismiss prospect:', error);
+      setError(error.message || '관심 없음 처리에 실패했습니다.');
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -609,17 +586,18 @@ const App: React.FC = () => {
     if (!selectedCustomer) return;
 
     try {
-      const response = await apiClient.updateCustomerStatus(selectedCustomerId!, 'lost', reason) as any;
+      const response = await apiClient.updateCustomerStatus(selectedCustomerId!, 'lost', reason);
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data);
         setCustomers(prev => prev.map(c => c.id === selectedCustomerId ? updatedCustomer : c));
-      } else {
-        throw new Error(response.error || 'Lost 처리에 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to mark as lost:', err);
-      setError(err.message || 'Lost 처리에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to mark as lost:', error);
+      setError(error.message || 'Lost 처리에 실패했습니다.');
       setTimeout(() => setError(null), 5000);
     }
 
@@ -636,20 +614,21 @@ const App: React.FC = () => {
     if (!customerToDelete) return;
 
     try {
-      const response = await apiClient.deleteCustomer(customerToDelete.id) as any;
+      const response = await apiClient.deleteCustomer(customerToDelete.id);
 
-      if (response.success) {
+      if (isSuccessResponse(response)) {
         setCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
 
         if (selectedCustomerId === customerToDelete.id) {
           setSelectedCustomerId(null);
         }
-      } else {
-        throw new Error(response.error || '고객 삭제에 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to delete customer:', err);
-      setError(err.message || '고객 삭제에 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to delete customer:', error);
+      setError(error.message || '고객 삭제에 실패했습니다.');
       setTimeout(() => setError(null), 5000);
     }
 
@@ -674,16 +653,17 @@ const App: React.FC = () => {
       setCustomers(prev => prev.map(c => {
         if (c.id === selectedCustomer.id) {
           const updatedHistory = [...(c.followUpHistory || []), action];
-          return { ...c, followUpHistory: updatedHistory, lastFollowUpAt: Date.now() };
+          return { ...c, followUpHistory: updatedHistory, lastFollowUpAt: new Date().toISOString() };
         }
         return c;
       }));
-    } catch (err: any) {
-      console.error('Failed to save follow-up:', err);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to save follow-up:', error);
       setCustomers(prev => prev.map(c => {
         if (c.id === selectedCustomer.id) {
           const updatedHistory = [...(c.followUpHistory || []), action];
-          return { ...c, followUpHistory: updatedHistory, lastFollowUpAt: Date.now() };
+          return { ...c, followUpHistory: updatedHistory, lastFollowUpAt: new Date().toISOString() };
         }
         return c;
       }));

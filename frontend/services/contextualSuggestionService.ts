@@ -15,15 +15,15 @@ export const getSuggestions = (): ContextualSuggestion[] => {
 // Save suggestion
 export const saveSuggestion = (suggestion: ContextualSuggestion): void => {
   const existing = getSuggestions();
-  
+
   // Avoid duplicates
-  const isDuplicate = existing.some(s => 
+  const isDuplicate = existing.some(s =>
     s.id === suggestion.id ||
-    (s.type === suggestion.type && 
+    (s.type === suggestion.type &&
      s.customerId === suggestion.customerId &&
-     Math.abs(s.createdAt - suggestion.createdAt) < 60000)
+     Math.abs(new Date(s.createdAt).getTime() - new Date(suggestion.createdAt).getTime()) < 60000)
   );
-  
+
   if (!isDuplicate) {
     existing.unshift(suggestion);
     // Keep last 100 suggestions
@@ -46,9 +46,10 @@ export const analyzeCustomerContext = async (
 ): Promise<ContextualSuggestion[]> => {
   const suggestions: ContextualSuggestion[] = [];
   const now = Date.now();
-  
+
   // Check for missing follow-up
-  const lastContact = customer.lastFollowUpAt || customer.lastEnrichedAt || 0;
+  const lastContactDate = customer.lastFollowUpAt || customer.lastEnrichedAt;
+  const lastContact = lastContactDate ? new Date(lastContactDate).getTime() : 0;
   const daysSinceLastContact = Math.floor((now - lastContact) / (1000 * 60 * 60 * 24));
   
   if (daysSinceLastContact >= 3 && customer.status !== 'won' && customer.status !== 'lost') {
@@ -60,12 +61,12 @@ export const analyzeCustomerContext = async (
       customerId: customer.id,
       action: 'generate_followup',
       priority: daysSinceLastContact >= 7 ? 'high' : 'medium',
-      createdAt: now
+      createdAt: new Date(now).toISOString()
     });
   }
   
   // Check for missing enrichment
-  if (!customer.enrichedData || (customer.lastEnrichedAt && (now - customer.lastEnrichedAt) > 30 * 24 * 60 * 60 * 1000)) {
+  if (!customer.enrichedData || (customer.lastEnrichedAt && (now - new Date(customer.lastEnrichedAt).getTime()) > 30 * 24 * 60 * 60 * 1000)) {
     suggestions.push({
       id: `suggest_enrich_${customer.id}`,
       type: 'enrichment',
@@ -74,7 +75,7 @@ export const analyzeCustomerContext = async (
       customerId: customer.id,
       action: 'enrich_customer',
       priority: !customer.enrichedData ? 'high' : 'medium',
-      createdAt: now
+      createdAt: new Date(now).toISOString()
     });
   }
   
@@ -88,7 +89,7 @@ export const analyzeCustomerContext = async (
       customerId: customer.id,
       action: 'generate_proposal',
       priority: 'high',
-      createdAt: now
+      createdAt: new Date(now).toISOString()
     });
   }
   
@@ -97,8 +98,8 @@ export const analyzeCustomerContext = async (
     const meetings = await getUpcomingMeetings(customer.id, 3);
     if (meetings.length > 0) {
       const nextMeeting = meetings[0];
-      const hoursUntil = (nextMeeting.startTime - now) / (1000 * 60 * 60);
-      
+      const hoursUntil = (new Date(nextMeeting.startTime).getTime() - now) / (1000 * 60 * 60);
+
       if (hoursUntil <= 48 && hoursUntil > 0) {
         suggestions.push({
           id: `suggest_meeting_prep_${customer.id}_${nextMeeting.id}`,
@@ -108,7 +109,7 @@ export const analyzeCustomerContext = async (
           customerId: customer.id,
           action: 'generate_meeting_prep',
           priority: hoursUntil <= 24 ? 'high' : 'medium',
-          createdAt: now
+          createdAt: new Date(now).toISOString()
         });
       }
     }
@@ -135,7 +136,8 @@ export const detectRiskSignals = async (
   allCustomers: Customer[]
 ): Promise<ContextualSuggestion | null> => {
   const now = Date.now();
-  const lastContact = customer.lastFollowUpAt || customer.lastEnrichedAt || 0;
+  const lastContactDate = customer.lastFollowUpAt || customer.lastEnrichedAt;
+  const lastContact = lastContactDate ? new Date(lastContactDate).getTime() : 0;
   const daysSinceLastContact = Math.floor((now - lastContact) / (1000 * 60 * 60 * 24));
 
   try {
@@ -151,7 +153,7 @@ export const detectRiskSignals = async (
         customerId: customer.id,
         action: 'review_customer',
         priority: result.priority || 'medium',
-        createdAt: now
+        createdAt: new Date(now).toISOString()
       };
     }
   } catch (error) {
@@ -167,7 +169,7 @@ export const detectRiskSignals = async (
         customerId: customer.id,
         action: 'review_customer',
         priority: 'medium',
-        createdAt: now
+        createdAt: new Date(now).toISOString()
       };
     }
   }

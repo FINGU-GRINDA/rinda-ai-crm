@@ -86,7 +86,7 @@ export const runProspectCollection = async (
 
   try {
     const result: any = await apiClient.runProspectCollection(
-      icpProfiles,
+      icpProfiles as unknown as Record<string, unknown>[],
       existingCompanyNames
     );
 

@@ -103,7 +103,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
       return;
     }
 
-    const now = Date.now();
+    const now = new Date().toISOString();
     let updated: ICPProfile[];
 
     if (editingId) {

@@ -161,11 +161,11 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
 
     if (result.success) {
       setSuccessMessage('테스트 메시지가 Slack으로 전송되었습니다!');
-      const newSettings = { ...formData, lastTestAt: Date.now() };
+      const newSettings = { ...formData, lastTestAt: new Date().toISOString() };
       setFormData(newSettings);
       // Also update original since this is a side effect
-      setOriginalData(prev => ({ ...prev, lastTestAt: Date.now() }));
-      saveSlackSettings({ ...originalData, lastTestAt: Date.now() });
+      setOriginalData(prev => ({ ...prev, lastTestAt: new Date().toISOString() }));
+      saveSlackSettings({ ...originalData, lastTestAt: new Date().toISOString() });
     } else {
       setErrorMessage(result.error || '테스트 메시지 전송에 실패했습니다.');
     }

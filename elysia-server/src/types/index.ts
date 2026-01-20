@@ -358,3 +358,6 @@ export interface GoogleTokens {
   token_type?: string | null
   scope?: string
 }
+
+// API Response Types (shared between frontend and backend)
+export type * from "./api"

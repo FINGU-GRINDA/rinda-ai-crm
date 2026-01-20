@@ -2,6 +2,22 @@ import { and, asc, desc, eq, isNotNull, isNull, like, or, sql } from "drizzle-or
 import { db } from "../db"
 import { type NewProspect, type Prospect, prospects } from "../db/schema"
 
+/**
+ * Transform prospect database response to API format
+ * Converts flat sourceTitle/sourceUri/sourcePublishedAt to nested sourceArticle object
+ */
+function transformProspectResponse(prospect: Prospect): any {
+  const { sourceTitle, sourceUri, sourcePublishedAt, ...rest } = prospect as any
+  return {
+    ...rest,
+    sourceArticle: {
+      title: sourceTitle || null,
+      uri: sourceUri || null,
+      publishedAt: sourcePublishedAt || null,
+    },
+  }
+}
+
 export interface ProspectQueryOptions {
   signalStrength?: string
   industry?: string
@@ -98,15 +114,18 @@ export const prospectRepository = {
       .limit(limit)
       .offset(offset)
 
+    // Transform to API format (nested sourceArticle)
+    const transformedData = data.map(transformProspectResponse)
+
     return {
-      data,
+      data: transformedData,
       count: countResult[0]?.count || 0,
     }
   },
 
-  findById: async (id: string): Promise<Prospect | null> => {
+  findById: async (id: string): Promise<any | null> => {
     const result = await db.select().from(prospects).where(eq(prospects.id, id))
-    return result[0] || null
+    return result[0] ? transformProspectResponse(result[0]) : null
   },
 
   findByCompanyName: async (companyName: string): Promise<Prospect | null> => {
@@ -150,7 +169,7 @@ export const prospectRepository = {
       .orderBy(desc(prospects.detectedAt))
   },
 
-  create: async (data: Partial<NewProspect>): Promise<Prospect> => {
+  create: async (data: Partial<NewProspect>): Promise<any> => {
     const [prospect] = await db
       .insert(prospects)
       .values({
@@ -171,7 +190,7 @@ export const prospectRepository = {
       })
       .returning()
     if (!prospect) throw new Error("Failed to create prospect")
-    return prospect
+    return transformProspectResponse(prospect)
   },
 
   bulkCreate: async (
@@ -201,9 +220,9 @@ export const prospectRepository = {
     return { created, skipped }
   },
 
-  update: async (id: string, data: Partial<NewProspect>): Promise<Prospect | null> => {
+  update: async (id: string, data: Partial<NewProspect>): Promise<any | null> => {
     const [prospect] = await db.update(prospects).set(data).where(eq(prospects.id, id)).returning()
-    return prospect || null
+    return prospect ? transformProspectResponse(prospect) : null
   },
 
   delete: async (id: string): Promise<boolean> => {
@@ -211,16 +230,16 @@ export const prospectRepository = {
     return true
   },
 
-  markAsConverted: async (prospectId: string, customerId: string): Promise<Prospect | null> => {
+  markAsConverted: async (prospectId: string, customerId: string): Promise<any | null> => {
     const [prospect] = await db
       .update(prospects)
       .set({ convertedToCustomerId: customerId })
       .where(eq(prospects.id, prospectId))
       .returning()
-    return prospect || null
+    return prospect ? transformProspectResponse(prospect) : null
   },
 
-  dismissProspect: async (prospectId: string, reason: string): Promise<Prospect | null> => {
+  dismissProspect: async (prospectId: string, reason: string): Promise<any | null> => {
     const [prospect] = await db
       .update(prospects)
       .set({
@@ -230,7 +249,7 @@ export const prospectRepository = {
       })
       .where(eq(prospects.id, prospectId))
       .returning()
-    return prospect || null
+    return prospect ? transformProspectResponse(prospect) : null
   },
 
   getRecent: async (limit: number = 10): Promise<Prospect[]> => {

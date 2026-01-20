@@ -83,7 +83,7 @@ export const CustomerFollowUpWidget: React.FC<CustomerFollowUpWidgetProps> = ({
 
   const pendingFollowUps = followUps.filter(f => f.status === 'pending');
   const completedFollowUps = followUps.filter(f => f.status === 'completed').slice(0, 3);
-  const now = Date.now();
+  const now = new Date().toISOString();
   const overdueCount = pendingFollowUps.filter(f => f.scheduledFor <= now).length;
 
   const handleAutoSchedule = async () => {
@@ -191,7 +191,7 @@ export const CustomerFollowUpWidget: React.FC<CustomerFollowUpWidgetProps> = ({
 
                   <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-2">
                     <IconClock className="w-3 h-3" />
-                    {formatDateTime(followUp.scheduledFor)}
+                    {formatDateTime(new Date(followUp.scheduledFor).getTime())}
                   </div>
 
                   <p className="text-sm text-slate-700 mb-3">{followUp.reason}</p>

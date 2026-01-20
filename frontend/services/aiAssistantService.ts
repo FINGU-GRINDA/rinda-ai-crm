@@ -237,7 +237,7 @@ export const generateResponse = async (
       id: `msg_${Date.now()}`,
       role: 'assistant',
       content: result.content || '죄송합니다. 응답을 생성하지 못했습니다.',
-      timestamp: Date.now(),
+      timestamp: new Date().toISOString(),
       metadata: {
         action: intent.intent,
         customerId: intent.customerId,
@@ -255,7 +255,7 @@ export const generateResponse = async (
         id: `msg_${Date.now()}`,
         role: 'assistant',
         content: actionResult.message,
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
         metadata: {
           action: intent.intent,
           customerId: intent.customerId,
@@ -270,7 +270,7 @@ export const generateResponse = async (
         id: `msg_${Date.now()}`,
         role: 'assistant',
         content: 'AI 서비스를 사용할 수 없습니다. 서버의 Gemini API 키가 설정되어 있는지 확인해주세요.',
-        timestamp: Date.now()
+        timestamp: new Date().toISOString()
       };
     }
 
@@ -278,7 +278,7 @@ export const generateResponse = async (
       id: `msg_${Date.now()}`,
       role: 'assistant',
       content: '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.',
-      timestamp: Date.now(),
+      timestamp: new Date().toISOString(),
       metadata: {
         action: intent.intent,
         customerId: intent.customerId,
@@ -299,7 +299,7 @@ export const processUserMessage = async (
     id: `msg_user_${Date.now()}`,
     role: 'user',
     content: userMessage,
-    timestamp: Date.now()
+    timestamp: new Date().toISOString()
   };
 
   saveMessage(userMsg, sessionId);

@@ -32,7 +32,7 @@ export const saveNotification = (notification: Notification): void => {
   const isDuplicate = existing.some(n => 
     n.type === notification.type &&
     n.customerId === notification.customerId &&
-    Math.abs(n.createdAt - notification.createdAt) < 60000 // Within 1 minute
+    Math.abs(new Date(n.createdAt).getTime() - new Date(notification.createdAt).getTime()) < 60000 // Within 1 minute
   );
   
   if (!isDuplicate) {
@@ -87,7 +87,7 @@ export const createFollowUpDueNotification = (followUp: ScheduledFollowUp, custo
     customerId: customer.id,
     priority: followUp.priority,
     read: false,
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     actionUrl: `/customer/${customer.id}`,
     metadata: {
       followUpId: followUp.id,
@@ -98,7 +98,7 @@ export const createFollowUpDueNotification = (followUp: ScheduledFollowUp, custo
 
 // Create notification for upcoming meeting
 export const createMeetingNotification = (event: CalendarEvent, customer: Customer): Notification => {
-  const hoursUntil = Math.floor((event.startTime - Date.now()) / (1000 * 60 * 60));
+  const hoursUntil = Math.floor((new Date(event.startTime).getTime() - Date.now()) / (1000 * 60 * 60));
   
   return {
     id: `notif_meeting_${event.id}`,
@@ -108,7 +108,7 @@ export const createMeetingNotification = (event: CalendarEvent, customer: Custom
     customerId: customer.id,
     priority: hoursUntil <= 24 ? 'high' : 'medium',
     read: false,
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     actionUrl: `/customer/${customer.id}`,
     metadata: {
       eventId: event.id,
@@ -131,7 +131,7 @@ export const createNewsNotification = (
     customerId: customer.id,
     priority: 'medium',
     read: false,
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     actionUrl: `/customer/${customer.id}`,
     metadata: {
       newsUrl,
@@ -150,7 +150,7 @@ export const createLostDealNotification = (customer: Customer, daysSinceLost: nu
     customerId: customer.id,
     priority: daysSinceLost >= 30 ? 'high' : 'medium',
     read: false,
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     actionUrl: `/customer/${customer.id}`,
     metadata: {
       daysSinceLost,
@@ -172,7 +172,7 @@ export const createProspectNotification = (
     message: `${prospectName}의 신호 강도가 ${change === 'increased' ? '상승' : '하락'}했습니다 (${signalStrength === 'high' ? '높음' : signalStrength === 'medium' ? '중간' : '낮음'})`,
     priority: signalStrength === 'high' ? 'high' : 'medium',
     read: false,
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     metadata: {
       prospectName,
       signalStrength,
@@ -191,7 +191,7 @@ export const createRiskNotification = (customer: Customer, riskReason: string): 
     customerId: customer.id,
     priority: 'high',
     read: false,
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     actionUrl: `/customer/${customer.id}`,
     metadata: {
       riskReason
@@ -238,8 +238,8 @@ export const checkMeetingNotifications = async (customers: Customer[]): Promise<
       const meetings = await getUpcomingMeetings(customer.id, 7);
 
       for (const meeting of meetings) {
-        const hoursUntil = (meeting.startTime - Date.now()) / (1000 * 60 * 60);
-        const minutesUntil = Math.floor((meeting.startTime - Date.now()) / (1000 * 60));
+        const hoursUntil = (new Date(meeting.startTime).getTime() - Date.now()) / (1000 * 60 * 60);
+        const minutesUntil = Math.floor((new Date(meeting.startTime).getTime() - Date.now()) / (1000 * 60));
 
         // Notify if meeting is within 24 hours or exactly 1 day before
         if (hoursUntil <= 24 && hoursUntil > 0) {
@@ -283,7 +283,7 @@ export const checkLostDealNotifications = (customers: Customer[]): Notification[
   
   for (const customer of customers) {
     if (customer.status === 'lost' && customer.lostAt) {
-      const daysSinceLost = Math.floor((now - customer.lostAt) / (1000 * 60 * 60 * 24));
+      const daysSinceLost = Math.floor((now - new Date(customer.lostAt).getTime()) / (1000 * 60 * 60 * 24));
       
       // Notify at 30, 60, 90 days
       if (daysSinceLost === 30 || daysSinceLost === 60 || daysSinceLost === 90) {
@@ -357,7 +357,7 @@ export const createFollowUpCompletedNotification = (
     customerId: customer.id,
     priority: 'low',
     read: false,
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     actionUrl: `/customer/${customer.id}`,
     metadata: {
       followUpId: followUp.id,

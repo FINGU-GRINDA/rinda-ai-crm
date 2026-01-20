@@ -34,7 +34,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     },
     {
       id: 'prospects',
-      label: 'AI 발견',
+      label: '프로스펙트',
       icon: <IconSparkles className="w-4 h-4" />,
       count: counts.prospects
     },

@@ -91,12 +91,12 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
     if (!message) return;
 
     const action: FollowUpAction = {
-      id: Date.now().toString(),
-      type: message.suggestedChannel === 'email' ? 'email' : 
+      id: Math.random().toString(36).substr(2, 9),
+      type: message.suggestedChannel === 'email' ? 'email' :
             message.suggestedChannel === 'call' ? 'call' :
             message.suggestedChannel === 'meeting' ? 'meeting' : 'message',
       content: message.content,
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
       status: 'planned'
     };
 

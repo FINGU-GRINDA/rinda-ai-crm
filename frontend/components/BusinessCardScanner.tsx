@@ -96,16 +96,12 @@ export const BusinessCardScanner: React.FC<BusinessCardScannerProps> = ({
 
     try {
       const targetCustomerId = createNewCustomer ? undefined : selectedCustomerId;
-      const result = await apiClient.scanBusinessCard(image, targetCustomerId, createNewCustomer) as {
-        success: boolean;
-        data: BusinessCardData;
-        customerId?: string;
-        contactId?: string;
-      };
+      const result = await apiClient.scanBusinessCard(image, targetCustomerId, createNewCustomer);
 
-      if (result.success) {
-        setScanResult(result.data);
-        setEditableResult({ ...result.data });
+      if (result.success && 'data' in result) {
+        const data = result.data as unknown as BusinessCardData;
+        setScanResult(data);
+        setEditableResult({ ...data });
         setMode('result');
       }
     } catch (err: any) {
@@ -123,15 +119,11 @@ export const BusinessCardScanner: React.FC<BusinessCardScannerProps> = ({
 
     try {
       const targetCustomerId = createNewCustomer ? undefined : selectedCustomerId;
-      const result = await apiClient.scanBusinessCard(image!, targetCustomerId, createNewCustomer) as {
-        success: boolean;
-        data: BusinessCardData;
-        customerId?: string;
-        contactId?: string;
-      };
+      const result = await apiClient.scanBusinessCard(image!, targetCustomerId, createNewCustomer);
 
-      if (result.success) {
-        onScanComplete(editableResult, result.customerId, result.contactId);
+      if (result.success && 'data' in result) {
+        const data = result.data as unknown as BusinessCardData;
+        onScanComplete(editableResult, (result as any).customerId, (result as any).contactId);
         handleClose();
       }
     } catch (err: any) {

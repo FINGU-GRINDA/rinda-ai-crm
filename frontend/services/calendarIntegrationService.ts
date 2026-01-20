@@ -136,7 +136,10 @@ export const fetchCalendarEvents = async (
     const start = startDate ? startDate.getTime() : now;
     const end = endDate ? endDate.getTime() : now + 30 * 24 * 60 * 60 * 1000;
 
-    return existingEvents.filter(e => e.startTime >= start && e.startTime <= end);
+    return existingEvents.filter(e => {
+      const eventStart = new Date(e.startTime).getTime();
+      return eventStart >= start && eventStart <= end;
+    });
   }
 };
 
@@ -272,7 +275,7 @@ export const generateMeetingPreparation = async (
         summary: parsed.summary || `${customer.name}와의 미팅 준비`,
         keyPoints: parsed.keyPoints || [],
         suggestedTopics: parsed.suggestedTopics || [],
-        generatedAt: Date.now()
+        generatedAt: new Date().toISOString()
       };
     } catch {
       return {
@@ -280,7 +283,7 @@ export const generateMeetingPreparation = async (
         summary: `${customer.name}와의 미팅 준비`,
         keyPoints: [],
         suggestedTopics: [],
-        generatedAt: Date.now()
+        generatedAt: new Date().toISOString()
       };
     }
   } catch (error) {
@@ -290,7 +293,7 @@ export const generateMeetingPreparation = async (
       summary: `${customer.name}와의 미팅이 예정되어 있습니다.`,
       keyPoints: ['고객 니즈 확인', '제품/서비스 소개', '다음 단계 논의'],
       suggestedTopics: [],
-      generatedAt: Date.now()
+      generatedAt: new Date().toISOString()
     };
   }
 };
@@ -363,9 +366,9 @@ export const getUpcomingMeetings = async (
 
     const events = await fetchCalendarEvents(new Date(now), endDate);
     if (customerId) {
-      return events.filter(e => e.customerId === customerId && e.startTime >= now);
+      return events.filter(e => e.customerId === customerId && new Date(e.startTime).getTime() >= now);
     }
-    return events.filter(e => e.startTime >= now);
+    return events.filter(e => new Date(e.startTime).getTime() >= now);
   }
 };
 
@@ -382,6 +385,6 @@ export const saveCalendarEvent = (event: CalendarEvent): void => {
   }
 
   // Sort by start time
-  existing.sort((a, b) => a.startTime - b.startTime);
+  existing.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   localStorage.setItem(CALENDAR_EVENTS_KEY, JSON.stringify(existing));
 };

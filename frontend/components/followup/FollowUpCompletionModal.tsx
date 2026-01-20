@@ -166,7 +166,7 @@ export const FollowUpCompletionModal: React.FC<FollowUpCompletionModalProps> = (
             취소
           </Button>
           <Button
-            variant="success"
+            variant="primary"
             onClick={handleComplete}
             loading={isSubmitting}
             loadingText="처리 중..."

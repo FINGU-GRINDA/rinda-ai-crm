@@ -3,6 +3,16 @@
  * Handles all HTTP requests to the backend API
  */
 
+import type {
+  ApiResponse,
+  ApiListResponse,
+  ApiCustomer,
+  ApiProspect,
+  ApiProposal,
+  ApiCustomerContact,
+  ApiMeetingSummary,
+} from '../../../elysia-server/src/types/api'
+
 // Use relative URL to leverage Vite's proxy (avoids CORS issues)
 // The proxy in vite.config.ts will forward /api/* requests to the backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -76,9 +86,10 @@ class APIClient {
       }
 
       return await response.json();
-    } catch (error: any) {
-      console.error('API request failed:', error);
-      throw error;
+    } catch (error) {
+      const err = error as Error;
+      console.error('API request failed:', err);
+      throw err;
     }
   }
 
@@ -89,7 +100,7 @@ class APIClient {
   /**
    * Parse user intent from natural language message
    */
-  async parseIntent(message: string, customers: any[]) {
+  async parseIntent(message: string, customers: Array<{ id: string; name: string }>): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/ai/parse-intent', {
       method: 'POST',
       body: JSON.stringify({ message, customers }),
@@ -99,7 +110,7 @@ class APIClient {
   /**
    * Enrich customer data using AI and Google Search
    */
-  async enrichCustomer(companyName: string, website: string) {
+  async enrichCustomer(companyName: string, website: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/ai/enrich', {
       method: 'POST',
       body: JSON.stringify({ companyName, website }),
@@ -109,7 +120,7 @@ class APIClient {
   /**
    * Generate proposal for a customer
    */
-  async generateProposal(customerName: string, enrichedData: any, userNotes: string, imageSize: string = '1K') {
+  async generateProposal(customerName: string, enrichedData: Record<string, unknown>, userNotes: string, imageSize: string = '1K'): Promise<ApiResponse<{ title: string; content: string; imageUrl?: string }>> {
     return this.request('/api/ai/generate-proposal', {
       method: 'POST',
       body: JSON.stringify({ customerName, enrichedData, userNotes, imageSize }),
@@ -119,7 +130,7 @@ class APIClient {
   /**
    * Generate AI assistant response
    */
-  async generateResponse(message: string, context?: string, conversationHistory?: any[]) {
+  async generateResponse(message: string, context?: string, conversationHistory?: Array<{ role: string; content: string }>): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/ai/generate-response', {
       method: 'POST',
       body: JSON.stringify({ message, context, conversationHistory }),
@@ -129,7 +140,7 @@ class APIClient {
   /**
    * Scan business card image and extract contact information
    */
-  async scanBusinessCard(image: string, customerId?: string, createCustomer?: boolean) {
+  async scanBusinessCard(image: string, customerId?: string, createCustomer?: boolean): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/ai/scan-business-card', {
       method: 'POST',
       body: JSON.stringify({ image, customerId, createCustomer }),
@@ -139,7 +150,7 @@ class APIClient {
   /**
    * Summarize meeting audio or transcription
    */
-  async summarizeMeeting(data: { audioData?: string; transcription?: string; customerId: string; title: string; meetingDate?: number }) {
+  async summarizeMeeting(data: { audioData?: string; transcription?: string; customerId: string; title: string; meetingDate?: string }): Promise<ApiResponse<ApiMeetingSummary>> {
     return this.request('/api/ai/summarize-meeting', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -149,7 +160,7 @@ class APIClient {
   /**
    * Generate follow-up strategy for a customer
    */
-  async generateFollowUpStrategy(customerId: string, isLostDeal: boolean = false) {
+  async generateFollowUpStrategy(customerId: string, isLostDeal: boolean = false): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/ai/followup/strategy/${customerId}`, {
       method: 'POST',
       body: JSON.stringify({ isLostDeal }),
@@ -163,7 +174,7 @@ class APIClient {
     customerId: string,
     strategy: { approach: string; messageTone: string; keyPoints: string[] },
     isLostDeal: boolean = false
-  ) {
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/ai/followup/message/${customerId}`, {
       method: 'POST',
       body: JSON.stringify({ strategy, isLostDeal }),
@@ -173,7 +184,7 @@ class APIClient {
   /**
    * Calculate optimal follow-up timing for a customer
    */
-  async calculateFollowUpTiming(customerId: string) {
+  async calculateFollowUpTiming(customerId: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/ai/followup/timing/${customerId}`, {
       method: 'POST',
     });
@@ -182,7 +193,7 @@ class APIClient {
   /**
    * Determine optimal follow-up type (channel) for a customer
    */
-  async determineFollowUpType(customerId: string) {
+  async determineFollowUpType(customerId: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/ai/followup/type/${customerId}`, {
       method: 'POST',
     });
@@ -191,7 +202,7 @@ class APIClient {
   /**
    * Parse user intent for AI assistant
    */
-  async parseAssistantIntent(message: string, customers: { id: string; name: string }[]) {
+  async parseAssistantIntent(message: string, customers: { id: string; name: string }[]): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/ai/assistant/parse-intent', {
       method: 'POST',
       body: JSON.stringify({ message, customers }),
@@ -205,7 +216,7 @@ class APIClient {
     message: string,
     context?: string,
     conversationHistory?: Array<{ role: string; content: string }>
-  ) {
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/ai/assistant/response', {
       method: 'POST',
       body: JSON.stringify({ message, context, conversationHistory }),
@@ -215,7 +226,7 @@ class APIClient {
   /**
    * Detect risk signals for a customer
    */
-  async detectRiskSignals(customerId: string) {
+  async detectRiskSignals(customerId: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/ai/risk/detect/${customerId}`, {
       method: 'POST',
     });
@@ -228,7 +239,7 @@ class APIClient {
   /**
    * Run prospect collection manually
    */
-  async runProspectCollection(icpProfiles: any[], existingCompanyNames: string[]) {
+  async runProspectCollection(icpProfiles: Record<string, unknown>[], existingCompanyNames: string[]): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/prospects/collect', {
       method: 'POST',
       body: JSON.stringify({ icpProfiles, existingCompanyNames }),
@@ -238,14 +249,14 @@ class APIClient {
   /**
    * Get prospect collection status
    */
-  async getProspectStatus() {
+  async getProspectStatus(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/prospects/status');
   }
 
   /**
    * Stream prospect collection status updates (Server-Sent Events)
    */
-  streamProspectStatus(onStatus: (status: any) => void, onError?: (error: Error) => void) {
+  streamProspectStatus(onStatus: (status: Record<string, unknown>) => void, onError?: (error: Error) => void): EventSource {
     // Use relative URL for SSE to go through Vite proxy
     const url = '/api/prospects/status-stream';
     const eventSource = new EventSource(url);
@@ -254,7 +265,7 @@ class APIClient {
       try {
         const status = JSON.parse(event.data);
         onStatus(status);
-      } catch (error: any) {
+      } catch (error) {
         console.error('Failed to parse status:', error);
       }
     };
@@ -277,7 +288,7 @@ class APIClient {
   /**
    * Validate Slack Webhook URL
    */
-  async validateSlackWebhook(webhookUrl: string): Promise<{ success: boolean; valid: boolean; error?: string }> {
+  async validateSlackWebhook(webhookUrl: string): Promise<ApiResponse<{ valid: boolean }>> {
     return this.request('/api/settings/slack/validate', {
       method: 'POST',
       body: JSON.stringify({ webhookUrl }),
@@ -287,7 +298,7 @@ class APIClient {
   /**
    * Send test message to Slack
    */
-  async sendSlackTestMessage(webhookUrl: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  async sendSlackTestMessage(webhookUrl: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/settings/slack/test', {
       method: 'POST',
       body: JSON.stringify({ webhookUrl }),
@@ -300,8 +311,8 @@ class APIClient {
   async sendSlackNotification(
     webhookUrl: string,
     type: 'new_prospect' | 'followup_reminder' | 'deal_won' | 'deal_lost',
-    data: any
-  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    data: Record<string, unknown>
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/settings/slack/notify', {
       method: 'POST',
       body: JSON.stringify({ webhookUrl, type, data }),
@@ -312,7 +323,7 @@ class APIClient {
   // Customer Endpoints (Database-backed)
   // ==========================
 
-  async getCustomers(options: { status?: string; industry?: string; search?: string; limit?: number; offset?: number } = {}) {
+  async getCustomers(options: { status?: string; industry?: string; search?: string; limit?: number; offset?: number } = {}): Promise<ApiListResponse<ApiCustomer>> {
     const params = new URLSearchParams();
     if (options.status) params.append('status', options.status);
     if (options.industry) params.append('industry', options.industry);
@@ -322,67 +333,67 @@ class APIClient {
     return this.request(`/api/customers?${params.toString()}`);
   }
 
-  async getCustomer(id: string) {
+  async getCustomer(id: string): Promise<ApiResponse<ApiCustomer>> {
     return this.request(`/api/customers/${id}`);
   }
 
-  async createCustomer(data: { name: string; website?: string; industry?: string; notes?: string; status?: string }) {
+  async createCustomer(data: { name: string; website?: string; industry?: string; notes?: string; status?: string }): Promise<ApiResponse<ApiCustomer>> {
     return this.request('/api/customers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateCustomer(id: string, data: any) {
+  async updateCustomer(id: string, data: Partial<ApiCustomer>): Promise<ApiResponse<ApiCustomer>> {
     return this.request(`/api/customers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteCustomer(id: string) {
+  async deleteCustomer(id: string): Promise<ApiResponse<{ success: boolean }>> {
     return this.request(`/api/customers/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async updateCustomerStatus(id: string, status: string, lostReason?: string) {
+  async updateCustomerStatus(id: string, status: string, lostReason?: string): Promise<ApiResponse<ApiCustomer>> {
     return this.request(`/api/customers/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status, lostReason }),
     });
   }
 
-  async saveCustomerEnrichment(customerId: string, enrichment: any) {
+  async saveCustomerEnrichment(customerId: string, enrichment: Record<string, unknown>): Promise<ApiResponse<ApiCustomer>> {
     return this.request(`/api/customers/${customerId}/enrichment`, {
       method: 'POST',
       body: JSON.stringify(enrichment),
     });
   }
 
-  async getCustomerProposals(customerId: string) {
+  async getCustomerProposals(customerId: string): Promise<ApiListResponse<ApiProposal>> {
     return this.request(`/api/customers/${customerId}/proposals`);
   }
 
-  async createCustomerProposal(customerId: string, proposal: { title?: string; content: string; imageUrl?: string }) {
+  async createCustomerProposal(customerId: string, proposal: { title?: string; content: string; imageUrl?: string }): Promise<ApiResponse<ApiProposal>> {
     return this.request(`/api/customers/${customerId}/proposals`, {
       method: 'POST',
       body: JSON.stringify(proposal),
     });
   }
 
-  async getCustomerFollowUps(customerId: string) {
+  async getCustomerFollowUps(customerId: string): Promise<ApiListResponse<Record<string, unknown>>> {
     return this.request(`/api/customers/${customerId}/follow-ups`);
   }
 
-  async createCustomerFollowUp(customerId: string, followUp: { type: string; content?: string; scheduledFor?: number; priority?: string; reason?: string }) {
+  async createCustomerFollowUp(customerId: string, followUp: { type: string; content?: string; scheduledFor?: string; priority?: string; reason?: string }): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/customers/${customerId}/follow-ups`, {
       method: 'POST',
       body: JSON.stringify(followUp),
     });
   }
 
-  async getCustomerStats() {
+  async getCustomerStats(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/customers/stats');
   }
 
@@ -390,29 +401,29 @@ class APIClient {
   // Contact Endpoints
   // ==========================
 
-  async getContacts(customerId: string) {
+  async getContacts(customerId: string): Promise<ApiListResponse<ApiCustomerContact>> {
     return this.request(`/api/customers/${customerId}/contacts`);
   }
 
-  async getContact(customerId: string, contactId: string) {
+  async getContact(customerId: string, contactId: string): Promise<ApiResponse<ApiCustomerContact>> {
     return this.request(`/api/customers/${customerId}/contacts/${contactId}`);
   }
 
-  async createContact(customerId: string, contact: { name: string; title?: string; email?: string; phone?: string; isPrimary?: boolean; source?: string }) {
+  async createContact(customerId: string, contact: { name: string; title?: string; email?: string; phone?: string; isPrimary?: boolean; source?: string }): Promise<ApiResponse<ApiCustomerContact>> {
     return this.request(`/api/customers/${customerId}/contacts`, {
       method: 'POST',
       body: JSON.stringify(contact),
     });
   }
 
-  async updateContact(customerId: string, contactId: string, contact: { name?: string; title?: string; email?: string; phone?: string; isPrimary?: boolean }) {
+  async updateContact(customerId: string, contactId: string, contact: { name?: string; title?: string; email?: string; phone?: string; isPrimary?: boolean }): Promise<ApiResponse<ApiCustomerContact>> {
     return this.request(`/api/customers/${customerId}/contacts/${contactId}`, {
       method: 'PUT',
       body: JSON.stringify(contact),
     });
   }
 
-  async deleteContact(customerId: string, contactId: string) {
+  async deleteContact(customerId: string, contactId: string): Promise<ApiResponse<{ success: boolean }>> {
     return this.request(`/api/customers/${customerId}/contacts/${contactId}`, {
       method: 'DELETE',
     });
@@ -422,38 +433,38 @@ class APIClient {
   // Meeting Endpoints
   // ==========================
 
-  async getMeetings(customerId: string, options: { limit?: number; offset?: number } = {}) {
+  async getMeetings(customerId: string, options: { limit?: number; offset?: number } = {}): Promise<ApiListResponse<ApiMeetingSummary>> {
     const params = new URLSearchParams();
     if (options.limit) params.append('limit', options.limit.toString());
     if (options.offset) params.append('offset', options.offset.toString());
     return this.request(`/api/customers/${customerId}/meetings?${params.toString()}`);
   }
 
-  async getMeeting(customerId: string, meetingId: string) {
+  async getMeeting(customerId: string, meetingId: string): Promise<ApiResponse<ApiMeetingSummary>> {
     return this.request(`/api/customers/${customerId}/meetings/${meetingId}`);
   }
 
-  async createMeeting(customerId: string, meeting: { title: string; meetingDate?: number; summary?: string; keyDiscussions?: string[]; actionItems?: string[]; customerNeeds?: string[]; budgetMentions?: string; timelineMentions?: string; nextSteps?: string[]; transcription?: string }) {
+  async createMeeting(customerId: string, meeting: { title: string; meetingDate?: string; summary?: string; keyDiscussions?: string[]; actionItems?: string[]; customerNeeds?: string[]; budgetMentions?: string; timelineMentions?: string; nextSteps?: string[]; transcription?: string }): Promise<ApiResponse<ApiMeetingSummary>> {
     return this.request(`/api/customers/${customerId}/meetings`, {
       method: 'POST',
       body: JSON.stringify(meeting),
     });
   }
 
-  async updateMeeting(customerId: string, meetingId: string, meeting: any) {
+  async updateMeeting(customerId: string, meetingId: string, meeting: Partial<ApiMeetingSummary>): Promise<ApiResponse<ApiMeetingSummary>> {
     return this.request(`/api/customers/${customerId}/meetings/${meetingId}`, {
       method: 'PUT',
       body: JSON.stringify(meeting),
     });
   }
 
-  async deleteMeeting(customerId: string, meetingId: string) {
+  async deleteMeeting(customerId: string, meetingId: string): Promise<ApiResponse<{ success: boolean }>> {
     return this.request(`/api/customers/${customerId}/meetings/${meetingId}`, {
       method: 'DELETE',
     });
   }
 
-  async getMeetingActionItems(customerId: string, limit?: number) {
+  async getMeetingActionItems(customerId: string, limit?: number): Promise<ApiListResponse<Record<string, unknown>>> {
     const params = new URLSearchParams();
     if (limit) params.append('limit', limit.toString());
     return this.request(`/api/customers/${customerId}/meetings/action-items?${params.toString()}`);
@@ -463,7 +474,7 @@ class APIClient {
   // Lead/Prospect Endpoints (Database-backed)
   // ==========================
 
-  async getLeads(options: { signalStrength?: string; industry?: string; search?: string; converted?: boolean; limit?: number; offset?: number } = {}) {
+  async getLeads(options: { signalStrength?: string; industry?: string; search?: string; converted?: boolean; limit?: number; offset?: number } = {}): Promise<ApiListResponse<ApiProspect>> {
     const params = new URLSearchParams();
     if (options.signalStrength) params.append('signalStrength', options.signalStrength);
     if (options.industry) params.append('industry', options.industry);
@@ -474,52 +485,52 @@ class APIClient {
     return this.request(`/api/leads?${params.toString()}`);
   }
 
-  async getLead(id: string) {
+  async getLead(id: string): Promise<ApiResponse<ApiProspect>> {
     return this.request(`/api/leads/${id}`);
   }
 
-  async createLead(data: { companyName: string; website?: string; industry?: string; sourceArticle?: any; signalStrength?: string; notes?: string }) {
+  async createLead(data: Omit<ApiProspect, 'id' | 'createdAt' | 'convertedToCustomerId' | 'dismissed' | 'dismissedAt' | 'dismissReason'> & { sourceArticle?: Record<string, unknown> }): Promise<ApiResponse<ApiProspect>> {
     return this.request('/api/leads', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async createLeadsBulk(prospects: any[]) {
+  async createLeadsBulk(prospects: Array<Omit<ApiProspect, 'id' | 'createdAt' | 'convertedToCustomerId' | 'dismissed' | 'dismissedAt' | 'dismissReason'>>): Promise<ApiResponse<{ created: number }>> {
     return this.request('/api/leads/bulk', {
       method: 'POST',
       body: JSON.stringify({ prospects }),
     });
   }
 
-  async updateLead(id: string, data: any) {
+  async updateLead(id: string, data: Partial<ApiProspect>): Promise<ApiResponse<ApiProspect>> {
     return this.request(`/api/leads/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteLead(id: string) {
+  async deleteLead(id: string): Promise<ApiResponse<{ success: boolean }>> {
     return this.request(`/api/leads/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async convertLeadToCustomer(leadId: string, options: { status?: string; notes?: string } = {}) {
+  async convertLeadToCustomer(leadId: string, options: { status?: string; notes?: string } = {}): Promise<ApiResponse<{ customer: ApiCustomer; prospect: ApiProspect }>> {
     return this.request(`/api/leads/${leadId}/convert`, {
       method: 'POST',
       body: JSON.stringify(options),
     });
   }
 
-  async dismissProspect(prospectId: string, reason: string) {
+  async dismissProspect(prospectId: string, reason: string): Promise<ApiResponse<ApiProspect>> {
     return this.request(`/api/leads/${prospectId}/dismiss`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
   }
 
-  async getLeadStats() {
+  async getLeadStats(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/leads/stats');
   }
 
@@ -527,29 +538,29 @@ class APIClient {
   // ICP Profile Endpoints
   // ==========================
 
-  async getICPProfiles() {
+  async getICPProfiles(): Promise<ApiListResponse<Record<string, unknown>>> {
     return this.request('/api/icp-profiles');
   }
 
-  async getICPProfile(id: string) {
+  async getICPProfile(id: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/icp-profiles/${id}`);
   }
 
-  async createICPProfile(data: { name: string; industries?: string[]; keywords?: string[]; companySize?: string; targetRegions?: string[] }) {
+  async createICPProfile(data: { name: string; industries?: string[]; keywords?: string[]; companySize?: string; targetRegions?: string[] }): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/icp-profiles', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateICPProfile(id: string, data: any) {
+  async updateICPProfile(id: string, data: Record<string, unknown>): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/icp-profiles/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteICPProfile(id: string) {
+  async deleteICPProfile(id: string): Promise<ApiResponse<{ success: boolean }>> {
     return this.request(`/api/icp-profiles/${id}`, {
       method: 'DELETE',
     });
@@ -559,7 +570,7 @@ class APIClient {
   // Notifications Endpoints
   // ==========================
 
-  async getNotifications(options: { type?: string; read?: boolean; limit?: number; offset?: number } = {}) {
+  async getNotifications(options: { type?: string; read?: boolean; limit?: number; offset?: number } = {}): Promise<ApiListResponse<Record<string, unknown>>> {
     const params = new URLSearchParams();
     if (options.type) params.append('type', options.type);
     if (options.read !== undefined) params.append('read', options.read.toString());
@@ -568,19 +579,19 @@ class APIClient {
     return this.request(`/api/notifications?${params.toString()}`);
   }
 
-  async markNotificationRead(id: string) {
+  async markNotificationRead(id: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/notifications/${id}/read`, {
       method: 'PUT',
     });
   }
 
-  async markAllNotificationsRead() {
+  async markAllNotificationsRead(): Promise<ApiResponse<{ success: boolean }>> {
     return this.request('/api/notifications/read-all', {
       method: 'PUT',
     });
   }
 
-  async deleteNotification(id: string) {
+  async deleteNotification(id: string): Promise<ApiResponse<{ success: boolean }>> {
     return this.request(`/api/notifications/${id}`, {
       method: 'DELETE',
     });
@@ -590,18 +601,18 @@ class APIClient {
   // Migration Endpoints
   // ==========================
 
-  async migrateFromLocalStorage(data: { customers?: any[]; prospects?: any[]; icpProfiles?: any[]; settings?: any }) {
+  async migrateFromLocalStorage(data: { customers?: Record<string, unknown>[]; prospects?: Record<string, unknown>[]; icpProfiles?: Record<string, unknown>[]; settings?: Record<string, unknown> }): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/migrate/localstorage', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async getMigrationStatus() {
+  async getMigrationStatus(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/migrate/status');
   }
 
-  async exportData() {
+  async exportData(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/migrate/export');
   }
 
@@ -609,11 +620,11 @@ class APIClient {
   // Slack Event API Endpoints
   // ==========================
 
-  async getSlackStatus() {
+  async getSlackStatus(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/slack/status');
   }
 
-  async getSlackMessages(options: { channelId?: string; limit?: number; offset?: number } = {}) {
+  async getSlackMessages(options: { channelId?: string; limit?: number; offset?: number } = {}): Promise<ApiListResponse<Record<string, unknown>>> {
     const params = new URLSearchParams();
     if (options.channelId) params.append('channelId', options.channelId);
     if (options.limit) params.append('limit', options.limit.toString());
@@ -621,18 +632,18 @@ class APIClient {
     return this.request(`/api/slack/messages?${params.toString()}`);
   }
 
-  async getSlackMessagesForCustomer(customerId: string) {
+  async getSlackMessagesForCustomer(customerId: string): Promise<ApiListResponse<Record<string, unknown>>> {
     return this.request(`/api/slack/messages/customer/${customerId}`);
   }
 
-  async toggleSlackEventApi(enabled: boolean) {
+  async toggleSlackEventApi(enabled: boolean): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/slack/event-api/toggle', {
       method: 'POST',
       body: JSON.stringify({ enabled }),
     });
   }
 
-  async reprocessSlackMessages(limit?: number) {
+  async reprocessSlackMessages(limit?: number): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/slack/reprocess', {
       method: 'POST',
       body: JSON.stringify({ limit }),
@@ -643,28 +654,28 @@ class APIClient {
   // Gmail OAuth Endpoints
   // ==========================
 
-  async getGmailAuthUrl() {
+  async getGmailAuthUrl(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/gmail/oauth/authorize');
   }
 
-  async disconnectGmail() {
+  async disconnectGmail(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/gmail/disconnect', {
       method: 'POST',
     });
   }
 
-  async getGmailStatus() {
+  async getGmailStatus(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/gmail/status');
   }
 
-  async syncGmailEmails(options: { maxResults?: number; afterDate?: number } = {}) {
+  async syncGmailEmails(options: { maxResults?: number; afterDate?: string } = {}): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/gmail/sync', {
       method: 'POST',
       body: JSON.stringify(options),
     });
   }
 
-  async getGmailMessages(options: { customerId?: string; search?: string; limit?: number; offset?: number } = {}) {
+  async getGmailMessages(options: { customerId?: string; search?: string; limit?: number; offset?: number } = {}): Promise<ApiListResponse<Record<string, unknown>>> {
     const params = new URLSearchParams();
     if (options.customerId) params.append('customerId', options.customerId);
     if (options.search) params.append('search', options.search);
@@ -673,27 +684,27 @@ class APIClient {
     return this.request(`/api/gmail/messages?${params.toString()}`);
   }
 
-  async getGmailMessagesForCustomer(customerId: string, options: { limit?: number; offset?: number } = {}) {
+  async getGmailMessagesForCustomer(customerId: string, options: { limit?: number; offset?: number } = {}): Promise<ApiListResponse<Record<string, unknown>>> {
     const params = new URLSearchParams();
     if (options.limit) params.append('limit', options.limit.toString());
     if (options.offset) params.append('offset', options.offset.toString());
     return this.request(`/api/gmail/messages/customer/${customerId}?${params.toString()}`);
   }
 
-  async getUnmatchedGmailMessages(limit?: number) {
+  async getUnmatchedGmailMessages(limit?: number): Promise<ApiListResponse<Record<string, unknown>>> {
     const params = new URLSearchParams();
     if (limit) params.append('limit', limit.toString());
     return this.request(`/api/gmail/messages/unmatched?${params.toString()}`);
   }
 
-  async updateGmailMessageCustomer(emailId: string, customerId: string) {
+  async updateGmailMessageCustomer(emailId: string, customerId: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/gmail/messages/${emailId}/customer`, {
       method: 'PUT',
       body: JSON.stringify({ customerId }),
     });
   }
 
-  async updateGmailSettings(settings: { autoSync?: boolean; syncInterval?: number }) {
+  async updateGmailSettings(settings: { autoSync?: boolean; syncInterval?: number }): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/gmail/settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
@@ -704,21 +715,21 @@ class APIClient {
   // Google Calendar OAuth Endpoints
   // ==========================
 
-  async getCalendarAuthUrl() {
+  async getCalendarAuthUrl(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/calendar/oauth/authorize');
   }
 
-  async disconnectCalendar() {
+  async disconnectCalendar(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/calendar/disconnect', {
       method: 'POST',
     });
   }
 
-  async getCalendarStatus() {
+  async getCalendarStatus(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/calendar/status');
   }
 
-  async getCalendarEvents(options: { maxResults?: number; timeMin?: string; timeMax?: string } = {}) {
+  async getCalendarEvents(options: { maxResults?: number; timeMin?: string; timeMax?: string } = {}): Promise<ApiListResponse<Record<string, unknown>>> {
     const params = new URLSearchParams();
     if (options.maxResults) params.append('maxResults', options.maxResults.toString());
     if (options.timeMin) params.append('timeMin', options.timeMin);
@@ -726,15 +737,15 @@ class APIClient {
     return this.request(`/api/calendar/events?${params.toString()}`);
   }
 
-  async getTodayCalendarEvents() {
+  async getTodayCalendarEvents(): Promise<ApiListResponse<Record<string, unknown>>> {
     return this.request('/api/calendar/events/today');
   }
 
-  async getUpcomingCalendarMeetings() {
+  async getUpcomingCalendarMeetings(): Promise<ApiListResponse<Record<string, unknown>>> {
     return this.request('/api/calendar/events/upcoming');
   }
 
-  async getCalendarEvent(eventId: string) {
+  async getCalendarEvent(eventId: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/calendar/events/${eventId}`);
   }
 
@@ -742,22 +753,22 @@ class APIClient {
   // Mixpanel Integration Endpoints
   // ==========================
 
-  async getMixpanelStatus() {
+  async getMixpanelStatus(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/mixpanel/status');
   }
 
-  async getMixpanelSettings() {
+  async getMixpanelSettings(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/mixpanel/settings');
   }
 
-  async updateMixpanelSettings(settings: any) {
+  async updateMixpanelSettings(settings: Record<string, unknown>): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/mixpanel/settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
     });
   }
 
-  async getMixpanelEvents(options: { limit?: number; offset?: number; processed?: boolean } = {}) {
+  async getMixpanelEvents(options: { limit?: number; offset?: number; processed?: boolean } = {}): Promise<ApiListResponse<Record<string, unknown>>> {
     const params = new URLSearchParams();
     if (options.limit) params.append('limit', options.limit.toString());
     if (options.offset) params.append('offset', options.offset.toString());
@@ -765,7 +776,7 @@ class APIClient {
     return this.request(`/api/mixpanel/events?${params.toString()}`);
   }
 
-  async reprocessMixpanelEvents() {
+  async reprocessMixpanelEvents(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/mixpanel/reprocess', {
       method: 'POST',
     });

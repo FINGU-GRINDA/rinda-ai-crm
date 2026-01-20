@@ -5,7 +5,7 @@ import { IconGlobe, IconNews, IconBuilding, IconSearch, IconBrain, IconArrowRigh
 interface Props {
   data: EnrichedData;
   isLoading: boolean;
-  lastEnrichedAt?: number;
+  lastEnrichedAt?: string | number;
 }
 
 export const EnrichmentPanel: React.FC<Props> = ({ data, isLoading, lastEnrichedAt }) => {

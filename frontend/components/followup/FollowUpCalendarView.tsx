@@ -90,8 +90,8 @@ export const FollowUpCalendarView: React.FC<FollowUpCalendarViewProps> = ({
 
     return followUps.filter(f =>
       f.status === 'pending' &&
-      f.scheduledFor >= startOfDay &&
-      f.scheduledFor <= endOfDay
+      new Date(f.scheduledFor).getTime() >= startOfDay &&
+      new Date(f.scheduledFor).getTime() <= endOfDay
     );
   };
 

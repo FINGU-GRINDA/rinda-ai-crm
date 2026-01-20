@@ -272,7 +272,7 @@ export const showFollowUpReminderNotification = async (
     message: `${customerName}에게 ${followUpType} Follow-up 시간입니다.`,
     priority: 'high',
     read: false,
-    createdAt: Date.now()
+    createdAt: new Date().toISOString()
   };
 
   await showBrowserNotification(notification, onNavigate);
@@ -298,7 +298,7 @@ export const showMeetingReminderNotification = async (
     message: `${customerName}와의 "${meetingTitle}" 미팅이 ${timeText}에 시작됩니다.`,
     priority: minutesUntil <= 30 ? 'high' : 'medium',
     read: false,
-    createdAt: Date.now()
+    createdAt: new Date().toISOString()
   };
 
   await showBrowserNotification(notification, onNavigate);
@@ -319,7 +319,7 @@ export const showRiskAlertNotification = async (
     message: `${customerName}: ${riskReason}`,
     priority: 'high',
     read: false,
-    createdAt: Date.now()
+    createdAt: new Date().toISOString()
   };
 
   await showBrowserNotification(notification, onNavigate);
@@ -340,7 +340,7 @@ export const showProspectSignalNotification = async (
     message: `${prospectName}: ${signalChange}`,
     priority: 'medium',
     read: false,
-    createdAt: Date.now()
+    createdAt: new Date().toISOString()
   };
 
   await showBrowserNotification(notification, onNavigate);
@@ -361,7 +361,7 @@ export const showCustomerNewsNotification = async (
     message: `${customerName}: ${newsTitle}`,
     priority: 'low',
     read: false,
-    createdAt: Date.now()
+    createdAt: new Date().toISOString()
   };
 
   await showBrowserNotification(notification, onNavigate);

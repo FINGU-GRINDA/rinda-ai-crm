@@ -13,7 +13,7 @@ export interface Proposal {
   title: string;
   content: string; // Markdown content
   imageUrl?: string;
-  createdAt: number;
+  createdAt: string;  // ISO date string
 }
 
 export type CustomerStatus = 'prospect' | 'new' | 'contact' | 'negotiation' | 'won' | 'lost';
@@ -22,7 +22,7 @@ export interface FollowUpAction {
   id: string;
   type: 'email' | 'call' | 'meeting' | 'message';
   content: string;
-  createdAt: number;
+  createdAt: string;  // ISO date string
   status: 'planned' | 'completed' | 'cancelled';
 }
 
@@ -35,10 +35,10 @@ export interface Customer {
   status: CustomerStatus; // Kanban status
   enrichedData?: EnrichedData;
   proposals: Proposal[];
-  lastEnrichedAt?: number;
+  lastEnrichedAt?: string;  // ISO date string
   lostReason?: string;
-  lostAt?: number;
-  lastFollowUpAt?: number;
+  lostAt?: string;  // ISO date string
+  lastFollowUpAt?: string;  // ISO date string
   followUpHistory?: FollowUpAction[];
   contacts?: CustomerContact[];
   meetingSummaries?: MeetingSummary[];
@@ -55,8 +55,8 @@ export interface CustomerContact {
   isPrimary: boolean;
   source?: 'manual' | 'business_card' | 'import';
   businessCardImageUrl?: string;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: string;  // ISO date string
+  updatedAt: string;  // ISO date string
 }
 
 // Meeting Summary (미팅 녹음 요약)
@@ -64,7 +64,7 @@ export interface MeetingSummary {
   id: string;
   customerId: string;
   title: string;
-  meetingDate: number;
+  meetingDate: string;  // ISO date string
   audioFileUrl?: string;
   duration?: number;
   summary: string;
@@ -75,8 +75,8 @@ export interface MeetingSummary {
   timelineMentions?: string;
   nextSteps: string[];
   transcription?: string;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: string;  // ISO date string
+  updatedAt: string;  // ISO date string
 }
 
 // Business Card OCR Result (명함 인식 결과)
@@ -108,8 +108,8 @@ export interface ICPProfile {
   keywords: string[];
   companySize?: string;
   targetRegions?: string[];
-  createdAt: number;
-  updatedAt: number;
+  createdAt: string;  // ISO date string
+  updatedAt: string;  // ISO date string
 }
 
 export interface Prospect {
@@ -120,10 +120,10 @@ export interface Prospect {
   sourceArticle: {
     title: string;
     uri: string;
-    publishedAt?: string;
+    publishedAt?: string;  // ISO date string
   };
   signalStrength: 'high' | 'medium' | 'low';
-  detectedAt: number;
+  detectedAt: string;  // ISO date string
   icpMatch?: string; // ICP Profile ID
   notes?: string;
 }
@@ -135,7 +135,7 @@ export interface EmailMessage {
   from: string;
   to: string;
   body: string;
-  date: number;
+  date: string;  // ISO date string
   threadId?: string;
   customerId?: string; // Matched customer ID
 }
@@ -143,7 +143,7 @@ export interface EmailMessage {
 export interface EmailIntegration {
   provider: 'gmail' | 'outlook';
   isConnected: boolean;
-  lastSyncAt?: number;
+  lastSyncAt?: string;  // ISO date string
   autoSync: boolean;
 }
 
@@ -151,8 +151,8 @@ export interface EmailIntegration {
 export interface CalendarEvent {
   id: string;
   title: string;
-  startTime: number;
-  endTime: number;
+  startTime: string;  // ISO date string
+  endTime: string;  // ISO date string
   description?: string;
   location?: string;
   attendees?: string[];
@@ -165,7 +165,7 @@ export interface MeetingPreparation {
   summary: string;
   keyPoints: string[];
   suggestedTopics: string[];
-  generatedAt: number;
+  generatedAt: string;  // ISO date string
 }
 
 export interface CalendarIntegration {
@@ -183,21 +183,21 @@ export type FollowUpPriority = 'high' | 'medium' | 'low';
 export interface ScheduledFollowUp {
   id: string;
   customerId: string;
-  scheduledFor: number;
+  scheduledFor: string;  // ISO date string
   type: FollowUpType;
   content?: string;
   status: FollowUpStatus;
-  createdAt: number;
+  createdAt: string;  // ISO date string
   priority: FollowUpPriority;
   reason: string;
   // 완료 처리 관련 필드
-  completedAt?: number;
+  completedAt?: string;  // ISO date string
   completedNote?: string;
   // 수동 생성 여부
   isManuallyCreated?: boolean;
   // 알림 관련
   reminderSent?: boolean;
-  lastReminderAt?: number;
+  lastReminderAt?: string;  // ISO date string
 }
 
 // Follow-up 통계
@@ -234,7 +234,7 @@ export interface Notification {
   customerId?: string;
   priority: 'high' | 'medium' | 'low';
   read: boolean;
-  createdAt: number;
+  createdAt: string;  // ISO date string
   actionUrl?: string;
   metadata?: Record<string, any>;
 }
@@ -248,7 +248,7 @@ export interface ContextualSuggestion {
   customerId?: string;
   action: string; // Action to take
   priority: 'high' | 'medium' | 'low';
-  createdAt: number;
+  createdAt: string;  // ISO date string
 }
 
 // AI Assistant Types
@@ -256,7 +256,7 @@ export interface AIMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  timestamp: number;
+  timestamp: string;  // ISO date string
   metadata?: {
     action?: string;
     customerId?: string;
@@ -279,10 +279,10 @@ export interface SlackSettings {
     dealWon: boolean;
     dealLost: boolean;
   };
-  lastTestAt?: number;
+  lastTestAt?: string;  // ISO date string
   isValidated: boolean;
   dailyDigestTime?: string; // "09:00" format
-  lastDigestSentAt?: number;
+  lastDigestSentAt?: string;  // ISO date string
 }
 
 export interface NotificationSettings {
@@ -308,7 +308,7 @@ export interface EmailSettings {
   isConnected: boolean;
   autoSync: boolean;
   syncInterval: number; // milliseconds
-  lastSyncAt?: number;
+  lastSyncAt?: string;  // ISO date string
 }
 
 export interface CalendarSettings {
@@ -337,6 +337,6 @@ export interface BackgroundTask {
     imageUrl?: string;
   };
   error?: string;
-  createdAt: number;
-  completedAt?: number;
+  createdAt: string;  // ISO date string
+  completedAt?: string;  // ISO date string
 }

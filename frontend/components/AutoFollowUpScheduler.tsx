@@ -324,7 +324,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                           </div>
                           <div className="flex items-center gap-2 text-xs text-slate-600 mb-2">
                             <IconClock className="w-3 h-3" />
-                            <span>{formatDateTime(followUp.scheduledFor)}</span>
+                            <span>{formatDateTime(new Date(followUp.scheduledFor).getTime())}</span>
                           </div>
                           <p className="text-sm text-slate-600">{followUp.reason}</p>
                         </div>

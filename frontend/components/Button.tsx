@@ -22,6 +22,9 @@ interface ButtonProps {
   // Events
   onClick?: () => void | Promise<void>;
 
+  // HTML attributes
+  type?: 'button' | 'submit' | 'reset';
+
   // Accessibility
   'aria-label'?: string;
   className?: string;
@@ -40,6 +43,7 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   fullWidth = false,
   onClick,
+  type = 'button',
   className = '',
   children,
   ...rest
@@ -116,6 +120,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
+      type={type}
       onClick={handleClick}
       disabled={disabled || loading}
       className={`

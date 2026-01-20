@@ -109,7 +109,7 @@ export const TableView: React.FC<TableViewProps> = ({
         data={customers}
         columns={columns}
         keyExtractor={(customer) => customer.id}
-        onRowClick={onSelectCustomer}
+        onRowClick={(row) => onSelectCustomer(row.id)}
         selectedRows={selectedRows}
         onSelectionChange={onSelectionChange}
         emptyMessage="고객이 없습니다"

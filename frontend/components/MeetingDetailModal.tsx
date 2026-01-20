@@ -30,7 +30,7 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
 
   if (!isOpen || !meeting) return null;
 
-  const formatDate = (timestamp: number) => {
+  const formatDate = (timestamp: string | number) => {
     return new Date(timestamp).toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'long',

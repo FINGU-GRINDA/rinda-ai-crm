@@ -55,7 +55,8 @@ export const calculateOptimalFollowUpTiming = async (
 
     // Fallback logic
     const now = Date.now();
-    const lastContact = customer.lastFollowUpAt || customer.lastEnrichedAt || 0;
+    const lastContactStr = customer.lastFollowUpAt || customer.lastEnrichedAt;
+    const lastContact = lastContactStr ? new Date(lastContactStr).getTime() : 0;
     const daysSinceLastContact = Math.floor((now - lastContact) / (1000 * 60 * 60 * 24));
 
     let days = 7;
@@ -139,40 +140,40 @@ export const scheduleFollowUp = async (
   const timing = await calculateOptimalFollowUpTiming(customer);
   const type = await determineFollowUpType(customer);
   const content = await generateFollowUpContent(customer, type);
-  
-  const scheduledFor = Date.now() + timing.days * 24 * 60 * 60 * 1000;
-  
+
+  const scheduledForTimestamp = Date.now() + timing.days * 24 * 60 * 60 * 1000;
+
   const followUp: ScheduledFollowUp = {
     id: `followup_${Date.now()}_${customer.id}`,
     customerId: customer.id,
-    scheduledFor,
+    scheduledFor: new Date(scheduledForTimestamp).toISOString(),
     type,
     content,
     status: 'pending',
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     priority: timing.priority,
     reason: timing.reason
   };
-  
+
   saveScheduledFollowUp(followUp);
   return followUp;
 };
 
 // Get due follow-ups (should be executed now)
 export const getDueFollowUps = (): ScheduledFollowUp[] => {
-  const now = Date.now();
+  const nowTimestamp = Date.now();
   const all = getScheduledFollowUps();
-  
-  return all.filter(f => 
-    f.status === 'pending' && 
-    f.scheduledFor <= now
+
+  return all.filter(f =>
+    f.status === 'pending' &&
+    new Date(f.scheduledFor).getTime() <= nowTimestamp
   ).sort((a, b) => {
     // Sort by priority first, then by time
     const priorityOrder = { high: 3, medium: 2, low: 1 };
     if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
       return priorityOrder[b.priority] - priorityOrder[a.priority];
     }
-    return a.scheduledFor - b.scheduledFor;
+    return new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime();
   });
 };
 
@@ -181,12 +182,13 @@ export const getUpcomingFollowUps = (daysAhead: number = 7): ScheduledFollowUp[]
   const now = Date.now();
   const endTime = now + daysAhead * 24 * 60 * 60 * 1000;
   const all = getScheduledFollowUps();
-  
-  return all.filter(f => 
-    f.status === 'pending' && 
-    f.scheduledFor > now && 
-    f.scheduledFor <= endTime
-  ).sort((a, b) => a.scheduledFor - b.scheduledFor);
+
+  return all.filter(f => {
+    const scheduledForTimestamp = new Date(f.scheduledFor).getTime();
+    return f.status === 'pending' &&
+      scheduledForTimestamp > now &&
+      scheduledForTimestamp <= endTime;
+  }).sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
 };
 
 // Check if customer has upcoming meeting that might affect follow-up timing
@@ -196,21 +198,22 @@ export const adjustFollowUpForMeetings = async (
 ): Promise<ScheduledFollowUp | null> => {
   try {
     const meetings = await getUpcomingMeetings(customer.id, 14);
-    
+
     // If there's a meeting within 2 days of scheduled follow-up, adjust
     for (const meeting of meetings) {
-      const meetingTime = meeting.startTime;
-      const followUpTime = followUp.scheduledFor;
-      const diffDays = Math.abs(meetingTime - followUpTime) / (1000 * 60 * 60 * 24);
-      
+      const meetingTimeTimestamp = new Date(meeting.startTime).getTime();
+      const followUpTimeTimestamp = new Date(followUp.scheduledFor).getTime();
+      const diffDays = Math.abs(meetingTimeTimestamp - followUpTimeTimestamp) / (1000 * 60 * 60 * 24);
+
       if (diffDays <= 2) {
         // Reschedule follow-up to after meeting
+        const endTimestamp = new Date(meeting.endTime).getTime() + 24 * 60 * 60 * 1000; // 1 day after meeting
         const adjustedFollowUp: ScheduledFollowUp = {
           ...followUp,
-          scheduledFor: meeting.endTime + 24 * 60 * 60 * 1000, // 1 day after meeting
+          scheduledFor: new Date(endTimestamp).toISOString(),
           reason: `미팅(${new Date(meeting.startTime).toLocaleDateString('ko-KR')}) 이후 Follow-up으로 조정되었습니다.`
         };
-        
+
         saveScheduledFollowUp(adjustedFollowUp);
         return adjustedFollowUp;
       }
@@ -218,7 +221,7 @@ export const adjustFollowUpForMeetings = async (
   } catch (error) {
     console.error('Meeting adjustment failed:', error);
   }
-  
+
   return null;
 };
 
@@ -241,8 +244,8 @@ export const autoScheduleFollowUps = async (
     
     // Skip won deals (unless recently won)
     if (customer.status === 'won') {
-      const daysSinceWon = customer.lastFollowUpAt 
-        ? Math.floor((Date.now() - customer.lastFollowUpAt) / (1000 * 60 * 60 * 24))
+      const daysSinceWon = customer.lastFollowUpAt
+        ? Math.floor((Date.now() - new Date(customer.lastFollowUpAt).getTime()) / (1000 * 60 * 60 * 24))
         : 999;
       if (daysSinceWon > 30) continue;
     }
@@ -274,7 +277,7 @@ export const completeScheduledFollowUp = (
   const updated: ScheduledFollowUp = {
     ...existing[index],
     status: 'completed',
-    completedAt: Date.now(),
+    completedAt: new Date().toISOString(),
     completedNote: note || ''
   };
 
@@ -310,14 +313,14 @@ export const getFollowUpStats = (): FollowUpStats => {
   const all = getScheduledFollowUps();
   const now = Date.now();
 
-  const pending = all.filter(f => f.status === 'pending' && f.scheduledFor > now);
-  const overdue = all.filter(f => f.status === 'pending' && f.scheduledFor <= now);
+  const pending = all.filter(f => f.status === 'pending' && new Date(f.scheduledFor).getTime() > now);
+  const overdue = all.filter(f => f.status === 'pending' && new Date(f.scheduledFor).getTime() <= now);
   const completed = all.filter(f => f.status === 'completed');
 
   // Calculate average completion time
   const completionTimes = completed
     .filter(f => f.completedAt && f.scheduledFor)
-    .map(f => (f.completedAt || 0) - f.scheduledFor);
+    .map(f => new Date(f.completedAt || '').getTime() - new Date(f.scheduledFor).getTime());
   const avgCompletionTime = completionTimes.length > 0
     ? completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length
     : 0;
@@ -362,7 +365,7 @@ export const filterFollowUps = (
   if (filters.status && filters.status.length > 0) {
     result = result.filter(f => {
       // Special handling for 'overdue' which is a virtual status
-      if (filters.status!.includes('pending') && f.status === 'pending' && f.scheduledFor > now) {
+      if (filters.status!.includes('pending') && f.status === 'pending' && new Date(f.scheduledFor).getTime() > now) {
         return true;
       }
       if (filters.status!.includes('completed') && f.status === 'completed') {
@@ -392,10 +395,11 @@ export const filterFollowUps = (
 
   // Filter by date range
   if (filters.dateRange) {
-    result = result.filter(f =>
-      f.scheduledFor >= filters.dateRange!.start &&
-      f.scheduledFor <= filters.dateRange!.end
-    );
+    result = result.filter(f => {
+      const scheduledForTimestamp = new Date(f.scheduledFor).getTime();
+      return scheduledForTimestamp >= filters.dateRange!.start &&
+        scheduledForTimestamp <= filters.dateRange!.end;
+    });
   }
 
   // Filter by search query (customer name or content)
@@ -421,8 +425,8 @@ export const getOverdueFollowUps = (): ScheduledFollowUp[] => {
 
   return all.filter(f =>
     f.status === 'pending' &&
-    f.scheduledFor <= now
-  ).sort((a, b) => a.scheduledFor - b.scheduledFor);
+    new Date(f.scheduledFor).getTime() <= now
+  ).sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
 };
 
 // Get completed follow-ups
@@ -430,7 +434,7 @@ export const getCompletedFollowUps = (limit?: number): ScheduledFollowUp[] => {
   const all = getScheduledFollowUps();
 
   const completed = all.filter(f => f.status === 'completed')
-    .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+    .sort((a, b) => new Date(b.completedAt || '').getTime() - new Date(a.completedAt || '').getTime());
 
   return limit ? completed.slice(0, limit) : completed;
 };
@@ -440,7 +444,7 @@ export const getCustomerFollowUps = (customerId: string): ScheduledFollowUp[] =>
   const all = getScheduledFollowUps();
 
   return all.filter(f => f.customerId === customerId)
-    .sort((a, b) => b.scheduledFor - a.scheduledFor);
+    .sort((a, b) => new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime());
 };
 
 // Create a manual follow-up
@@ -457,11 +461,11 @@ export const createManualFollowUp = (
   const followUp: ScheduledFollowUp = {
     id: `followup_${Date.now()}_${customerId}`,
     customerId,
-    scheduledFor: data.scheduledFor,
+    scheduledFor: new Date(data.scheduledFor).toISOString(),
     type: data.type,
     content: data.content,
     status: 'pending',
-    createdAt: Date.now(),
+    createdAt: new Date().toISOString(),
     priority: data.priority,
     reason: data.reason,
     isManuallyCreated: true

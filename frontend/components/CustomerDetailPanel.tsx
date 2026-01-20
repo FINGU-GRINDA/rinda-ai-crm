@@ -315,7 +315,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
 
             {/* History Tab */}
             {detailPanelTab === 'history' && (
-              <HistoryTabContent customer={customer} />
+              <HistoryTabContent customer={customer} onSelectProposal={setSelectedProposal} />
             )}
 
             {/* Meetings Tab */}
@@ -493,7 +493,8 @@ const ActionTabContent: React.FC<{
 // History Tab Content
 const HistoryTabContent: React.FC<{
   customer: Customer;
-}> = ({ customer }) => (
+  onSelectProposal: (proposal: Proposal) => void;
+}> = ({ customer, onSelectProposal }) => (
   <div className="space-y-6">
     {/* Proposals List */}
     <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
@@ -517,7 +518,7 @@ const HistoryTabContent: React.FC<{
           customer.proposals.map(proposal => (
             <div
               key={proposal.id}
-              onClick={() => setSelectedProposal(proposal)}
+              onClick={() => onSelectProposal(proposal)}
               className="bg-gradient-to-br from-white to-slate-50 rounded-lg border border-slate-200 shadow-sm overflow-hidden group hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer"
             >
               <div className="flex">
@@ -698,7 +699,7 @@ const MeetingCard: React.FC<{
           <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
             <span className="flex items-center gap-1">
               <IconCalendar className="w-3 h-3" />
-              {formatDate(meeting.meetingDate)}
+              {formatDate(new Date(meeting.meetingDate).getTime())}
             </span>
             {meeting.duration && (
               <span className="flex items-center gap-1">

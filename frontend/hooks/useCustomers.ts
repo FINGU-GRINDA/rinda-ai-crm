@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Customer, CustomerStatus, Proposal, FollowUpAction, EnrichedData } from '../types';
 import { apiClient } from '../src/services/apiClient';
+import { transformApiCustomer, transformApiProposal } from '../src/utils/apiTransformers';
+import { isSuccessListResponse, isSuccessResponse, isErrorResponse } from '../src/utils/typeGuards';
 
 interface UseCustomersReturn {
   customers: Customer[];
@@ -35,28 +37,7 @@ interface UseCustomersReturn {
 interface CustomerStats {
   countByStatus: Record<CustomerStatus, number>;
   dueFollowUpsCount: number;
-  dueFollowUps: any[];
-}
-
-// API 응답을 프론트엔드 Customer 타입으로 변환
-function transformApiCustomer(apiCustomer: any): Customer {
-  return {
-    id: apiCustomer.id,
-    name: apiCustomer.name,
-    website: apiCustomer.website || '',
-    industry: apiCustomer.industry || '미분류',
-    notes: apiCustomer.notes || '',
-    status: apiCustomer.status || 'new',
-    enrichedData: apiCustomer.enrichedData || apiCustomer.enrichment || undefined,
-    proposals: apiCustomer.proposals || [],
-    lastEnrichedAt: apiCustomer.lastEnrichedAt || apiCustomer.last_enriched_at,
-    lostReason: apiCustomer.lostReason || apiCustomer.lost_reason,
-    lostAt: apiCustomer.lostAt || apiCustomer.lost_at,
-    lastFollowUpAt: apiCustomer.lastFollowUpAt || apiCustomer.last_follow_up_at,
-    followUpHistory: apiCustomer.followUpHistory || [],
-    contacts: apiCustomer.contacts || [],
-    meetingSummaries: apiCustomer.meetingSummaries || [],
-  };
+  dueFollowUps: Record<string, unknown>[];
 }
 
 export function useCustomers(): UseCustomersReturn {
@@ -70,16 +51,17 @@ export function useCustomers(): UseCustomersReturn {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.getCustomers({ limit: 500 }) as any;
-      if (response.success && response.data) {
+      const response = await apiClient.getCustomers({ limit: 500 });
+      if (isSuccessListResponse(response)) {
         const transformedCustomers = response.data.map(transformApiCustomer);
         setCustomers(transformedCustomers);
-      } else {
-        throw new Error(response.error || '고객 목록을 불러오는데 실패했습니다.');
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-    } catch (err: any) {
-      console.error('Failed to fetch customers:', err);
-      setError(err.message || '고객 목록을 불러오는데 실패했습니다.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to fetch customers:', error);
+      setError(error.message || '고객 목록을 불러오는데 실패했습니다.');
       // 에러 발생 시 빈 배열로 설정 (로컬 데이터 fallback 없음)
       setCustomers([]);
     } finally {
@@ -98,17 +80,20 @@ export function useCustomers(): UseCustomersReturn {
         industry: customerData.industry,
         notes: customerData.notes,
         status: customerData.status,
-      }) as any;
+      });
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const newCustomer = transformApiCustomer(response.data);
         setCustomers(prev => [...prev, newCustomer]);
         return newCustomer;
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-      throw new Error(response.error || '고객 추가에 실패했습니다.');
-    } catch (err: any) {
-      console.error('Failed to add customer:', err);
-      setError(err.message);
+      return null;
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to add customer:', error);
+      setError(error.message);
       return null;
     }
   }, []);
@@ -119,17 +104,20 @@ export function useCustomers(): UseCustomersReturn {
     updates: Partial<Customer>
   ): Promise<Customer | null> => {
     try {
-      const response = await apiClient.updateCustomer(id, updates) as any;
+      const response = await apiClient.updateCustomer(id, updates);
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data);
         setCustomers(prev => prev.map(c => c.id === id ? updatedCustomer : c));
         return updatedCustomer;
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-      throw new Error(response.error || '고객 업데이트에 실패했습니다.');
-    } catch (err: any) {
-      console.error('Failed to update customer:', err);
-      setError(err.message);
+      return null;
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to update customer:', error);
+      setError(error.message);
       return null;
     }
   }, []);
@@ -137,16 +125,19 @@ export function useCustomers(): UseCustomersReturn {
   // 고객 삭제
   const deleteCustomer = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const response = await apiClient.deleteCustomer(id) as any;
+      const response = await apiClient.deleteCustomer(id);
 
-      if (response.success) {
+      if (isSuccessResponse(response)) {
         setCustomers(prev => prev.filter(c => c.id !== id));
         return true;
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-      throw new Error(response.error || '고객 삭제에 실패했습니다.');
-    } catch (err: any) {
-      console.error('Failed to delete customer:', err);
-      setError(err.message);
+      return false;
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to delete customer:', error);
+      setError(error.message);
       return false;
     }
   }, []);
@@ -158,17 +149,20 @@ export function useCustomers(): UseCustomersReturn {
     lostReason?: string
   ): Promise<Customer | null> => {
     try {
-      const response = await apiClient.updateCustomerStatus(id, status, lostReason) as any;
+      const response = await apiClient.updateCustomerStatus(id, status, lostReason);
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data);
         setCustomers(prev => prev.map(c => c.id === id ? updatedCustomer : c));
         return updatedCustomer;
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-      throw new Error(response.error || '상태 업데이트에 실패했습니다.');
-    } catch (err: any) {
-      console.error('Failed to update customer status:', err);
-      setError(err.message);
+      return null;
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to update customer status:', error);
+      setError(error.message);
       return null;
     }
   }, []);
@@ -179,21 +173,24 @@ export function useCustomers(): UseCustomersReturn {
     enrichment: EnrichedData
   ): Promise<Customer | null> => {
     try {
-      const response = await apiClient.saveCustomerEnrichment(customerId, enrichment) as any;
+      const response = await apiClient.saveCustomerEnrichment(customerId, enrichment as unknown as Record<string, unknown>);
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data);
         setCustomers(prev => prev.map(c => c.id === customerId ? {
           ...updatedCustomer,
           enrichedData: enrichment,
-          lastEnrichedAt: Date.now()
+          lastEnrichedAt: new Date().toISOString()
         } : c));
         return updatedCustomer;
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-      throw new Error(response.error || 'AI 분석 저장에 실패했습니다.');
-    } catch (err: any) {
-      console.error('Failed to save enrichment:', err);
-      setError(err.message);
+      return null;
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to save enrichment:', error);
+      setError(error.message);
       return null;
     }
   }, []);
@@ -204,16 +201,10 @@ export function useCustomers(): UseCustomersReturn {
     proposal: Omit<Proposal, 'id' | 'createdAt'>
   ): Promise<Proposal | null> => {
     try {
-      const response = await apiClient.createCustomerProposal(customerId, proposal) as any;
+      const response = await apiClient.createCustomerProposal(customerId, proposal);
 
-      if (response.success && response.data) {
-        const newProposal: Proposal = {
-          id: response.data.id,
-          title: response.data.title,
-          content: response.data.content,
-          imageUrl: response.data.imageUrl || response.data.image_url,
-          createdAt: response.data.createdAt || response.data.created_at || Date.now(),
-        };
+      if (isSuccessResponse(response)) {
+        const newProposal = transformApiProposal(response.data);
 
         setCustomers(prev => prev.map(c => {
           if (c.id === customerId) {
@@ -226,11 +217,14 @@ export function useCustomers(): UseCustomersReturn {
         }));
 
         return newProposal;
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-      throw new Error(response.error || '제안서 저장에 실패했습니다.');
-    } catch (err: any) {
-      console.error('Failed to add proposal:', err);
-      setError(err.message);
+      return null;
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to add proposal:', error);
+      setError(error.message);
       return null;
     }
   }, []);
@@ -244,15 +238,15 @@ export function useCustomers(): UseCustomersReturn {
       const response = await apiClient.createCustomerFollowUp(customerId, {
         type: followUp.type,
         content: followUp.content,
-      }) as any;
+      });
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const newFollowUp: FollowUpAction = {
-          id: response.data.id,
-          type: response.data.type,
-          content: response.data.content,
-          createdAt: response.data.createdAt || response.data.created_at || Date.now(),
-          status: response.data.status || 'completed',
+          id: (response.data as unknown as Record<string, unknown>).id as string,
+          type: (response.data as unknown as Record<string, unknown>).type as 'email' | 'call' | 'meeting' | 'message',
+          content: (response.data as unknown as Record<string, unknown>).content as string,
+          createdAt: (response.data as unknown as Record<string, unknown>).createdAt as string,
+          status: (response.data as unknown as Record<string, unknown>).status as 'planned' | 'completed' | 'cancelled' || 'completed',
         };
 
         setCustomers(prev => prev.map(c => {
@@ -260,18 +254,21 @@ export function useCustomers(): UseCustomersReturn {
             return {
               ...c,
               followUpHistory: [newFollowUp, ...(c.followUpHistory || [])],
-              lastFollowUpAt: Date.now()
+              lastFollowUpAt: new Date().toISOString()
             };
           }
           return c;
         }));
 
         return newFollowUp;
+      } else if (isErrorResponse(response)) {
+        throw new Error(response.error);
       }
-      throw new Error(response.error || 'Follow-up 저장에 실패했습니다.');
-    } catch (err: any) {
-      console.error('Failed to add follow-up:', err);
-      setError(err.message);
+      return null;
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to add follow-up:', error);
+      setError(error.message);
       return null;
     }
   }, []);
@@ -279,13 +276,14 @@ export function useCustomers(): UseCustomersReturn {
   // 통계 가져오기
   const fetchStats = useCallback(async () => {
     try {
-      const response = await apiClient.getCustomerStats() as any;
+      const response = await apiClient.getCustomerStats();
 
-      if (response.success && response.data) {
-        setStats(response.data);
+      if (isSuccessResponse(response)) {
+        setStats(response.data as unknown as CustomerStats);
       }
-    } catch (err: any) {
-      console.error('Failed to fetch stats:', err);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to fetch stats:', error);
     }
   }, []);
 
@@ -297,16 +295,17 @@ export function useCustomers(): UseCustomersReturn {
   // 특정 고객 새로고침
   const refreshCustomer = useCallback(async (id: string): Promise<Customer | null> => {
     try {
-      const response = await apiClient.getCustomer(id) as any;
+      const response = await apiClient.getCustomer(id);
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data);
         setCustomers(prev => prev.map(c => c.id === id ? updatedCustomer : c));
         return updatedCustomer;
       }
       return null;
-    } catch (err: any) {
-      console.error('Failed to refresh customer:', err);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to refresh customer:', error);
       return null;
     }
   }, []);

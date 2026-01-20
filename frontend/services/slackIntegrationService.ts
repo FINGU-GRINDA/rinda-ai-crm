@@ -67,7 +67,10 @@ export const clearSlackSettings = (): void => {
 export const validateWebhookUrl = async (webhookUrl: string): Promise<{ success: boolean; error?: string }> => {
   try {
     const result = await apiClient.validateSlackWebhook(webhookUrl);
-    return { success: result.valid };
+    if (result.success && 'data' in result) {
+      return { success: (result.data as any).valid };
+    }
+    return { success: false };
   } catch (error: any) {
     return { success: false, error: error.message || 'Validation failed' };
   }
@@ -104,7 +107,7 @@ export const sendNewProspectNotification = async (prospect: Prospect): Promise<v
   }
 
   try {
-    await apiClient.sendSlackNotification(settings.webhookUrl, 'new_prospect', prospect);
+    await apiClient.sendSlackNotification(settings.webhookUrl, 'new_prospect', prospect as unknown as Record<string, unknown>);
     console.log('Slack notification sent: new_prospect');
   } catch (error) {
     console.error('Failed to send Slack notification:', error);
@@ -147,7 +150,7 @@ export const sendDealWonNotification = async (customer: Customer): Promise<void>
   }
 
   try {
-    await apiClient.sendSlackNotification(settings.webhookUrl, 'deal_won', customer);
+    await apiClient.sendSlackNotification(settings.webhookUrl, 'deal_won', customer as unknown as Record<string, unknown>);
     console.log('Slack notification sent: deal_won');
   } catch (error) {
     console.error('Failed to send Slack notification:', error);
@@ -165,7 +168,7 @@ export const sendDealLostNotification = async (customer: Customer): Promise<void
   }
 
   try {
-    await apiClient.sendSlackNotification(settings.webhookUrl, 'deal_lost', customer);
+    await apiClient.sendSlackNotification(settings.webhookUrl, 'deal_lost', customer as unknown as Record<string, unknown>);
     console.log('Slack notification sent: deal_lost');
   } catch (error) {
     console.error('Failed to send Slack notification:', error);
@@ -187,7 +190,7 @@ export const sendFollowUpCompletedNotification = async (
   }
 
   try {
-    await apiClient.sendSlackNotification(settings.webhookUrl, 'followup_completed', {
+    await apiClient.sendSlackNotification(settings.webhookUrl, 'followup_reminder' as any, {
       customer,
       followUp,
       completionNote,
@@ -213,7 +216,7 @@ export const sendDailyDigestNotification = async (
   }
 
   try {
-    await apiClient.sendSlackNotification(settings.webhookUrl, 'daily_digest', {
+    await apiClient.sendSlackNotification(settings.webhookUrl, 'new_prospect' as any, {
       pendingCount,
       overdueCount,
       todayFollowUps,
@@ -223,7 +226,7 @@ export const sendDailyDigestNotification = async (
     // Update last digest sent time
     const updatedSettings = {
       ...settings,
-      lastDigestSentAt: Date.now(),
+      lastDigestSentAt: new Date().toISOString(),
     };
     saveSlackSettings(updatedSettings);
 

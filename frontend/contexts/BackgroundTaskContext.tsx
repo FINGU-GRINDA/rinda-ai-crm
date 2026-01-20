@@ -51,7 +51,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
       customerName: customer.name,
       progress: 0,
       message: '제안서 생성 준비 중...',
-      createdAt: Date.now()
+      createdAt: new Date().toISOString()
     };
 
     setTasks(prev => [newTask, ...prev]);
@@ -115,7 +115,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
             content: strategyText,
             imageUrl: imageUrl
           },
-          completedAt: Date.now()
+          completedAt: new Date().toISOString()
         };
 
         updateTask(taskId, completedTask);
@@ -138,7 +138,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
           progress: 0,
           message: '제안서 생성 실패',
           error: error.message || '알 수 없는 오류가 발생했습니다',
-          completedAt: Date.now()
+          completedAt: new Date().toISOString()
         });
       }
     })();

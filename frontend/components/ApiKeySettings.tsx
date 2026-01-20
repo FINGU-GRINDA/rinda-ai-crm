@@ -46,9 +46,6 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
       onClose();
     } else if (apiKey.length > 0) {
       await validateApiKey();
-      if (validationStatus === 'valid') {
-        setTimeout(() => onClose(), 500);
-      }
     }
   };
 

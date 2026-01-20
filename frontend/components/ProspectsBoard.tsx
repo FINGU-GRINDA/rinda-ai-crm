@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Prospect } from '../types';
 import {
   IconBuilding,
   IconTrendingUp,
@@ -9,22 +10,6 @@ import {
   IconCheck,
   IconX
 } from './Icons';
-
-interface Prospect {
-  id: string;
-  companyName: string;
-  website?: string;
-  industry?: string;
-  signalStrength: 'high' | 'medium' | 'low';
-  sourceArticle?: {
-    title?: string;
-    uri?: string;
-    publishedAt?: string;
-  };
-  notes?: string;
-  detectedAt: number;
-  converted?: boolean;
-}
 
 interface ProspectsBoardProps {
   prospects: Prospect[];
@@ -73,16 +58,16 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
   const groupedProspects = useMemo(() => {
     return SIGNAL_COLUMNS.reduce((acc, column) => {
       acc[column.id] = prospects.filter(
-        p => p.signalStrength === column.id && !p.converted
+        p => p.signalStrength === column.id
       );
       return acc;
     }, {} as Record<string, Prospect[]>);
   }, [prospects]);
 
-  const totalProspects = prospects.filter(p => !p.converted).length;
+  const totalProspects = prospects.length;
 
   // Format date
-  const formatDate = (timestamp: number) => {
+  const formatDate = (timestamp: string | number) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();

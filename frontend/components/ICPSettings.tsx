@@ -100,7 +100,7 @@ export const ICPSettings: React.FC<Props> = ({ isOpen, onClose, onManualRun, exi
       return;
     }
 
-    const now = Date.now();
+    const now = new Date().toISOString();
     let updated: ICPProfile[];
 
     if (editingId) {

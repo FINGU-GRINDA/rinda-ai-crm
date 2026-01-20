@@ -36,7 +36,7 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
     }
   };
 
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timestamp: string | number) => {
     return new Date(timestamp).toLocaleString('ko-KR', {
       year: 'numeric',
       month: 'long',

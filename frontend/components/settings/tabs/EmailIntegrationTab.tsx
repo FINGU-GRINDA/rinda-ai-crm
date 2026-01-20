@@ -50,7 +50,7 @@ export const EmailIntegrationTab: React.FC<EmailIntegrationTabProps> = ({ onSett
       ...settings,
       provider,
       isConnected: true,
-      lastSyncAt: Date.now(),
+      lastSyncAt: new Date().toISOString(),
     };
     setSettings(newSettings);
     saveEmailSettings(newSettings);
