@@ -14,14 +14,19 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
   // Auto-collapse completed tasks after 10 seconds
   useEffect(() => {
     const completedTasks = tasks.filter(t => t.status === 'completed' || t.status === 'error');
+    const timers: NodeJS.Timeout[] = [];
 
     completedTasks.forEach(task => {
       const timer = setTimeout(() => {
         // Don't auto-dismiss, but could add this behavior if desired
       }, 10000);
-
-      return () => clearTimeout(timer);
+      timers.push(timer);
     });
+
+    // Cleanup all timers when effect unmounts or dependencies change
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
   }, [tasks]);
 
   const toggleExpand = (taskId: string) => {

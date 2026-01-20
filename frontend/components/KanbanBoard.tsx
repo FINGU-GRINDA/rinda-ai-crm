@@ -92,6 +92,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     setDraggedCustomerId(null);
   }, [draggedCustomerId, onStatusChange]);
 
+  // Helper to safely format dates
+  const formatSafeDate = (dateStr: string | number | undefined): string => {
+    if (!dateStr) return new Date().toLocaleDateString();
+    try {
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? new Date().toLocaleDateString() : date.toLocaleDateString();
+    } catch {
+      return new Date().toLocaleDateString();
+    }
+  };
+
   // Empty state component with contextual messages
   const EmptyState: React.FC<{ columnId: CustomerStatus }> = ({ columnId }) => {
     const messages: Record<CustomerStatus, { title: string; subtitle?: string; showCTA: boolean }> = {
@@ -212,7 +223,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           )}
         </div>
 
-        {isProspect && prospectData && (
+        {isProspect && prospectData?.sourceArticle?.uri && (
           <div className="bg-neutral-100 p-2 rounded text-[11px] text-neutral-800 leading-snug mb-2 border border-neutral-200">
             <div className="flex items-start gap-1 mb-1">
               <IconNews className="w-3 h-3 mt-0.5 flex-shrink-0" />
@@ -224,7 +235,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 className="hover:underline truncate text-blue-600"
                 onClick={(e) => e.stopPropagation()}
               >
-                {prospectData.sourceArticle.title}
+                {prospectData.sourceArticle.title || 'Source Article'}
               </a>
             </div>
             {prospectData.notes && (
@@ -247,8 +258,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-50">
           <span>
             {isProspect && prospectData
-              ? new Date(prospectData.detectedAt).toLocaleDateString()
-              : new Date().toLocaleDateString()
+              ? formatSafeDate(prospectData.detectedAt)
+              : formatSafeDate(undefined)
             }
           </span>
           {isProspect ? (

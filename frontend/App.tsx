@@ -240,7 +240,7 @@ const App: React.FC = () => {
     }
   }, [customers]);
 
-  // Check notifications periodically
+  // Run notification checks when customers change
   useEffect(() => {
     const checkNotifications = async () => {
       try {
@@ -250,7 +250,21 @@ const App: React.FC = () => {
       }
     };
 
-    checkNotifications();
+    if (customers.length > 0) {
+      checkNotifications();
+    }
+  }, [customers]);
+
+  // Set up periodic notification checks (independent of customer changes)
+  useEffect(() => {
+    const checkNotifications = async () => {
+      try {
+        await runNotificationChecks(customers);
+      } catch (error) {
+        console.error('Notification check failed:', error);
+      }
+    };
+
     const interval = setInterval(checkNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [customers]);
@@ -260,9 +274,18 @@ const App: React.FC = () => {
     const settings = getCollectionSettings();
     setCollectionSettings(settings);
 
-    if (!settings.autoRun || isCollecting) return;
+    if (!settings.autoRun) return;
+
+    let isCurrentlyCollecting = false;
 
     const collectProspects = async () => {
+      // Prevent race conditions - only run if not already collecting
+      if (isCurrentlyCollecting) {
+        console.log('Collection already in progress, skipping...');
+        return;
+      }
+
+      isCurrentlyCollecting = true;
       setIsCollecting(true);
       try {
         const existingNames = customers.map(c => c.name);
@@ -275,6 +298,7 @@ const App: React.FC = () => {
       } catch (error: any) {
         console.error('Prospect collection failed:', error);
       } finally {
+        isCurrentlyCollecting = false;
         setIsCollecting(false);
       }
     };
@@ -286,7 +310,7 @@ const App: React.FC = () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [collectionSettings.autoRun, collectionSettings.interval, isCollecting, customers]);
+  }, [collectionSettings.autoRun, collectionSettings.interval, customers]);
 
   // Load prospects on mount
   useEffect(() => {

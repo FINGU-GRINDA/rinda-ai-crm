@@ -3,6 +3,7 @@ import { SettingsTabType } from '../../types';
 import { SettingsTabBar } from './SettingsTabBar';
 import { IconX, IconSettings, IconLoader } from '../Icons';
 import { getSlackSettings } from '../../services/slackIntegrationService';
+import { safeGetItem } from '../../src/utils/safeStorage';
 import type { MixpanelFormState } from './tabs/MixpanelIntegrationTab';
 import type { SlackFormState } from './tabs/SlackIntegrationTab';
 import type { AIFormState } from './tabs/AISettingsTab';
@@ -69,15 +70,16 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
 
   // Update connection status on open and when settings change
   const updateConnectionStatus = () => {
+    const emailSettings = safeGetItem<{ isConnected?: boolean }>('rinda_email_settings', {});
+    const calendarSettings = safeGetItem<{ isConnected?: boolean }>('rinda_calendar_settings', {});
+    const mixpanelSettings = safeGetItem<{ isEnabled?: boolean }>('rinda_mixpanel_settings', {});
+
     setConnectionStatus({
       ai: false, // AI key is now managed server-side only
       slack: getSlackSettings().isValidated,
-      email: !!localStorage.getItem('rinda_email_settings') &&
-             JSON.parse(localStorage.getItem('rinda_email_settings') || '{}').isConnected,
-      calendar: !!localStorage.getItem('rinda_calendar_settings') &&
-                JSON.parse(localStorage.getItem('rinda_calendar_settings') || '{}').isConnected,
-      mixpanel: !!localStorage.getItem('rinda_mixpanel_settings') &&
-                JSON.parse(localStorage.getItem('rinda_mixpanel_settings') || '{}').isEnabled,
+      email: emailSettings.isConnected || false,
+      calendar: calendarSettings.isConnected || false,
+      mixpanel: mixpanelSettings.isEnabled || false,
     });
   };
 

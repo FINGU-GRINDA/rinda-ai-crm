@@ -55,7 +55,7 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     if (customerName && !title) {
       setTitle(`${customerName} 미팅`);
     }
-  }, [customerName]);
+  }, [customerName, title]);
 
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -116,6 +116,10 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     if (mediaRecorderRef.current && recordingStatus === 'paused') {
       mediaRecorderRef.current.resume();
       setRecordingStatus('recording');
+      // Clear any existing interval before creating a new one
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       timerRef.current = window.setInterval(() => {
         setDuration(prev => prev + 1);
       }, 1000);
@@ -167,8 +171,16 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
   };
 
   const generateSummary = useCallback(async () => {
-    if (!audioBlob || !selectedCustomerId || !title) {
+    // Validate required fields
+    if (!audioBlob || !selectedCustomerId || !title || !meetingDate) {
       setError('필수 정보를 입력해주세요.');
+      return;
+    }
+
+    // Validate date
+    const dateObj = new Date(meetingDate);
+    if (isNaN(dateObj.getTime())) {
+      setError('유효한 날짜를 입력해주세요.');
       return;
     }
 
@@ -182,7 +194,7 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
         audioData: base64Audio,
         customerId: selectedCustomerId,
         title,
-        meetingDate: new Date(meetingDate).toISOString()
+        meetingDate: dateObj.toISOString()
       });
 
       if (result.success && 'data' in result) {

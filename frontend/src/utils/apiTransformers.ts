@@ -17,6 +17,7 @@ import type {
   Proposal,
   Prospect,
 } from '../../types'
+import { safeJsonParse } from './safeStorage'
 
 /**
  * Transform API customer to frontend Customer type
@@ -106,9 +107,9 @@ export function transformApiMeeting(apiMeeting: ApiMeetingSummary): MeetingSumma
     audioFileUrl: apiMeeting.audioFileUrl || undefined,
     duration: apiMeeting.duration || undefined,
     summary: apiMeeting.summary || '',
-    keyDiscussions: apiMeeting.keyDiscussions ? JSON.parse(apiMeeting.keyDiscussions) : [],
-    actionItems: apiMeeting.actionItems ? JSON.parse(apiMeeting.actionItems) : [],
-    customerNeeds: apiMeeting.customerNeeds ? JSON.parse(apiMeeting.customerNeeds) : [],
+    keyDiscussions: safeJsonParse(apiMeeting.keyDiscussions, []),
+    actionItems: safeJsonParse(apiMeeting.actionItems, []),
+    customerNeeds: safeJsonParse(apiMeeting.customerNeeds, []),
     budgetMentions: apiMeeting.budgetMentions || undefined,
     timelineMentions: apiMeeting.timelineMentions || undefined,
     nextSteps: [],

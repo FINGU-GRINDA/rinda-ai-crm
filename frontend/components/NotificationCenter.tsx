@@ -24,15 +24,23 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
+  // Load notifications on mount
   useEffect(() => {
     loadNotifications();
-    
-    // Check for new notifications every 5 minutes
+  }, []);
+
+  // Check for new notifications every 5 minutes (independent of customers)
+  useEffect(() => {
     const interval = setInterval(() => {
       checkNotifications();
     }, 5 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
+  }, []);
+
+  // Reload notifications when customers change
+  useEffect(() => {
+    loadNotifications();
   }, [customers]);
 
   const loadNotifications = () => {

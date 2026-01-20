@@ -91,6 +91,12 @@ export const BusinessCardScanner: React.FC<BusinessCardScannerProps> = ({
   const scanCard = useCallback(async () => {
     if (!image) return;
 
+    // Validate customer selection
+    if (!createNewCustomer && !selectedCustomerId) {
+      setError('고객을 선택하거나 신규 고객 생성을 선택해주세요.');
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
@@ -111,28 +117,6 @@ export const BusinessCardScanner: React.FC<BusinessCardScannerProps> = ({
     }
   }, [image, selectedCustomerId, createNewCustomer]);
 
-  const handleSave = useCallback(async () => {
-    if (!editableResult) return;
-
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      const targetCustomerId = createNewCustomer ? undefined : selectedCustomerId;
-      const result = await apiClient.scanBusinessCard(image!, targetCustomerId, createNewCustomer);
-
-      if (result.success && 'data' in result) {
-        const data = result.data as unknown as BusinessCardData;
-        onScanComplete(editableResult, (result as any).customerId, (result as any).contactId);
-        handleClose();
-      }
-    } catch (err: any) {
-      setError(err.message || '저장에 실패했습니다.');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [editableResult, image, selectedCustomerId, createNewCustomer, onScanComplete]);
-
   const handleClose = useCallback(() => {
     stopCamera();
     setMode('select');
@@ -142,6 +126,14 @@ export const BusinessCardScanner: React.FC<BusinessCardScannerProps> = ({
     setError(null);
     onClose();
   }, [stopCamera, onClose]);
+
+  const handleSave = useCallback(async () => {
+    if (!editableResult) return;
+
+    // Use the already-scanned result, no need for another API call
+    onScanComplete(editableResult, createNewCustomer ? undefined : selectedCustomerId);
+    handleClose();
+  }, [editableResult, selectedCustomerId, createNewCustomer, onScanComplete, handleClose]);
 
   const handleRetake = useCallback(() => {
     setImage(null);
