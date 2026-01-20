@@ -8,6 +8,7 @@ import { loggerMiddleware } from "./middleware/logger"
 import { settingsRepository } from "./repositories"
 import { routes } from "./routes"
 import { logger } from "./utils/logger"
+import { success } from "./utils/response"
 
 async function main() {
   // Test database connection
@@ -67,12 +68,14 @@ async function main() {
     .use(errorHandler)
 
     // Health check
-    .get("/health", () => ({
-      status: "ok",
-      timestamp: Date.now(),
-      version: "2.0.0",
-      database: "connected",
-    }))
+    .get("/health", () =>
+      success({
+        status: "ok",
+        timestamp: Date.now(),
+        version: "2.0.0",
+        database: "connected",
+      }),
+    )
 
     // API routes
     .use(routes)
