@@ -1,16 +1,15 @@
 import React from 'react';
-import { IconBriefcase, IconUsers, IconX, IconSparkles } from './Icons';
+import { IconUsers, IconSparkles, IconCalendar } from './Icons';
 
-export type TabType = 'active' | 'leads' | 'prospects' | 'lost';
+export type TabType = 'customers' | 'prospects' | 'meetings';
 
 interface TabNavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   counts: {
-    active: number;
-    leads: number;
+    customers: number;
     prospects: number;
-    lost: number;
+    meetings: number;
   };
 }
 
@@ -21,16 +20,10 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
 }) => {
   const tabs: { id: TabType; label: string; icon: React.ReactNode; count: number }[] = [
     {
-      id: 'active',
-      label: '활성 Deal',
-      icon: <IconBriefcase className="w-4 h-4" />,
-      count: counts.active
-    },
-    {
-      id: 'leads',
-      label: '잠재 고객',
+      id: 'customers',
+      label: '고객 관리',
       icon: <IconUsers className="w-4 h-4" />,
-      count: counts.leads
+      count: counts.customers
     },
     {
       id: 'prospects',
@@ -39,10 +32,10 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
       count: counts.prospects
     },
     {
-      id: 'lost',
-      label: 'Lost Deals',
-      icon: <IconX className="w-4 h-4" />,
-      count: counts.lost
+      id: 'meetings',
+      label: '미팅',
+      icon: <IconCalendar className="w-4 h-4" />,
+      count: counts.meetings
     }
   ];
 

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Customer } from '../types';
-import { CreditCard, Mic } from 'lucide-react';
+import { CreditCard, Mic, LogOut, User, ChevronDown } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 import { FollowUpSchedulerHeader } from './followup';
+import { useAuth } from '../contexts/AuthContext';
 import {
   IconPlus,
   IconSearch,
@@ -10,6 +11,93 @@ import {
   IconDashboard,
   IconSettings
 } from './Icons';
+
+// Profile Dropdown Component
+const ProfileDropdown: React.FC = () => {
+  const { user, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  if (!user) return null;
+
+  const initials = user.name
+    ?.split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || user.email[0].toUpperCase();
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+      >
+        {user.picture ? (
+          <img
+            src={user.picture}
+            alt={user.name || user.email}
+            className="w-8 h-8 rounded-full object-cover border border-slate-200"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium">
+            {initials}
+          </div>
+        )}
+        <span className="text-sm font-medium text-slate-700 hidden lg:block max-w-[120px] truncate">
+          {user.name || user.email}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+          {/* User Info */}
+          <div className="px-4 py-3 border-b border-slate-100">
+            <p className="text-sm font-medium text-slate-800 truncate">{user.name || 'User'}</p>
+            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          </div>
+
+          {/* Menu Items */}
+          <div className="py-1">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                // Could open profile settings here
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <User className="w-4 h-4" />
+              <span>프로필</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                logout();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>로그아웃</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Tooltip Component
 const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => (
@@ -66,13 +154,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
           <h1 className="font-bold text-slate-800 text-lg tracking-tight">RINDA CRM</h1>
         </div>
-        <button
-          onClick={onAddCustomer}
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-2.5 flex items-center justify-center transition-all shadow-md active:scale-95 touch-target"
-          aria-label="새 고객 추가"
-        >
-          <IconPlus className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <ProfileDropdown />
+          <button
+            onClick={onAddCustomer}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-2.5 flex items-center justify-center transition-all shadow-md active:scale-95 touch-target"
+            aria-label="새 고객 추가"
+          >
+            <IconPlus className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       {/* Desktop Header */}
@@ -189,6 +280,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 <span>새 고객 추가</span>
               </button>
             </Tooltip>
+
+            {/* Profile Dropdown */}
+            <div className="ml-2 pl-2 border-l border-slate-200">
+              <ProfileDropdown />
+            </div>
           </div>
         </div>
       </header>

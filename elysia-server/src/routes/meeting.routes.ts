@@ -3,6 +3,61 @@ import { meetingRepository } from "../repositories"
 import { ErrorCode, error, success, successList } from "../utils/response"
 
 export const meetingRoutes = new Elysia({ prefix: "/api/meetings" })
+  // Get all meetings with optional filters
+  .get(
+    "/",
+    async ({ query }) => {
+      const limit = query.limit ? parseInt(query.limit, 10) : 100
+      const offset = query.offset ? parseInt(query.offset, 10) : 0
+      const meetings = await meetingRepository.findRecent(limit)
+      // Apply offset manually since findRecent doesn't support it
+      const slicedMeetings = meetings.slice(offset)
+      return successList(slicedMeetings)
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+        offset: t.Optional(t.String()),
+      }),
+    },
+  )
+
+  // Create a new meeting
+  .post(
+    "/",
+    async ({ body }) => {
+      const meeting = await meetingRepository.create({
+        customerId: body.customerId,
+        title: body.title,
+        meetingDate: body.meetingDate ? new Date(body.meetingDate) : new Date(),
+        summary: body.summary,
+        keyDiscussions: body.keyDiscussions ? JSON.stringify(body.keyDiscussions) : undefined,
+        actionItems: body.actionItems ? JSON.stringify(body.actionItems) : undefined,
+        customerNeeds: body.customerNeeds ? JSON.stringify(body.customerNeeds) : undefined,
+        budgetMentions: body.budgetMentions,
+        timelineMentions: body.timelineMentions,
+        nextSteps: body.nextSteps ? JSON.stringify(body.nextSteps) : undefined,
+        transcription: body.transcription,
+      })
+      return success(meeting)
+    },
+    {
+      body: t.Object({
+        customerId: t.String(),
+        title: t.String(),
+        meetingDate: t.Optional(t.String()),
+        summary: t.Optional(t.String()),
+        keyDiscussions: t.Optional(t.Array(t.String())),
+        actionItems: t.Optional(t.Array(t.String())),
+        customerNeeds: t.Optional(t.Array(t.String())),
+        budgetMentions: t.Optional(t.String()),
+        timelineMentions: t.Optional(t.String()),
+        nextSteps: t.Optional(t.Array(t.String())),
+        transcription: t.Optional(t.String()),
+      }),
+    },
+  )
+
   // Get recent meetings
   .get(
     "/recent",

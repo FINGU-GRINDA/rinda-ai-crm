@@ -11,7 +11,7 @@ import { BackgroundTaskProvider } from './contexts/BackgroundTaskContext';
 import { BackgroundTaskToast } from './components/BackgroundTaskToast';
 import { useIsMobile } from './hooks/useMediaQuery';
 import { Home, Search, Bell, Settings } from 'lucide-react';
-import { transformApiCustomer, transformApiProspect, transformApiProposal } from './src/utils/apiTransformers';
+import { transformApiCustomer, transformApiProspect, transformApiProposal, transformApiMeeting } from './src/utils/apiTransformers';
 import { isSuccessListResponse, isSuccessResponse, isErrorResponse } from './src/utils/typeGuards';
 import { BusinessCardScanner } from './components/BusinessCardScanner';
 import { MeetingRecorder } from './components/MeetingRecorder';
@@ -23,6 +23,7 @@ import { DismissProspectModal } from './components/modals';
 // New separated components
 import { KanbanBoard, KANBAN_COLUMNS } from './components/KanbanBoard';
 import { ProspectsBoard } from './components/ProspectsBoard';
+import { MeetingsBoard } from './components/MeetingsBoard';
 import { CustomerDetailPanel } from './components/CustomerDetailPanel';
 import { AppHeader, StatsBar } from './components/AppHeader';
 import { AddCustomerModal, DeleteConfirmModal } from './components/modals';
@@ -59,7 +60,11 @@ export const AppDashboard: React.FC = () => {
   const [selectedTableRows, setSelectedTableRows] = useState<Set<string>>(new Set());
 
   // Tab Navigation State
-  const [activeTab, setActiveTab] = useState<TabType>('active');
+  const [activeTab, setActiveTab] = useState<TabType>('customers');
+
+  // Meetings State
+  const [meetings, setMeetings] = useState<MeetingSummary[]>([]);
+  const [meetingsLoading, setMeetingsLoading] = useState(false);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,22 +117,11 @@ export const AppDashboard: React.FC = () => {
     return ['all', ...unique];
   }, [customers]);
 
-  // Tab-based filtering
+  // Tab-based filtering - customers tab shows all customers (no filtering)
   const tabFilteredCustomers = useMemo(() => {
-    let baseCustomers = [...customers];
-
-    if (activeTab === 'active') {
-      baseCustomers = baseCustomers.filter(c =>
-        c.status !== 'lost' && c.status !== 'prospect'
-      );
-    } else if (activeTab === 'leads') {
-      baseCustomers = baseCustomers.filter(c => c.status === 'new');
-    } else if (activeTab === 'lost') {
-      baseCustomers = baseCustomers.filter(c => c.status === 'lost');
-    }
-
-    return baseCustomers;
-  }, [customers, activeTab]);
+    // 'customers' tab shows all customers, 'prospects' and 'meetings' tabs don't use this
+    return [...customers];
+  }, [customers]);
 
   // Filtered customers (with search and industry filter)
   const filteredCustomers = useMemo(() => {
@@ -146,11 +140,10 @@ export const AppDashboard: React.FC = () => {
 
   // Tab counts
   const tabCounts = useMemo(() => ({
-    active: customers.filter(c => c.status !== 'lost' && c.status !== 'prospect').length,
-    leads: customers.filter(c => c.status === 'new').length,
+    customers: customers.length,
     prospects: prospects.length,
-    lost: customers.filter(c => c.status === 'lost').length
-  }), [customers, prospects]);
+    meetings: meetings.length
+  }), [customers, prospects, meetings]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -213,15 +206,37 @@ export const AppDashboard: React.FC = () => {
     }
   }, []);
 
+  // Fetch meetings from backend API
+  const fetchMeetings = useCallback(async () => {
+    setMeetingsLoading(true);
+    try {
+      const response = await apiClient.getMeetings({ limit: 100 });
+      if (isSuccessListResponse(response)) {
+        const transformedMeetings = response.data.map(transformApiMeeting);
+        setMeetings(transformedMeetings);
+      } else if (isErrorResponse(response)) {
+        console.error('Failed to fetch meetings:', response.error);
+        setMeetings([]);
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to fetch meetings:', error);
+      setMeetings([]);
+    } finally {
+      setMeetingsLoading(false);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     const init = async () => {
       await checkServerHealth();
       fetchCustomers();
       fetchProspectsFromBackend();
+      fetchMeetings();
     };
     init();
-  }, [checkServerHealth, fetchCustomers, fetchProspectsFromBackend]);
+  }, [checkServerHealth, fetchCustomers, fetchProspectsFromBackend, fetchMeetings]);
 
   // Load contextual suggestions
   useEffect(() => {
@@ -627,7 +642,7 @@ export const AppDashboard: React.FC = () => {
     }
 
     setShowLostDealModal(false);
-    setActiveTab('lost');
+    // Stay on customers tab - lost deals are visible in the kanban
   };
 
   const handleDeleteCustomer = useCallback((customer: Customer) => {
@@ -781,17 +796,23 @@ export const AppDashboard: React.FC = () => {
           <ViewSwitcher currentView={viewMode} onViewChange={setViewMode} />
         </div>
 
-        {/* Main Content - Kanban Board or Prospects Board */}
+        {/* Main Content - Customers, Prospects, or Meetings */}
         <main className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6">
           {activeTab === 'prospects' ? (
             <ProspectsBoard
               prospects={prospects}
               onSelectProspect={(prospectId) => {
-                // For now, just log - could open a detail panel later
                 console.log('Selected prospect:', prospectId);
               }}
               onConvertToCustomer={handleConvertProspectToCustomer}
               onDismissProspect={handleDismissProspect}
+            />
+          ) : activeTab === 'meetings' ? (
+            <MeetingsBoard
+              meetings={meetings}
+              customers={customers}
+              loading={meetingsLoading}
+              onRefresh={fetchMeetings}
             />
           ) : filteredCustomers.length === 0 && searchQuery ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">

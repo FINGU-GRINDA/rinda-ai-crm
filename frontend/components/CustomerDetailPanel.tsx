@@ -70,7 +70,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
     if (!customer.id) return;
     setLoadingMeetings(true);
     try {
-      const response = await apiClient.getMeetings(customer.id) as any;
+      const response = await apiClient.getCustomerMeetings(customer.id) as any;
       if (response.success) {
         setMeetings(response.data || []);
       }
@@ -90,13 +90,13 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
 
   const handleDeleteMeeting = useCallback(async (meetingId: string) => {
     try {
-      await apiClient.deleteMeeting(customer.id, meetingId);
+      await apiClient.deleteMeeting(meetingId);
       setMeetings(prev => prev.filter(m => m.id !== meetingId));
       setSelectedMeeting(null);
     } catch (error) {
       console.error('Failed to delete meeting:', error);
     }
-  }, [customer.id]);
+  }, []);
 
   return (
     <>

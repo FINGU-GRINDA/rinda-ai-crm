@@ -526,35 +526,70 @@ class APIClient {
   }
 
   // ==========================
-  // Meeting Endpoints
+  // Meeting Endpoints (Global)
   // ==========================
 
-  async getMeetings(customerId: string, options: { limit?: number; offset?: number } = {}): Promise<ApiListResponse<ApiMeetingSummary>> {
+  async getMeetings(options: { limit?: number; offset?: number } = {}): Promise<ApiListResponse<ApiMeetingSummary>> {
+    const params = new URLSearchParams();
+    if (options.limit) params.append('limit', options.limit.toString());
+    if (options.offset) params.append('offset', options.offset.toString());
+    return this.request(`/api/meetings?${params.toString()}`);
+  }
+
+  async getMeeting(meetingId: string): Promise<ApiResponse<ApiMeetingSummary>> {
+    return this.request(`/api/meetings/${meetingId}`);
+  }
+
+  async createMeeting(meeting: { customerId: string; title: string; meetingDate?: string; summary?: string; keyDiscussions?: string[]; actionItems?: string[]; customerNeeds?: string[]; budgetMentions?: string; timelineMentions?: string; nextSteps?: string[]; transcription?: string }): Promise<ApiResponse<ApiMeetingSummary>> {
+    return this.request(`/api/meetings`, {
+      method: 'POST',
+      body: JSON.stringify(meeting),
+    });
+  }
+
+  async updateMeeting(meetingId: string, meeting: Partial<ApiMeetingSummary>): Promise<ApiResponse<ApiMeetingSummary>> {
+    return this.request(`/api/meetings/${meetingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(meeting),
+    });
+  }
+
+  async deleteMeeting(meetingId: string): Promise<ApiResponse<{ success: boolean }>> {
+    return this.request(`/api/meetings/${meetingId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ==========================
+  // Meeting Endpoints (Per-Customer)
+  // ==========================
+
+  async getCustomerMeetings(customerId: string, options: { limit?: number; offset?: number } = {}): Promise<ApiListResponse<ApiMeetingSummary>> {
     const params = new URLSearchParams();
     if (options.limit) params.append('limit', options.limit.toString());
     if (options.offset) params.append('offset', options.offset.toString());
     return this.request(`/api/customers/${customerId}/meetings?${params.toString()}`);
   }
 
-  async getMeeting(customerId: string, meetingId: string): Promise<ApiResponse<ApiMeetingSummary>> {
+  async getCustomerMeeting(customerId: string, meetingId: string): Promise<ApiResponse<ApiMeetingSummary>> {
     return this.request(`/api/customers/${customerId}/meetings/${meetingId}`);
   }
 
-  async createMeeting(customerId: string, meeting: { title: string; meetingDate?: string; summary?: string; keyDiscussions?: string[]; actionItems?: string[]; customerNeeds?: string[]; budgetMentions?: string; timelineMentions?: string; nextSteps?: string[]; transcription?: string }): Promise<ApiResponse<ApiMeetingSummary>> {
+  async createCustomerMeeting(customerId: string, meeting: { title: string; meetingDate?: string; summary?: string; keyDiscussions?: string[]; actionItems?: string[]; customerNeeds?: string[]; budgetMentions?: string; timelineMentions?: string; nextSteps?: string[]; transcription?: string }): Promise<ApiResponse<ApiMeetingSummary>> {
     return this.request(`/api/customers/${customerId}/meetings`, {
       method: 'POST',
       body: JSON.stringify(meeting),
     });
   }
 
-  async updateMeeting(customerId: string, meetingId: string, meeting: Partial<ApiMeetingSummary>): Promise<ApiResponse<ApiMeetingSummary>> {
+  async updateCustomerMeeting(customerId: string, meetingId: string, meeting: Partial<ApiMeetingSummary>): Promise<ApiResponse<ApiMeetingSummary>> {
     return this.request(`/api/customers/${customerId}/meetings/${meetingId}`, {
       method: 'PUT',
       body: JSON.stringify(meeting),
     });
   }
 
-  async deleteMeeting(customerId: string, meetingId: string): Promise<ApiResponse<{ success: boolean }>> {
+  async deleteCustomerMeeting(customerId: string, meetingId: string): Promise<ApiResponse<{ success: boolean }>> {
     return this.request(`/api/customers/${customerId}/meetings/${meetingId}`, {
       method: 'DELETE',
     });
