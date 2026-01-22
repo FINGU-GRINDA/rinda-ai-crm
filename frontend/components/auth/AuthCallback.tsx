@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { PageSpinner } from '../LoadingStates'
 import { apiClient } from '../../src/services/apiClient'
 
 export const AuthCallback: React.FC = () => {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { handleGoogleCallback } = useAuth()
   const [error, setError] = useState<string | null>(null)
 
@@ -11,16 +14,15 @@ export const AuthCallback: React.FC = () => {
     const handleCallback = async () => {
       try {
         // Get authorization code and state from URL (from Google's redirect)
-        const params = new URLSearchParams(window.location.search)
-        const code = params.get('code')
-        const state = params.get('state')
-        const oauthError = params.get('error')
+        const code = searchParams.get('code')
+        const state = searchParams.get('state')
+        const oauthError = searchParams.get('error')
 
         if (oauthError) {
           console.error('OAuth error:', oauthError)
           setError('Google authentication failed')
           setTimeout(() => {
-            window.location.href = '/login?error=oauth_failed'
+            navigate('/login?error=oauth_failed', { replace: true })
           }, 2000)
           return
         }
@@ -29,10 +31,23 @@ export const AuthCallback: React.FC = () => {
           console.error('Missing code or state from Google redirect')
           setError('Missing authorization code')
           setTimeout(() => {
-            window.location.href = '/login?error=missing_code'
+            navigate('/login?error=missing_code', { replace: true })
           }, 2000)
           return
         }
+
+        // Validate state matches what we stored (CSRF protection)
+        const savedState = sessionStorage.getItem('oauth_state')
+        if (savedState && savedState !== state) {
+          console.error('State mismatch - possible CSRF attack')
+          setError('Security validation failed')
+          sessionStorage.removeItem('oauth_state')
+          setTimeout(() => {
+            navigate('/login?error=state_mismatch', { replace: true })
+          }, 2000)
+          return
+        }
+        sessionStorage.removeItem('oauth_state') // Clean up after validation
 
         // Call backend API to exchange code for tokens
         const response = await apiClient.request<{ success: boolean; error?: string }>('/api/auth/google/callback', {
@@ -48,29 +63,32 @@ export const AuthCallback: React.FC = () => {
           console.error('Token exchange failed:', (response as any).error)
           setError((response as any).error || 'Authentication failed')
           setTimeout(() => {
-            window.location.href = '/login?error=auth_failed'
+            navigate('/login?error=auth_failed', { replace: true })
           }, 2000)
           return
         }
 
-        // Backend has set httpOnly cookies, now update auth context
-        handleGoogleCallback('', '') // Tokens are in cookies, not returned
-
-        // Redirect to dashboard
-        setTimeout(() => {
-          window.location.href = '/dashboard'
-        }, 500)
+        // Backend has set httpOnly cookies, now verify authentication
+        const authResult = await handleGoogleCallback()
+        if (authResult.success) {
+          navigate('/dashboard', { replace: true })
+        } else {
+          setError('Failed to verify authentication')
+          setTimeout(() => {
+            navigate('/login?error=verification_failed', { replace: true })
+          }, 2000)
+        }
       } catch (err) {
         console.error('AuthCallback error:', err)
         setError(err instanceof Error ? err.message : 'An error occurred')
         setTimeout(() => {
-          window.location.href = '/login?error=callback_error'
+          navigate('/login?error=callback_error', { replace: true })
         }, 2000)
       }
     }
 
     handleCallback()
-  }, [handleGoogleCallback])
+  }, [handleGoogleCallback, navigate, searchParams])
 
   if (error) {
     return (

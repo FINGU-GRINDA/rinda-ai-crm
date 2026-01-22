@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { IconLoader, IconX } from '../Icons'
 
 export const LoginForm: React.FC = () => {
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { login, loginWithGoogle } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -10,6 +13,24 @@ export const LoginForm: React.FC = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
+
+  // Handle OAuth error query params from callback redirects
+  useEffect(() => {
+    const urlError = searchParams.get('error')
+    if (urlError) {
+      const errorMessages: Record<string, string> = {
+        'oauth_failed': 'Google authentication was cancelled or failed',
+        'missing_code': 'Authentication failed - missing authorization code',
+        'auth_failed': 'Authentication failed - please try again',
+        'callback_error': 'An error occurred during authentication',
+        'state_mismatch': 'Security validation failed - please try again',
+        'verification_failed': 'Could not verify authentication'
+      }
+      setError(errorMessages[urlError] || 'Authentication failed')
+      // Clean up URL by removing error param
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,8 +48,8 @@ export const LoginForm: React.FC = () => {
         if (!result.success) {
           setError(result.error || 'Login failed')
         } else {
-          // Redirect to home on successful login
-          window.location.href = '/'
+          // Redirect to dashboard on successful login
+          navigate('/dashboard', { replace: true })
         }
       }
     } finally {

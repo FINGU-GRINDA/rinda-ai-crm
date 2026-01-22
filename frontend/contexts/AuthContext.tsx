@@ -17,7 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
-  handleGoogleCallback: (accessToken: string, refreshToken: string) => void
+  handleGoogleCallback: () => Promise<{ success: boolean }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -90,6 +90,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.getGoogleOAuthUrl()
       if (response.success && (response as any).data?.url) {
+        // Store state for validation in callback (CSRF protection)
+        const url = new URL((response as any).data.url)
+        const state = url.searchParams.get('state')
+        if (state) {
+          sessionStorage.setItem('oauth_state', state)
+        }
         window.location.href = (response as any).data.url
       }
     } catch (error) {
@@ -97,11 +103,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [])
 
-  const handleGoogleCallback = useCallback((accessToken: string, refreshToken: string) => {
-    // Tokens are already set in httpOnly cookies by the backend redirect
-    // Just need to verify the user is authenticated
-    checkAuth()
-  }, [checkAuth])
+  const handleGoogleCallback = useCallback(async (): Promise<{ success: boolean }> => {
+    // Tokens are already set in httpOnly cookies by the backend
+    // Verify the user is authenticated by calling the API
+    try {
+      const response = await apiClient.getCurrentUser()
+      if (response.success && response.data) {
+        setUser(response.data as User)
+        return { success: true }
+      }
+      return { success: false }
+    } catch (error) {
+      console.error('Auth verification failed:', error)
+      return { success: false }
+    }
+  }, [])
 
   const logout = useCallback(async () => {
     try {
