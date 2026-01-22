@@ -20,12 +20,16 @@ export const meetingSummaries = pgTable(
     timelineMentions: text("timeline_mentions"),
     nextSteps: text("next_steps"), // JSON array
     transcription: text("transcription"),
+    source: text("source").default("manual"), // 'manual' | 'slack'
+    slackTs: text("slack_ts"), // Slack message timestamp for traceability
+    slackChannelId: text("slack_channel_id"), // Slack channel ID
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_meetings_customer").on(table.customerId),
     index("idx_meetings_date").on(table.meetingDate),
+    index("idx_meetings_slack_ts").on(table.slackTs),
   ],
 )
 

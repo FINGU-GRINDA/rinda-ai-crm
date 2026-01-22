@@ -4,7 +4,9 @@ import { type NewSlackMessage, type SlackMessage, slackMessages } from "../db/sc
 import { logger } from "../utils/logger"
 
 export const slackRepository = {
-  saveMessage: async (message: Partial<NewSlackMessage>): Promise<SlackMessage> => {
+  saveMessage: async (
+    message: Partial<NewSlackMessage>,
+  ): Promise<{ message: SlackMessage; isNew: boolean }> => {
     // Check for duplicate
     if (message.slackTs) {
       const existing = await db
@@ -16,7 +18,7 @@ export const slackRepository = {
         logger.info(`Duplicate Slack message ignored: ${message.slackTs}`)
         const existingMessage = await slackRepository.findById(existing[0].id)
         if (existingMessage) {
-          return existingMessage
+          return { message: existingMessage, isNew: false }
         }
       }
     }
@@ -39,7 +41,7 @@ export const slackRepository = {
 
     if (!saved) throw new Error("Failed to save Slack message")
     logger.info(`Slack message saved: ${saved.id}`)
-    return saved
+    return { message: saved, isNew: true }
   },
 
   findById: async (id: string): Promise<SlackMessage | null> => {

@@ -3,11 +3,23 @@ import { db } from "../db"
 import { type NewProspect, type Prospect, prospects } from "../db/schema"
 
 /**
+ * API response type for prospects with nested sourceArticle
+ */
+export interface ProspectApiResponse
+  extends Omit<Prospect, "sourceTitle" | "sourceUri" | "sourcePublishedAt"> {
+  sourceArticle: {
+    title: string | null
+    uri: string | null
+    publishedAt: Date | null
+  }
+}
+
+/**
  * Transform prospect database response to API format
  * Converts flat sourceTitle/sourceUri/sourcePublishedAt to nested sourceArticle object
  */
-function transformProspectResponse(prospect: Prospect): any {
-  const { sourceTitle, sourceUri, sourcePublishedAt, ...rest } = prospect as any
+function transformProspectResponse(prospect: Prospect): ProspectApiResponse {
+  const { sourceTitle, sourceUri, sourcePublishedAt, ...rest } = prospect
   return {
     ...rest,
     sourceArticle: {
@@ -33,7 +45,7 @@ export interface ProspectQueryOptions {
 export const prospectRepository = {
   findAll: async (
     options: ProspectQueryOptions = {},
-  ): Promise<{ data: Prospect[]; count: number }> => {
+  ): Promise<{ data: ProspectApiResponse[]; count: number }> => {
     const {
       signalStrength,
       industry,
@@ -123,7 +135,7 @@ export const prospectRepository = {
     }
   },
 
-  findById: async (id: string): Promise<any | null> => {
+  findById: async (id: string): Promise<ProspectApiResponse | null> => {
     const result = await db.select().from(prospects).where(eq(prospects.id, id))
     return result[0] ? transformProspectResponse(result[0]) : null
   },
@@ -169,7 +181,7 @@ export const prospectRepository = {
       .orderBy(desc(prospects.detectedAt))
   },
 
-  create: async (data: Partial<NewProspect>): Promise<any> => {
+  create: async (data: Partial<NewProspect>): Promise<ProspectApiResponse> => {
     const [prospect] = await db
       .insert(prospects)
       .values({
@@ -220,7 +232,7 @@ export const prospectRepository = {
     return { created, skipped }
   },
 
-  update: async (id: string, data: Partial<NewProspect>): Promise<any | null> => {
+  update: async (id: string, data: Partial<NewProspect>): Promise<ProspectApiResponse | null> => {
     const [prospect] = await db.update(prospects).set(data).where(eq(prospects.id, id)).returning()
     return prospect ? transformProspectResponse(prospect) : null
   },
@@ -230,7 +242,10 @@ export const prospectRepository = {
     return true
   },
 
-  markAsConverted: async (prospectId: string, customerId: string): Promise<any | null> => {
+  markAsConverted: async (
+    prospectId: string,
+    customerId: string,
+  ): Promise<ProspectApiResponse | null> => {
     const [prospect] = await db
       .update(prospects)
       .set({ convertedToCustomerId: customerId })
@@ -239,7 +254,10 @@ export const prospectRepository = {
     return prospect ? transformProspectResponse(prospect) : null
   },
 
-  dismissProspect: async (prospectId: string, reason: string): Promise<any | null> => {
+  dismissProspect: async (
+    prospectId: string,
+    reason: string,
+  ): Promise<ProspectApiResponse | null> => {
     const [prospect] = await db
       .update(prospects)
       .set({

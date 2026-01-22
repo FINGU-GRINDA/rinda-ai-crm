@@ -1,4 +1,5 @@
 import { Elysia } from "elysia"
+import { authMiddleware } from "../middleware/auth"
 import { aiRoutes } from "./ai.routes"
 import { authRoutes } from "./auth.routes"
 import { calendarRoutes } from "./calendar.routes"
@@ -16,10 +17,9 @@ import { settingsRoutes } from "./settings.routes"
 import { slackApiRoutes } from "./slack-api.routes"
 import { slackEventRoutes } from "./slack-event.routes"
 
-export const routes = new Elysia()
-  // Authentication routes (first, no auth required)
-  .use(authRoutes)
-
+// Protected routes with auth middleware (proactive token refresh)
+const protectedRoutes = new Elysia()
+  .use(authMiddleware)
   // Core routes
   .use(customerRoutes)
   .use(prospectRoutes)
@@ -30,11 +30,17 @@ export const routes = new Elysia()
   .use(settingsRoutes)
   .use(icpRoutes)
   .use(followUpRoutes)
-
-  // Integration routes
+  // Integration routes (user-facing)
   .use(aiRoutes)
   .use(slackApiRoutes)
-  .use(slackEventRoutes)
   .use(gmailRoutes)
   .use(calendarRoutes)
   .use(mixpanelRoutes)
+
+export const routes = new Elysia()
+  // Public routes (no auth required)
+  .use(authRoutes) // Has its own public/protected routes
+  .use(slackEventRoutes) // Webhook from Slack (uses HMAC verification)
+
+  // Protected routes (with proactive token refresh)
+  .use(protectedRoutes)

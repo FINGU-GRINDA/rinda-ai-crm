@@ -333,16 +333,21 @@ const publicAuthRoutes = new Elysia({ prefix: "/api/auth" })
     }
   })
 
+// Cookie value type for Elysia cookies
+interface CookieValue {
+  value?: string
+}
+
 // Helper function to verify token and get auth context
-async function getAuthContext(cookie: Record<string, any>) {
-  const token = cookie.access_token?.value as string | undefined
+async function getAuthContext(cookie: Record<string, CookieValue | undefined>) {
+  const token = cookie.access_token?.value
 
   if (!token) {
     throw new Error("Authentication required")
   }
 
   const { verify } = await import("jsonwebtoken")
-  const decoded = verify(token as string, String(config.JWT_SECRET || "")) as unknown as {
+  const decoded = verify(token, String(config.JWT_SECRET || "")) as unknown as {
     userId: string
     email: string
     tokenVersion: number

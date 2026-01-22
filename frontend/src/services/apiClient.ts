@@ -27,8 +27,6 @@ export interface HealthCheckResponse {
 
 class APIClient {
   private baseURL: string;
-  private isRefreshing = false;
-  private refreshPromise: Promise<void> | null = null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -48,11 +46,14 @@ class APIClient {
         return null;
       }
 
-      const data = await response.json();
+      const json = await response.json();
+
+      // Backend wraps response with success(), so access data.data
+      const healthData = json.data || json;
 
       // Validate the response has the expected structure
-      if (data.status === 'ok' && data.database === 'connected') {
-        return data as HealthCheckResponse;
+      if (healthData.status === 'ok' && healthData.database === 'connected') {
+        return healthData as HealthCheckResponse;
       }
 
       return null;
@@ -63,25 +64,9 @@ class APIClient {
   }
 
   /**
-   * Refresh access token using refresh token from cookies
-   */
-  private async refreshToken(): Promise<void> {
-    try {
-      await fetch(`${this.baseURL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      // Redirect to login on refresh failure
-      window.location.href = '/login';
-      throw new Error('Session expired');
-    }
-  }
-
-  /**
-   * Generic request method with error handling and token refresh
+   * Generic request method with error handling
+   * Note: Token refresh is handled proactively by backend middleware
+   * A 401 means both access and refresh tokens are invalid - redirect to login
    */
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
@@ -96,27 +81,13 @@ class APIClient {
     };
 
     try {
-      let response = await fetch(url, config);
+      const response = await fetch(url, config);
 
-      // Handle 401 - attempt token refresh
+      // Handle 401 - session expired (backend couldn't refresh)
       if (response.status === 401 && !endpoint.includes('/auth/')) {
-        if (!this.isRefreshing) {
-          this.isRefreshing = true;
-          this.refreshPromise = this.refreshToken();
-        }
-
-        try {
-          await this.refreshPromise;
-          this.isRefreshing = false;
-          this.refreshPromise = null;
-
-          // Retry original request
-          response = await fetch(url, config);
-        } catch (refreshError) {
-          this.isRefreshing = false;
-          this.refreshPromise = null;
-          throw refreshError;
-        }
+        console.error('Session expired - redirecting to login');
+        window.location.href = '/login';
+        throw new Error('Session expired');
       }
 
       if (!response.ok) {

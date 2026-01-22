@@ -1,13 +1,21 @@
-import { and, asc, desc, eq, like, lte, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, like, lte, or, sql } from "drizzle-orm"
 import { db } from "../db"
 import {
   type Customer,
+  type CustomerEnrichment,
   customerEnrichments,
   customers,
   type NewCustomer,
+  type Proposal,
   proposals,
   scheduledFollowUps,
 } from "../db/schema"
+
+// Extended customer type with related data
+export interface CustomerWithRelations extends Customer {
+  enrichment: CustomerEnrichment | null
+  proposals: Proposal[]
+}
 
 export interface CustomerQueryOptions {
   status?: string
@@ -22,7 +30,7 @@ export interface CustomerQueryOptions {
 export const customerRepository = {
   findAll: async (
     options: CustomerQueryOptions = {},
-  ): Promise<{ data: Customer[]; count: number }> => {
+  ): Promise<{ data: CustomerWithRelations[]; count: number }> => {
     const { status, industry, search, limit = 100, offset = 0, orderBy, order = "desc" } = options
 
     // Build conditions
@@ -66,8 +74,8 @@ export const customerRepository = {
             ? orderFunc(customers.lastFollowUpAt)
             : orderFunc(customers.createdAt)
 
-    // Get data
-    const data = await db
+    // Get base customer data
+    const customerData = await db
       .select()
       .from(customers)
       .where(whereClause)
@@ -75,15 +83,80 @@ export const customerRepository = {
       .limit(limit)
       .offset(offset)
 
+    // Get enrichments and proposals for all customers in batch queries
+    const customerIds = customerData.map((c) => c.id)
+
+    if (customerIds.length === 0) {
+      return { data: [], count: 0 }
+    }
+
+    // Fetch enrichments for all customers
+    const enrichments = await db
+      .select()
+      .from(customerEnrichments)
+      .where(inArray(customerEnrichments.customerId, customerIds))
+      .orderBy(desc(customerEnrichments.createdAt))
+
+    // Fetch all proposals for customers
+    const allProposals = await db
+      .select()
+      .from(proposals)
+      .where(inArray(proposals.customerId, customerIds))
+      .orderBy(desc(proposals.createdAt))
+
+    // Build lookup maps (only keep latest enrichment per customer)
+    const enrichmentMap = new Map<string, CustomerEnrichment>()
+    for (const e of enrichments) {
+      if (!enrichmentMap.has(e.customerId)) {
+        enrichmentMap.set(e.customerId, e)
+      }
+    }
+
+    const proposalMap = new Map<string, Proposal[]>()
+    for (const p of allProposals) {
+      const existing = proposalMap.get(p.customerId) || []
+      existing.push(p)
+      proposalMap.set(p.customerId, existing)
+    }
+
+    // Combine data
+    const data: CustomerWithRelations[] = customerData.map((customer) => ({
+      ...customer,
+      enrichment: enrichmentMap.get(customer.id) || null,
+      proposals: proposalMap.get(customer.id) || [],
+    }))
+
     return {
       data,
       count: countResult[0]?.count || 0,
     }
   },
 
-  findById: async (id: string): Promise<Customer | null> => {
+  findById: async (id: string): Promise<CustomerWithRelations | null> => {
     const result = await db.select().from(customers).where(eq(customers.id, id))
-    return result[0] || null
+    const customer = result[0]
+    if (!customer) return null
+
+    // Fetch enrichment and proposals in parallel
+    const [enrichmentResult, customerProposals] = await Promise.all([
+      db
+        .select()
+        .from(customerEnrichments)
+        .where(eq(customerEnrichments.customerId, id))
+        .orderBy(desc(customerEnrichments.createdAt))
+        .limit(1),
+      db
+        .select()
+        .from(proposals)
+        .where(eq(proposals.customerId, id))
+        .orderBy(desc(proposals.createdAt)),
+    ])
+
+    return {
+      ...customer,
+      enrichment: enrichmentResult[0] || null,
+      proposals: customerProposals,
+    }
   },
 
   findByName: async (name: string): Promise<Customer | null> => {

@@ -83,7 +83,6 @@ class SlackEventService {
 
     switch (eventType) {
       case "message":
-        console.log(event)
         return this.handleMessageEvent(event)
       case "app_mention":
         return this.handleAppMention(event)
@@ -114,7 +113,7 @@ class SlackEventService {
     const isMonitoredChannel = this.monitoredChannels?.has(event.channel)
 
     if (isMonitoredChannel) {
-      const savedMessage = await slackRepository.saveMessage({
+      const { message: savedMessage, isNew } = await slackRepository.saveMessage({
         slackTs: event.ts,
         channelId: event.channel,
         userId: event.user,
@@ -123,9 +122,15 @@ class SlackEventService {
         threadTs: event.thread_ts || null,
       })
 
-      logger.info(`Saved message: ${savedMessage.id}`)
+      logger.info(`Saved message: ${savedMessage.id}, isNew: ${isNew}`)
 
-      // ✅ CRITICAL FIX: Process the message with channel-specific handlers
+      // Skip processing if this is a duplicate message (already processed or being processed)
+      if (!isNew) {
+        logger.info(`Skipping duplicate message: ${savedMessage.id}`)
+        return { handled: true, processed: false, duplicate: true, messageId: savedMessage.id }
+      }
+
+      // Process new messages with channel-specific handlers
       await this.processMonitoredChannelMessage(savedMessage, event)
 
       return { handled: true, processed: true, messageId: savedMessage.id }
@@ -257,34 +262,61 @@ class SlackEventService {
       return { handled: true, isInquiry: false, reason: "no_company_name" }
     }
 
-    // Create prospect directly
-    const prospect = await prospectRepository.create({
-      companyName: parsedData.companyName,
-      contactName: parsedData.contactName || undefined,
-      contactTitle: parsedData.contactTitle || undefined,
-      contactPhone: parsedData.contactPhone || undefined,
-      contactEmail: parsedData.contactEmail || undefined,
-      notes: parsedData.inquiryDetails || `[Slack CS]\n${event.text}`,
-      landingPageUrl: parsedData.landingPageUrl || undefined,
-      signalStrength: "medium",
-      sourceTitle: "Slack CS Channel",
-      sourceUri: `slack://channel/${event.channel}/${event.ts}`,
-    })
+    // Check if prospect already exists for this company
+    const existingProspect = await prospectRepository.findByCompanyName(parsedData.companyName)
 
-    // Create notification
-    await notificationRepository.create({
-      type: "slack",
-      title: "새로운 CS 문의",
-      message: `${parsedData.companyName}: ${parsedData.inquiryDetails?.substring(0, 100) || "문의 내용 확인 필요"}`,
-      prospectId: prospect.id,
-      priority: "medium",
-      metadata: JSON.stringify({
-        slackChannel: event.channel,
-        slackTs: event.ts,
-        contactName: parsedData.contactName,
-        contactEmail: parsedData.contactEmail,
-      }),
-    })
+    let prospect: Awaited<ReturnType<typeof prospectRepository.create>>
+    let isNewProspect = false
+
+    if (existingProspect) {
+      // Update existing prospect with new inquiry details
+      logger.info(`Found existing prospect for ${parsedData.companyName}, updating notes`)
+      const updatedNotes =
+        `${existingProspect.notes || ""}\n\n[Slack CS - ${new Date().toLocaleString("ko-KR")}]\n${parsedData.inquiryDetails || event.text}`.trim()
+
+      await prospectRepository.update(existingProspect.id, {
+        notes: updatedNotes,
+        // Update contact info if provided and not already set
+        contactName: existingProspect.contactName || parsedData.contactName || undefined,
+        contactEmail: existingProspect.contactEmail || parsedData.contactEmail || undefined,
+        contactPhone: existingProspect.contactPhone || parsedData.contactPhone || undefined,
+        contactTitle: existingProspect.contactTitle || parsedData.contactTitle || undefined,
+      })
+
+      prospect = existingProspect
+    } else {
+      // Create new prospect
+      prospect = await prospectRepository.create({
+        companyName: parsedData.companyName,
+        contactName: parsedData.contactName || undefined,
+        contactTitle: parsedData.contactTitle || undefined,
+        contactPhone: parsedData.contactPhone || undefined,
+        contactEmail: parsedData.contactEmail || undefined,
+        notes: parsedData.inquiryDetails || `[Slack CS]\n${event.text}`,
+        landingPageUrl: parsedData.landingPageUrl || undefined,
+        signalStrength: "medium",
+        sourceTitle: "Slack CS Channel",
+        sourceUri: `slack://channel/${event.channel}/${event.ts}`,
+      })
+      isNewProspect = true
+    }
+
+    // Only create notification for new prospects
+    if (isNewProspect) {
+      await notificationRepository.create({
+        type: "slack",
+        title: "새로운 CS 문의",
+        message: `${parsedData.companyName}: ${parsedData.inquiryDetails?.substring(0, 100) || "문의 내용 확인 필요"}`,
+        prospectId: prospect.id,
+        priority: "medium",
+        metadata: JSON.stringify({
+          slackChannel: event.channel,
+          slackTs: event.ts,
+          contactName: parsedData.contactName,
+          contactEmail: parsedData.contactEmail,
+        }),
+      })
+    }
 
     await slackRepository.markProcessed(savedMessage.id, { prospectId: prospect.id })
 
@@ -292,6 +324,7 @@ class SlackEventService {
       handled: true,
       channelType: "CS",
       prospectId: prospect.id,
+      isNewProspect,
       parsedData,
     }
   }
@@ -299,6 +332,33 @@ class SlackEventService {
   // Meeting Notes Channel Handler
   private async handleMeetingNotesChannel(savedMessage: SlackMessage, event: SlackEvent) {
     logger.info("Processing Meeting Notes channel message")
+
+    // Phase 0: Check for exact duplicate by slackTs
+    const existingBySlackTs = await meetingRepository.findBySlackTs(event.ts)
+    if (existingBySlackTs) {
+      logger.info(`Meeting already exists for Slack message ${event.ts}, updating`)
+      // Update existing meeting with new content if provided
+      const parsedNote = await geminiService.parseMeetingNote(event.text)
+      if (parsedNote.meetingNote) {
+        const appendedTranscription =
+          `${existingBySlackTs.transcription || ""}\n\n[Update - ${new Date().toLocaleString("ko-KR")}]\n${parsedNote.meetingNote}`.trim()
+        await meetingRepository.update(existingBySlackTs.id, {
+          transcription: appendedTranscription,
+          summary: parsedNote.meetingNote.substring(0, 500),
+        })
+      }
+      await slackRepository.markProcessed(savedMessage.id, {
+        customerId: existingBySlackTs.customerId,
+      })
+      return {
+        handled: true,
+        channelType: "MEETING_NOTES",
+        customerId: existingBySlackTs.customerId,
+        meetingId: existingBySlackTs.id,
+        isDuplicate: true,
+        action: "updated",
+      }
+    }
 
     const parsedNote = await geminiService.parseMeetingNote(event.text)
 
@@ -326,26 +386,55 @@ class SlackEventService {
       createdNewCustomer = true
     }
 
-    // Phase 2: Find or create meeting
+    // Phase 2: Find or create meeting with improved duplicate detection
     let meeting: Awaited<ReturnType<typeof meetingRepository.create>>
-    const existingMeeting = await this.findEmptyMeeting(customerId)
+    let isNewMeeting = false
 
-    if (existingMeeting) {
-      meeting = existingMeeting
+    // Try 1: Find existing meeting for this customer today (same day dedup)
+    const existingTodayMeeting = await meetingRepository.findByCustomerAndDate(
+      customerId,
+      new Date(),
+    )
+
+    // Try 2: Find empty meeting (meeting without transcription)
+    const existingEmptyMeeting = !existingTodayMeeting
+      ? await this.findEmptyMeeting(customerId)
+      : null
+
+    if (existingTodayMeeting) {
+      logger.info(`Found existing meeting for ${parsedNote.leadCompanyName} today, updating`)
+      meeting = existingTodayMeeting
+    } else if (existingEmptyMeeting) {
+      logger.info(`Found empty meeting for ${parsedNote.leadCompanyName}, updating`)
+      meeting = existingEmptyMeeting
     } else {
+      // Create new meeting with Slack source tracking
       meeting = await meetingRepository.create({
         customerId,
         title: `${parsedNote.leadCompanyName} 미팅`,
         meetingDate: new Date(),
+        source: "slack",
+        slackTs: event.ts,
+        slackChannelId: event.channel,
       })
+      isNewMeeting = true
     }
 
     // Phase 3: Update meeting with parsed content
     if (parsedNote.meetingNote) {
-      await meetingRepository.update(meeting.id, {
+      const updateData: Parameters<typeof meetingRepository.update>[1] = {
         transcription: parsedNote.meetingNote,
-        summary: parsedNote.meetingNote.substring(0, 500), // Simple summary
-      })
+        summary: parsedNote.meetingNote.substring(0, 500),
+      }
+
+      // Update Slack tracking if this is an existing meeting being updated from Slack
+      if (!isNewMeeting && !meeting.slackTs) {
+        updateData.source = "slack"
+        updateData.slackTs = event.ts
+        updateData.slackChannelId = event.channel
+      }
+
+      await meetingRepository.update(meeting.id, updateData)
     }
 
     // Add sales proposal to customer notes
@@ -364,6 +453,7 @@ class SlackEventService {
       customerId,
       meetingId: meeting.id,
       createdNewCustomer,
+      isNewMeeting,
       parsedData: parsedNote,
     }
   }

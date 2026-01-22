@@ -6,6 +6,7 @@
 import type {
   ApiCustomer,
   ApiCustomerContact,
+  ApiCustomerEnrichment,
   ApiMeetingSummary,
   ApiProposal,
   ApiProspect,
@@ -13,16 +14,44 @@ import type {
 import type {
   Customer,
   CustomerContact,
+  EnrichedData,
   MeetingSummary,
   Proposal,
   Prospect,
 } from '../../types'
 import { safeJsonParse } from './safeStorage'
 
+// Extended API customer type with relations (returned from backend)
+interface ApiCustomerWithRelations extends ApiCustomer {
+  enrichment?: ApiCustomerEnrichment | null
+  proposals?: ApiProposal[]
+}
+
+/**
+ * Transform API enrichment to frontend EnrichedData type
+ */
+function transformApiEnrichment(apiEnrichment: ApiCustomerEnrichment | null | undefined): EnrichedData | undefined {
+  if (!apiEnrichment) return undefined
+
+  return {
+    summary: apiEnrichment.summary || '',
+    ceo: apiEnrichment.ceo || '',
+    foundedYear: apiEnrichment.foundedYear || '',
+    recentNews: safeJsonParse(apiEnrichment.recentNews, []),
+    competitors: safeJsonParse(apiEnrichment.competitors, []),
+    salesOpportunity: apiEnrichment.salesOpportunity || '',
+    sources: safeJsonParse(apiEnrichment.sources, []),
+  }
+}
+
 /**
  * Transform API customer to frontend Customer type
+ * Handles both simple ApiCustomer and ApiCustomerWithRelations
  */
-export function transformApiCustomer(apiCustomer: ApiCustomer): Customer {
+export function transformApiCustomer(apiCustomer: ApiCustomer | ApiCustomerWithRelations): Customer {
+  // Check if this customer has enrichment/proposals attached
+  const withRelations = apiCustomer as ApiCustomerWithRelations
+
   return {
     id: apiCustomer.id,
     name: apiCustomer.name,
@@ -30,8 +59,8 @@ export function transformApiCustomer(apiCustomer: ApiCustomer): Customer {
     industry: apiCustomer.industry || '미분류',
     notes: apiCustomer.notes || '',
     status: apiCustomer.status,
-    enrichedData: undefined,  // Loaded separately from detail endpoint
-    proposals: [],  // Loaded separately
+    enrichedData: transformApiEnrichment(withRelations.enrichment),
+    proposals: withRelations.proposals?.map(transformApiProposal) || [],
     lastEnrichedAt: apiCustomer.lastEnrichedAt || undefined,
     lostReason: apiCustomer.lostReason || undefined,
     lostAt: apiCustomer.lostAt || undefined,
