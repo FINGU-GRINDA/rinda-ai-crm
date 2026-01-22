@@ -8,6 +8,9 @@ import { logger } from "../utils/logger"
 type MessagePartHeader = gmail_v1.Schema$MessagePartHeader
 type MessagePart = gmail_v1.Schema$MessagePart
 
+// System user ID for OAuth tokens (used before per-user OAuth is fully implemented)
+const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001"
+
 class GmailService {
   private oauth2Client: OAuth2Client | null = null
   private initialized = false
@@ -55,6 +58,7 @@ class GmailService {
     const { tokens } = await this.oauth2Client.getToken(code)
 
     await oauthRepository.save({
+      userId: SYSTEM_USER_ID,
       provider: "google",
       accessToken: tokens.access_token || "",
       refreshToken: tokens.refresh_token ?? undefined,
@@ -77,7 +81,7 @@ class GmailService {
       throw new Error("Gmail service not configured")
     }
 
-    const token = await oauthRepository.findByProvider("google")
+    const token = await oauthRepository.findByProvider(SYSTEM_USER_ID, "google")
     if (!token) {
       throw new Error("Gmail not authenticated")
     }
@@ -92,6 +96,7 @@ class GmailService {
     this.oauth2Client.on("tokens", async (tokens: Credentials) => {
       if (tokens.access_token) {
         await oauthRepository.updateAccessToken(
+          SYSTEM_USER_ID,
           "google",
           tokens.access_token,
           tokens.expiry_date ?? undefined,
@@ -222,7 +227,7 @@ class GmailService {
   }
 
   async disconnect(): Promise<void> {
-    await oauthRepository.delete("google")
+    await oauthRepository.delete(SYSTEM_USER_ID, "google")
     await settingsRepository.updateEmailSettings({
       provider: null,
       isConnected: false,

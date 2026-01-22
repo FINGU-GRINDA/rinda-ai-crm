@@ -27,3 +27,6 @@ logs/
 # Database
 *.db
 *.sqlite
+
+# Secrets
+client_secret_*.json

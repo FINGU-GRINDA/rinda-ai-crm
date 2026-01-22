@@ -8,6 +8,9 @@ import { logger } from "../utils/logger"
 type CalendarEvent = calendar_v3.Schema$Event
 type CalendarAttendee = calendar_v3.Schema$EventAttendee
 
+// System user ID for OAuth tokens (used before per-user OAuth is fully implemented)
+const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001"
+
 class CalendarService {
   private oauth2Client: OAuth2Client | null = null
   private initialized = false
@@ -55,6 +58,7 @@ class CalendarService {
     const { tokens } = await this.oauth2Client.getToken(code)
 
     await oauthRepository.save({
+      userId: SYSTEM_USER_ID,
       provider: "google_calendar",
       accessToken: tokens.access_token || "",
       refreshToken: tokens.refresh_token ?? undefined,
@@ -77,7 +81,7 @@ class CalendarService {
       throw new Error("Calendar service not configured")
     }
 
-    const token = await oauthRepository.findByProvider("google_calendar")
+    const token = await oauthRepository.findByProvider(SYSTEM_USER_ID, "google_calendar")
     if (!token) {
       throw new Error("Calendar not authenticated")
     }
@@ -92,6 +96,7 @@ class CalendarService {
     this.oauth2Client.on("tokens", async (tokens: Credentials) => {
       if (tokens.access_token) {
         await oauthRepository.updateAccessToken(
+          SYSTEM_USER_ID,
           "google_calendar",
           tokens.access_token,
           tokens.expiry_date ?? undefined,
@@ -217,7 +222,7 @@ class CalendarService {
   }
 
   async disconnect(): Promise<void> {
-    await oauthRepository.delete("google_calendar")
+    await oauthRepository.delete(SYSTEM_USER_ID, "google_calendar")
     await settingsRepository.updateCalendarSettings({
       provider: null,
       isConnected: false,

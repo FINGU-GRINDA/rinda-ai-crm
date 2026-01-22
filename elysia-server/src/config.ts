@@ -42,6 +42,11 @@ const configSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().optional(),
 
+  // Authentication
+  JWT_SECRET: z.string().optional(),
+  JWT_REFRESH_SECRET: z.string().optional(),
+  ENCRYPTION_KEY: z.string().optional(),
+
   // Mixpanel
   MIXPANEL_PROJECT_ID: z.string().optional(),
   MIXPANEL_PROJECT_SECRET: z.string().optional(),

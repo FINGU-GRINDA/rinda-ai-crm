@@ -38,7 +38,7 @@ export type ApiListResponse<T> = ApiSuccessListResponse<T> | ApiErrorResponse
 export interface SourceArticle {
   title: string | null
   uri: string | null
-  publishedAt: string | null  // ISO date string
+  publishedAt: string | null // ISO date string
 }
 
 /**
@@ -51,17 +51,17 @@ export interface ApiCustomer {
   website: string | null
   industry: string | null
   notes: string | null
-  status: 'prospect' | 'new' | 'contact' | 'negotiation' | 'won' | 'lost'
+  status: "prospect" | "new" | "contact" | "negotiation" | "won" | "lost"
   lostReason: string | null
-  lostAt: string | null  // ISO date string
-  lastFollowUpAt: string | null  // ISO date string
-  lastEnrichedAt: string | null  // ISO date string
+  lostAt: string | null // ISO date string
+  lastFollowUpAt: string | null // ISO date string
+  lastEnrichedAt: string | null // ISO date string
   leadSource: string | null
   initialInquiry: string | null
   sourceOfInquiry: string | null
   landingPageUrl: string | null
-  createdAt: string  // ISO date string
-  updatedAt: string  // ISO date string
+  createdAt: string // ISO date string
+  updatedAt: string // ISO date string
 }
 
 /**
@@ -74,12 +74,12 @@ export interface ApiCustomerEnrichment {
   summary: string | null
   ceo: string | null
   foundedYear: string | null
-  recentNews: string | null  // JSON string array
-  competitors: string | null  // JSON string array
+  recentNews: string | null // JSON string array
+  competitors: string | null // JSON string array
   salesOpportunity: string | null
-  sources: string | null  // JSON string array of {title, uri}
-  createdAt: string  // ISO date string
-  updatedAt: string  // ISO date string
+  sources: string | null // JSON string array of {title, uri}
+  createdAt: string // ISO date string
+  updatedAt: string // ISO date string
 }
 
 /**
@@ -91,8 +91,8 @@ export interface ApiProspect {
   companyName: string
   website: string | null
   industry: string | null
-  sourceArticle: SourceArticle  // NESTED OBJECT (not flat fields)
-  signalStrength: 'high' | 'medium' | 'low'
+  sourceArticle: SourceArticle // NESTED OBJECT (not flat fields)
+  signalStrength: "high" | "medium" | "low"
   icpMatch: string | null
   notes: string | null
   contactName: string | null
@@ -100,12 +100,12 @@ export interface ApiProspect {
   contactPhone: string | null
   contactEmail: string | null
   landingPageUrl: string | null
-  detectedAt: string  // ISO date string
+  detectedAt: string // ISO date string
   convertedToCustomerId: string | null
   dismissed: boolean
   dismissedAt: string | null
   dismissReason: string | null
-  createdAt: string  // ISO date string
+  createdAt: string // ISO date string
 }
 
 /**
@@ -121,7 +121,7 @@ export interface ApiProposal {
   proposalStatus: string | null
   feedback: string | null
   feedbackReceivedAt: string | null
-  createdAt: string  // ISO date string
+  createdAt: string // ISO date string
 }
 
 /**
@@ -135,11 +135,11 @@ export interface ApiCustomerContact {
   title: string | null
   email: string | null
   phone: string | null
-  isPrimary: number  // SQLite stores boolean as 0/1
-  source: 'manual' | 'business_card' | 'import' | null
+  isPrimary: number // SQLite stores boolean as 0/1
+  source: "manual" | "business_card" | "import" | null
   businessCardImageUrl: string | null
-  createdAt: string  // ISO date string
-  updatedAt: string  // ISO date string
+  createdAt: string // ISO date string
+  updatedAt: string // ISO date string
 }
 
 /**
@@ -150,19 +150,19 @@ export interface ApiMeetingSummary {
   id: string
   customerId: string
   title: string
-  meetingDate: string  // ISO date string
+  meetingDate: string // ISO date string
   audioFileUrl: string | null
-  duration: number | null  // seconds
+  duration: number | null // seconds
   summary: string | null
-  keyDiscussions: string | null  // JSON string array
-  actionItems: string | null  // JSON string array
-  customerNeeds: string | null  // JSON string array
+  keyDiscussions: string | null // JSON string array
+  actionItems: string | null // JSON string array
+  customerNeeds: string | null // JSON string array
   budgetMentions: string | null
   timelineMentions: string | null
-  nextSteps: string | null  // JSON string array
+  nextSteps: string | null // JSON string array
   transcription: string | null
-  createdAt: string  // ISO date string
-  updatedAt: string  // ISO date string
+  createdAt: string // ISO date string
+  updatedAt: string // ISO date string
 }
 
 /**
@@ -172,10 +172,10 @@ export interface ApiMeetingSummary {
 export interface ApiFollowUpHistory {
   id: string
   customerId: string
-  type: 'email' | 'call' | 'meeting' | 'message'
+  type: "email" | "call" | "meeting" | "message"
   content: string | null
-  status: 'planned' | 'completed' | 'cancelled'
-  createdAt: string  // ISO date string
+  status: "planned" | "completed" | "cancelled"
+  createdAt: string // ISO date string
 }
 
 /**
@@ -185,18 +185,18 @@ export interface ApiFollowUpHistory {
 export interface ApiScheduledFollowUp {
   id: string
   customerId: string
-  scheduledFor: string  // ISO date string
-  type: 'email' | 'call' | 'meeting' | 'message'
+  scheduledFor: string // ISO date string
+  type: "email" | "call" | "meeting" | "message"
   content: string | null
-  status: 'pending' | 'completed' | 'cancelled'
-  priority: 'high' | 'medium' | 'low'
+  status: "pending" | "completed" | "cancelled"
+  priority: "high" | "medium" | "low"
   reason: string
-  completedAt: string | null  // ISO date string
+  completedAt: string | null // ISO date string
   completedNote: string | null
   isManuallyCreated: boolean
   reminderSent: boolean
-  lastReminderAt: string | null  // ISO date string
-  createdAt: string  // ISO date string
+  lastReminderAt: string | null // ISO date string
+  createdAt: string // ISO date string
 }
 
 /**
@@ -204,16 +204,16 @@ export interface ApiScheduledFollowUp {
  */
 export interface ApiNotification {
   id: string
-  type: 'news' | 'followup' | 'lost_deal' | 'prospect' | 'meeting' | 'email' | 'risk'
+  type: "news" | "followup" | "lost_deal" | "prospect" | "meeting" | "email" | "risk"
   title: string
   message: string
   customerId?: string
   prospectId?: string
-  priority: 'high' | 'medium' | 'low'
+  priority: "high" | "medium" | "low"
   read: boolean
-  createdAt: string  // ISO date string
+  createdAt: string // ISO date string
   actionUrl?: string
-  metadata?: string  // JSON string
+  metadata?: string // JSON string
 }
 
 /**

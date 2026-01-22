@@ -1,21 +1,25 @@
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { db } from "../db"
 import { type OAuthToken, oauthTokens } from "../db/schema"
 
 export const oauthRepository = {
-  findByProvider: async (provider: string): Promise<OAuthToken | null> => {
-    const result = await db.select().from(oauthTokens).where(eq(oauthTokens.provider, provider))
+  findByProvider: async (userId: string, provider: string): Promise<OAuthToken | null> => {
+    const result = await db
+      .select()
+      .from(oauthTokens)
+      .where(and(eq(oauthTokens.userId, userId), eq(oauthTokens.provider, provider)))
     return result[0] || null
   },
 
   save: async (data: {
+    userId: string
     provider: string
     accessToken: string
     refreshToken?: string
     expiresAt?: number
     scope?: string
   }): Promise<OAuthToken> => {
-    const existing = await oauthRepository.findByProvider(data.provider)
+    const existing = await oauthRepository.findByProvider(data.userId, data.provider)
 
     if (existing) {
       const [token] = await db
@@ -26,7 +30,7 @@ export const oauthRepository = {
           expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
           scope: data.scope,
         })
-        .where(eq(oauthTokens.provider, data.provider))
+        .where(and(eq(oauthTokens.userId, data.userId), eq(oauthTokens.provider, data.provider)))
         .returning()
       if (!token) throw new Error("Failed to update OAuth token")
       return token
@@ -34,6 +38,7 @@ export const oauthRepository = {
       const [token] = await db
         .insert(oauthTokens)
         .values({
+          userId: data.userId,
           provider: data.provider,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
@@ -47,6 +52,7 @@ export const oauthRepository = {
   },
 
   updateAccessToken: async (
+    userId: string,
     provider: string,
     accessToken: string,
     expiresAt?: number,
@@ -57,18 +63,20 @@ export const oauthRepository = {
         accessToken,
         expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       })
-      .where(eq(oauthTokens.provider, provider))
+      .where(and(eq(oauthTokens.userId, userId), eq(oauthTokens.provider, provider)))
       .returning()
     return token || null
   },
 
-  delete: async (provider: string): Promise<boolean> => {
-    await db.delete(oauthTokens).where(eq(oauthTokens.provider, provider))
+  delete: async (userId: string, provider: string): Promise<boolean> => {
+    await db
+      .delete(oauthTokens)
+      .where(and(eq(oauthTokens.userId, userId), eq(oauthTokens.provider, provider)))
     return true
   },
 
-  isTokenExpired: async (provider: string): Promise<boolean> => {
-    const token = await oauthRepository.findByProvider(provider)
+  isTokenExpired: async (userId: string, provider: string): Promise<boolean> => {
+    const token = await oauthRepository.findByProvider(userId, provider)
     if (!token || !token.expiresAt) return true
     return token.expiresAt.getTime() < Date.now()
   },

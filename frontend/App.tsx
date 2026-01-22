@@ -11,6 +11,7 @@ import { BackgroundTaskProvider } from './contexts/BackgroundTaskContext';
 import { BackgroundTaskToast } from './components/BackgroundTaskToast';
 import { useIsMobile } from './hooks/useMediaQuery';
 import { Home, Search, Bell, Settings } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { transformApiCustomer, transformApiProspect, transformApiProposal } from './src/utils/apiTransformers';
 import { isSuccessListResponse, isSuccessResponse, isErrorResponse } from './src/utils/typeGuards';
 import { BusinessCardScanner } from './components/BusinessCardScanner';
@@ -37,11 +38,182 @@ const MeetingPrep = lazy(() => import('./components/MeetingPrep').then(m => ({ d
 import { UnifiedSettings } from './components/settings';
 import { IconSearch, IconX, IconArrowRight } from './components/Icons';
 import { AIAssistant } from './components/AIAssistant';
+import { AuthCallback } from './components/auth/AuthCallback';
 
 // Mobile Bottom Tab Type
 type MobileBottomTab = 'home' | 'search' | 'notifications' | 'settings';
 
+// Main App Component (handles routing based on auth state and URL path)
 const App: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
+
+  // Handle OAuth callback route (before auth check since tokens might not be set yet)
+  if (window.location.pathname === '/auth/callback') {
+    return <AuthCallback />;
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col h-screen bg-slate-50 items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-600 text-sm">로그인 확인 중...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  return <AppDashboard />;
+};
+
+// Login Page Component
+const LoginPage: React.FC = () => {
+  const { login, register, loginWithGoogle } = useAuth();
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      if (isLoginMode) {
+        const result = await login(email, password);
+        if (!result.success) {
+          setError(result.error || '로그인 실패');
+        }
+      } else {
+        const result = await register(email, password, name);
+        if (!result.success) {
+          setError(result.error || '회원가입 실패');
+        }
+      }
+    } catch (err) {
+      setError('인증 중 오류 발생');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (err) {
+      setError('Google 인증 실패');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-slate-50 px-4">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-3xl font-bold text-center mb-2 text-slate-900">RINDA CRM</h1>
+        <p className="text-center text-slate-600 mb-8">영업 관리 플랫폼</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+          {!isLoginMode && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">이름</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required={!isLoginMode}
+                disabled={loading}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="이름을 입력하세요"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">이메일</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="이메일을 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">비밀번호</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="비밀번호를 입력하세요"
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? '처리 중...' : isLoginMode ? '로그인' : '회원가입'}
+          </button>
+        </form>
+
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-slate-500">또는</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleGoogleAuth}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 font-medium"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <text x="0" y="20" fontSize="20">G</text>
+          </svg>
+          Google로 {isLoginMode ? '로그인' : '가입'}
+        </button>
+
+        <p className="text-center text-slate-600 text-sm mt-6">
+          {isLoginMode ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}{' '}
+          <button
+            onClick={() => {
+              setIsLoginMode(!isLoginMode);
+              setError('');
+            }}
+            className="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            {isLoginMode ? '회원가입' : '로그인'}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Dashboard Component (the original App content)
+const AppDashboard: React.FC = () => {
   const isMobile = useIsMobile();
 
   // Server Health State
@@ -705,7 +877,7 @@ const App: React.FC = () => {
     );
   }
 
-  const showServerWarning = isServerHealthy === false;
+  const showServerWarning = isServerHealthy === false || isServerHealthy === null;
 
   return (
     <BackgroundTaskProvider onProposalComplete={handleBackgroundProposalComplete}>
@@ -1150,4 +1322,8 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default () => (
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);

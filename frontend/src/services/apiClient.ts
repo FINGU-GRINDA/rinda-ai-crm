@@ -27,6 +27,8 @@ export interface HealthCheckResponse {
 
 class APIClient {
   private baseURL: string;
+  private isRefreshing = false;
+  private refreshPromise: Promise<void> | null = null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -61,13 +63,32 @@ class APIClient {
   }
 
   /**
-   * Generic request method with error handling
+   * Refresh access token using refresh token from cookies
+   */
+  private async refreshToken(): Promise<void> {
+    try {
+      await fetch(`${this.baseURL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      // Redirect to login on refresh failure
+      window.location.href = '/login';
+      throw new Error('Session expired');
+    }
+  }
+
+  /**
+   * Generic request method with error handling and token refresh
    */
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
     const config: RequestInit = {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -75,7 +96,28 @@ class APIClient {
     };
 
     try {
-      const response = await fetch(url, config);
+      let response = await fetch(url, config);
+
+      // Handle 401 - attempt token refresh
+      if (response.status === 401 && !endpoint.includes('/auth/')) {
+        if (!this.isRefreshing) {
+          this.isRefreshing = true;
+          this.refreshPromise = this.refreshToken();
+        }
+
+        try {
+          await this.refreshPromise;
+          this.isRefreshing = false;
+          this.refreshPromise = null;
+
+          // Retry original request
+          response = await fetch(url, config);
+        } catch (refreshError) {
+          this.isRefreshing = false;
+          this.refreshPromise = null;
+          throw refreshError;
+        }
+      }
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({
@@ -91,6 +133,60 @@ class APIClient {
       console.error('API request failed:', err);
       throw err;
     }
+  }
+
+  // ==========================
+  // Authentication Endpoints
+  // ==========================
+
+  /**
+   * Register a new user with email and password
+   */
+  async register(data: { email: string; password: string; name: string }): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.request('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+  }
+
+  /**
+   * Login with email and password
+   */
+  async login(data: { email: string; password: string }): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.request('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+  }
+
+  /**
+   * Get Google OAuth authorization URL
+   */
+  async getGoogleOAuthUrl(): Promise<ApiResponse<{ url: string }>> {
+    return this.request('/api/auth/google/url', {
+      credentials: 'include',
+    });
+  }
+
+  /**
+   * Get current authenticated user
+   */
+  async getCurrentUser(): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.request('/api/auth/me', {
+      credentials: 'include',
+    });
+  }
+
+  /**
+   * Logout current user
+   */
+  async logout(): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.request('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
   }
 
   // ==========================

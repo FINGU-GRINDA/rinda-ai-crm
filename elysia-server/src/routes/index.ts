@@ -1,5 +1,6 @@
 import { Elysia } from "elysia"
 import { aiRoutes } from "./ai.routes"
+import { authRoutes } from "./auth.routes"
 import { calendarRoutes } from "./calendar.routes"
 import { contactRoutes } from "./contact.routes"
 import { customerRoutes } from "./customer.routes"
@@ -16,6 +17,9 @@ import { slackApiRoutes } from "./slack-api.routes"
 import { slackEventRoutes } from "./slack-event.routes"
 
 export const routes = new Elysia()
+  // Authentication routes (first, no auth required)
+  .use(authRoutes)
+
   // Core routes
   .use(customerRoutes)
   .use(prospectRoutes)
