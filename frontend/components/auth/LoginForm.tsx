@@ -6,7 +6,7 @@ import { IconLoader, IconX } from '../Icons'
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { login, loginWithGoogle, register } = useAuth()
+  const { login, register } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -41,6 +41,7 @@ export const LoginForm: React.FC = () => {
       if (isSignUp) {
         if (!name.trim()) {
           setError('Please enter your name')
+          setLoading(false)
           return
         }
         const result = await register(email, password, name)
@@ -66,16 +67,16 @@ export const LoginForm: React.FC = () => {
     }
   }
 
-  const handleGoogleLogin = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      await loginWithGoogle()
-    } catch (err) {
-      setError('Google sign-in failed')
-      setLoading(false)
-    }
-  }
+  // const handleGoogleLogin = async () => {
+  //   setLoading(true)
+  //   setError('')
+  //   try {
+  //     await loginWithGoogle()
+  //   } catch (err) {
+  //     setError('Google sign-in failed')
+  //     setLoading(false)
+  //   }
+  // }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
