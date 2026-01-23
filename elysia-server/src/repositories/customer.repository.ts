@@ -334,6 +334,13 @@ export const customerRepository = {
       competitors?: string
       salesOpportunity?: string
       sources?: string
+      // Follow-up strategy fields
+      followUpRecommendedTiming?: string
+      followUpApproach?: string
+      followUpMessageTone?: string
+      followUpKeyPoints?: string
+      followUpProbability?: string
+      followUpReasoning?: string
     },
   ) => {
     const [enrichment] = await db

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Customer, FollowUpAction } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Customer, FollowUpAction, FollowUpStrategy as StoredFollowUpStrategy } from '../types';
 import {
   generateFollowUpStrategy,
   generateFollowUpMessage,
@@ -29,37 +29,67 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
   const [timing, setTiming] = useState<{ days: number; date: Date; reason: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (customer) {
-      generateStrategy();
-    }
-  }, [customer.id, isLostDeal]);
-
-  const generateStrategy = async () => {
+  // Load stored strategy and generate message from it
+  const loadStoredStrategy = useCallback(async (storedStrategy: StoredFollowUpStrategy) => {
     setIsGenerating(true);
     setError(null);
-    
+
+    try {
+      // Use stored strategy directly
+      setStrategy(storedStrategy);
+
+      // Calculate timing
+      const timingInfo = suggestFollowUpTiming(customer, storedStrategy);
+      setTiming(timingInfo);
+
+      // Generate message from stored strategy
+      const newMessage = await generateFollowUpMessage(customer, storedStrategy, isLostDeal);
+      setMessage(newMessage);
+    } catch (err: any) {
+      console.error('Message generation error:', err);
+      setError('메시지 생성에 실패했습니다.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [customer, isLostDeal]);
+
+  useEffect(() => {
+    if (customer) {
+      // Check if strategy is already stored (from enrichment)
+      if (customer.followUpStrategy) {
+        loadStoredStrategy(customer.followUpStrategy);
+      } else {
+        // Fallback: generate on-demand for customers without stored strategy
+        generateNewStrategy();
+      }
+    }
+  }, [customer.id, customer.followUpStrategy, isLostDeal]);
+
+  const generateNewStrategy = async () => {
+    setIsGenerating(true);
+    setError(null);
+
     try {
       let newStrategy: FollowUpStrategy;
-      
+
       if (isLostDeal && customer.lostReason) {
         newStrategy = await analyzeLostDeal(customer, customer.lostReason);
       } else {
         newStrategy = await generateFollowUpStrategy(customer);
       }
-      
+
       setStrategy(newStrategy);
-      
+
       // 타이밍 계산
       const timingInfo = suggestFollowUpTiming(customer, newStrategy);
       setTiming(timingInfo);
-      
+
       // 메시지 생성
       const newMessage = await generateFollowUpMessage(customer, newStrategy, isLostDeal);
       setMessage(newMessage);
     } catch (err: any) {
       console.error('Follow up generation error:', err);
-      
+
       // API Key 에러 처리
       if (err?.message?.includes('API key') || err?.message?.includes('INVALID_ARGUMENT')) {
         setError('Gemini API Key가 유효하지 않습니다. 환경 변수를 확인해주세요.');
@@ -74,6 +104,9 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
       setIsGenerating(false);
     }
   };
+
+  // Keep generateStrategy for the "regenerate" button
+  const generateStrategy = generateNewStrategy;
 
   const handleCopyMessage = () => {
     if (message) {

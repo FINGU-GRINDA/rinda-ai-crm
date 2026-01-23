@@ -37,7 +37,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
     },
   )
 
-  // Enrich customer data
+  // Enrich customer data AND generate follow-up strategy
   .post(
     "/enrich/:customerId",
     async ({ params, set }) => {
@@ -52,6 +52,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
         return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
       }
 
+      // Step 1: Generate company enrichment
       const enrichment = await geminiService.enrichCompany(
         customer.name,
         customer.website || undefined,
@@ -62,7 +63,24 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
         return error("Failed to enrich customer data", ErrorCode.INTERNAL_ERROR)
       }
 
-      // Save enrichment
+      // Step 2: Generate follow-up strategy using enrichment data
+      const isLostDeal = customer.status === "lost"
+      const strategy = await geminiService.generateFollowUpStrategy(
+        {
+          name: customer.name,
+          industry: customer.industry || undefined,
+          status: customer.status || "new",
+          notes: customer.notes || undefined,
+        },
+        {
+          summary: enrichment.summary,
+          salesOpportunity: enrichment.salesOpportunity,
+          recentNews: enrichment.recentNews ? [enrichment.recentNews] : undefined,
+        },
+        isLostDeal,
+      )
+
+      // Step 3: Save both enrichment and strategy together
       const saved = await customerRepository.saveEnrichment(params.customerId, {
         summary: enrichment.summary,
         ceo: enrichment.ceo || undefined,
@@ -70,9 +88,20 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
         recentNews: enrichment.recentNews || undefined,
         competitors: JSON.stringify(enrichment.competitors),
         salesOpportunity: enrichment.salesOpportunity,
+        // Follow-up strategy fields
+        followUpRecommendedTiming: strategy?.recommendedTiming,
+        followUpApproach: strategy?.approach,
+        followUpMessageTone: strategy?.messageTone,
+        followUpKeyPoints: strategy ? JSON.stringify(strategy.keyPoints) : undefined,
+        followUpProbability: strategy?.probability,
+        followUpReasoning: strategy?.reasoning,
       })
 
-      return success(saved)
+      // Return combined response
+      return success({
+        enrichment: saved,
+        followUpStrategy: strategy,
+      })
     },
     {
       params: t.Object({ customerId: t.String() }),

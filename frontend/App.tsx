@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import { Customer, Proposal, CustomerStatus, Prospect, FollowUpAction, ContextualSuggestion, CalendarEvent, BackgroundTask } from './types';
+import { Customer, Proposal, CustomerStatus, Prospect, FollowUpAction, ContextualSuggestion, CalendarEvent, BackgroundTask, FollowUpStrategy, EnrichedData } from './types';
 import { enrichCustomerData } from './services/geminiService';
 import { runProspectCollection, getProspects, saveProspects, getCollectionSettings } from './services/prospectService';
 import { generateAllSuggestions } from './services/contextualSuggestionService';
@@ -374,32 +374,51 @@ export const AppDashboard: React.FC = () => {
   // --- Handlers ---
 
   const handleEnrichment = useCallback(async () => {
-    if (!selectedCustomer) return;
+    if (!selectedCustomer || !selectedCustomerId) return;
 
     setIsEnriching(true);
     setError(null);
 
     try {
       setEnrichmentProgress({ percent: 10, message: '웹 검색 중...' });
-      await new Promise(r => setTimeout(r, 300));
 
-      setEnrichmentProgress({ percent: 30, message: '정보 수집 중...' });
-      const data = await enrichCustomerData(selectedCustomer.name, selectedCustomer.website);
+      // Call backend endpoint that generates BOTH enrichment AND follow-up strategy
+      const response = await apiClient.request(`/api/ai/enrich/${selectedCustomerId}`, {
+        method: 'POST',
+      });
 
-      setEnrichmentProgress({ percent: 70, message: 'AI 분석 중...' });
-      await new Promise(r => setTimeout(r, 300));
+      setEnrichmentProgress({ percent: 50, message: 'AI 분석 중...' });
 
-      setEnrichmentProgress({ percent: 90, message: '결과 정리 중...' });
-
-      try {
-        await apiClient.saveCustomerEnrichment(selectedCustomerId!, data as unknown as Record<string, unknown>);
-      } catch (saveErr) {
-        console.warn('Failed to save enrichment to backend:', saveErr);
+      if (!isSuccessResponse(response)) {
+        throw new Error((response as any).error || 'Failed to enrich customer data');
       }
 
+      const result = (response as any).data;
+      const enrichmentData = result.enrichment;
+      const strategyData = result.followUpStrategy as FollowUpStrategy | null;
+
+      setEnrichmentProgress({ percent: 80, message: '결과 정리 중...' });
+
+      // Parse JSON fields from enrichment response
+      const enrichedData: EnrichedData = {
+        summary: enrichmentData.summary || '',
+        ceo: enrichmentData.ceo || '',
+        foundedYear: enrichmentData.foundedYear || '',
+        recentNews: enrichmentData.recentNews ? (typeof enrichmentData.recentNews === 'string' ? [enrichmentData.recentNews] : enrichmentData.recentNews) : [],
+        competitors: enrichmentData.competitors ? (typeof enrichmentData.competitors === 'string' ? JSON.parse(enrichmentData.competitors) : enrichmentData.competitors) : [],
+        salesOpportunity: enrichmentData.salesOpportunity || '',
+        sources: enrichmentData.sources ? (typeof enrichmentData.sources === 'string' ? JSON.parse(enrichmentData.sources) : enrichmentData.sources) : [],
+      };
+
+      // Update customer with both enrichment and strategy
       setCustomers(prev => prev.map(c => {
         if (c.id === selectedCustomerId) {
-          return { ...c, enrichedData: data, lastEnrichedAt: new Date().toISOString() };
+          return {
+            ...c,
+            enrichedData,
+            followUpStrategy: strategyData || undefined,
+            lastEnrichedAt: new Date().toISOString()
+          };
         }
         return c;
       }));

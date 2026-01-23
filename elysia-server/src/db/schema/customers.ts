@@ -52,6 +52,13 @@ export const customerEnrichments = pgTable(
     competitors: text("competitors"),
     salesOpportunity: text("sales_opportunity"),
     sources: text("sources"),
+    // Follow-up strategy fields (generated with enrichment)
+    followUpRecommendedTiming: text("followup_recommended_timing"),
+    followUpApproach: text("followup_approach"),
+    followUpMessageTone: text("followup_message_tone"),
+    followUpKeyPoints: text("followup_key_points"), // JSON string[]
+    followUpProbability: text("followup_probability"), // high|medium|low
+    followUpReasoning: text("followup_reasoning"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_enrichments_customer").on(table.customerId)],

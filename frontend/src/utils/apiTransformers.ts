@@ -15,6 +15,7 @@ import type {
   Customer,
   CustomerContact,
   EnrichedData,
+  FollowUpStrategy,
   MeetingSummary,
   Proposal,
   Prospect,
@@ -45,6 +46,22 @@ function transformApiEnrichment(apiEnrichment: ApiCustomerEnrichment | null | un
 }
 
 /**
+ * Transform API enrichment follow-up strategy fields to frontend FollowUpStrategy type
+ */
+function transformApiFollowUpStrategy(apiEnrichment: ApiCustomerEnrichment | null | undefined): FollowUpStrategy | undefined {
+  if (!apiEnrichment?.followUpApproach) return undefined
+
+  return {
+    recommendedTiming: apiEnrichment.followUpRecommendedTiming || '',
+    approach: apiEnrichment.followUpApproach || '',
+    messageTone: apiEnrichment.followUpMessageTone || '',
+    keyPoints: safeJsonParse(apiEnrichment.followUpKeyPoints, []),
+    probability: (apiEnrichment.followUpProbability as 'high' | 'medium' | 'low') || 'medium',
+    reasoning: apiEnrichment.followUpReasoning || '',
+  }
+}
+
+/**
  * Transform API customer to frontend Customer type
  * Handles both simple ApiCustomer and ApiCustomerWithRelations
  */
@@ -66,6 +83,7 @@ export function transformApiCustomer(apiCustomer: ApiCustomer | ApiCustomerWithR
     lostAt: apiCustomer.lostAt || undefined,
     lastFollowUpAt: apiCustomer.lastFollowUpAt || undefined,
     followUpHistory: [],  // Loaded separately
+    followUpStrategy: transformApiFollowUpStrategy(withRelations.enrichment),
     contacts: [],  // Loaded separately
     meetingSummaries: [],  // Loaded separately
   }

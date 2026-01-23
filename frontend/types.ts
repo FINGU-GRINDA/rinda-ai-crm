@@ -26,6 +26,16 @@ export interface FollowUpAction {
   status: 'planned' | 'completed' | 'cancelled';
 }
 
+// Follow-up strategy (generated with enrichment, stored in DB)
+export interface FollowUpStrategy {
+  recommendedTiming: string;
+  approach: string;
+  messageTone: string;
+  keyPoints: string[];
+  probability: 'high' | 'medium' | 'low';
+  reasoning: string;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -40,6 +50,7 @@ export interface Customer {
   lostAt?: string;  // ISO date string
   lastFollowUpAt?: string;  // ISO date string
   followUpHistory?: FollowUpAction[];
+  followUpStrategy?: FollowUpStrategy; // AI-generated strategy (stored with enrichment)
   contacts?: CustomerContact[];
   meetingSummaries?: MeetingSummary[];
 }

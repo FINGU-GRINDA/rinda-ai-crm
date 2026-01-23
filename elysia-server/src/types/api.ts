@@ -78,6 +78,13 @@ export interface ApiCustomerEnrichment {
   competitors: string | null // JSON string array
   salesOpportunity: string | null
   sources: string | null // JSON string array of {title, uri}
+  // Follow-up strategy fields (generated with enrichment)
+  followUpRecommendedTiming: string | null
+  followUpApproach: string | null
+  followUpMessageTone: string | null
+  followUpKeyPoints: string | null // JSON string array
+  followUpProbability: string | null // high|medium|low
+  followUpReasoning: string | null
   createdAt: string // ISO date string
   updatedAt: string // ISO date string
 }
