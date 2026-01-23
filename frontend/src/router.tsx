@@ -1,9 +1,7 @@
+// To re-enable auth protection: see git history for ProtectedRoute, PublicOnlyRoute
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import { AuthProvider, useAuth } from '../contexts/AuthContext'
-import { AuthCallback } from '../components/auth/AuthCallback'
-import { LoginForm } from '../components/auth/LoginForm'
-import { PageSpinner } from '../components/LoadingStates'
+import { AuthProvider } from '../contexts/AuthContext'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 
 // Lazy load the dashboard for better performance
@@ -19,8 +17,8 @@ function LoadingFallback() {
   )
 }
 
-// Auth wrapper provides AuthProvider to all routes
-function AuthWrapper() {
+// App wrapper with AuthProvider (kept for components that use useAuth)
+function AppWrapper() {
   return (
     <AuthProvider>
       <ErrorBoundary>
@@ -30,73 +28,33 @@ function AuthWrapper() {
   )
 }
 
-// Protected route component - redirects to login if not authenticated
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="flex flex-col h-screen bg-slate-50 items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-slate-600 text-sm">로그인 확인 중...</p>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-
-  return <>{children}</>
-}
-
-// Public route - redirects to dashboard if already authenticated
-function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return <LoadingFallback />
-  }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />
-  }
-
-  return <>{children}</>
-}
-
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <AuthWrapper />,
+    element: <AppWrapper />,
     children: [
-      // Public routes
-      {
-        path: 'login',
-        element: (
-          <PublicOnlyRoute>
-            <LoginForm />
-          </PublicOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth',
-        element: <AuthCallback />,
-      },
-      // Protected routes
+      // Root redirects to dashboard
       {
         index: true,
         element: <Navigate to="/dashboard" replace />,
       },
+      // Main app
       {
         path: 'dashboard',
         element: (
-          <ProtectedRoute>
-            <Suspense fallback={<LoadingFallback />}>
-              <AppDashboard />
-            </Suspense>
-          </ProtectedRoute>
+          <Suspense fallback={<LoadingFallback />}>
+            <AppDashboard />
+          </Suspense>
         ),
+      },
+      // Legacy routes redirect to dashboard
+      {
+        path: 'login',
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: 'auth/*',
+        element: <Navigate to="/dashboard" replace />,
       },
     ],
   },
