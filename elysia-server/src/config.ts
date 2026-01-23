@@ -67,6 +67,7 @@ function loadConfig(): Config {
     console.error("Invalid environment variables:", parsed.error.flatten().fieldErrors)
     throw new Error("Invalid environment variables")
   }
+  console.log("FRONTEND URLS ", parsed.data.FRONTEND_URLS)
 
   return parsed.data
 }
