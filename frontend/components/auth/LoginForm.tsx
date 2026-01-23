@@ -6,7 +6,7 @@ import { IconLoader, IconX } from '../Icons'
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { login, loginWithGoogle } = useAuth()
+  const { login, loginWithGoogle, register } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -39,9 +39,18 @@ export const LoginForm: React.FC = () => {
 
     try {
       if (isSignUp) {
-        // Sign up flow would be similar, but we'll just use login for now
-        // and the backend handles the registration
-        alert('Sign up functionality coming soon - please use email/password login')
+        if (!name.trim()) {
+          setError('Please enter your name')
+          return
+        }
+        const result = await register(email, password, name)
+
+        if (!result.success) {
+          setError(result.error || 'Registration failed')
+        } else {
+          // Redirect to dashboard on successful registration
+          navigate('/dashboard', { replace: true })
+        }
       } else {
         const result = await login(email, password)
 
@@ -158,7 +167,7 @@ export const LoginForm: React.FC = () => {
         </div>
 
         {/* Google Sign-In */}
-        <button
+        {/* <button
           onClick={handleGoogleLogin}
           disabled={loading}
           type="button"
@@ -183,7 +192,7 @@ export const LoginForm: React.FC = () => {
             />
           </svg>
           <span>Google</span>
-        </button>
+        </button> */}
 
         {/* Toggle Sign Up / Sign In */}
         <div className="text-center text-sm">
