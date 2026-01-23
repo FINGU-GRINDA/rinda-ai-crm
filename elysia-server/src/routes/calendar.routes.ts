@@ -1,9 +1,7 @@
 import { Elysia, t } from "elysia"
+import { primaryFrontendUrl } from "../config"
 import { calendarService } from "../services/calendar.service"
 import { ErrorCode, error, success, successList } from "../utils/response"
-
-// Get frontend URL from environment or default
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000"
 
 export const calendarRoutes = new Elysia({ prefix: "/api/calendar" })
   // Get calendar status
@@ -28,16 +26,16 @@ export const calendarRoutes = new Elysia({ prefix: "/api/calendar" })
     "/oauth/callback",
     async ({ query, set }) => {
       if (!query.code) {
-        set.redirect = `${FRONTEND_URL}/settings?error=calendar_missing_code`
+        set.redirect = `${primaryFrontendUrl}/settings?error=calendar_missing_code`
         return
       }
 
       try {
         await calendarService.handleCallback(query.code)
-        set.redirect = `${FRONTEND_URL}/settings?calendar=connected`
+        set.redirect = `${primaryFrontendUrl}/settings?calendar=connected`
         return
       } catch (_error) {
-        set.redirect = `${FRONTEND_URL}/settings?error=calendar_auth_failed`
+        set.redirect = `${primaryFrontendUrl}/settings?error=calendar_auth_failed`
         return
       }
     },

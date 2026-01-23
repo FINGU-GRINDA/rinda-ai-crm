@@ -1,10 +1,8 @@
 import { Elysia, t } from "elysia"
+import { primaryFrontendUrl } from "../config"
 import { emailRepository } from "../repositories"
 import { gmailService } from "../services/gmail.service"
 import { ErrorCode, error, success, successList } from "../utils/response"
-
-// Get frontend URL from environment or default
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000"
 
 export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
   // Get Gmail status
@@ -29,16 +27,16 @@ export const gmailRoutes = new Elysia({ prefix: "/api/gmail" })
     "/oauth/callback",
     async ({ query, set }) => {
       if (!query.code) {
-        set.redirect = `${FRONTEND_URL}/settings?error=gmail_missing_code`
+        set.redirect = `${primaryFrontendUrl}/settings?error=gmail_missing_code`
         return
       }
 
       try {
         await gmailService.handleCallback(query.code)
-        set.redirect = `${FRONTEND_URL}/settings?gmail=connected`
+        set.redirect = `${primaryFrontendUrl}/settings?gmail=connected`
         return
       } catch (_error) {
-        set.redirect = `${FRONTEND_URL}/settings?error=gmail_auth_failed`
+        set.redirect = `${primaryFrontendUrl}/settings?error=gmail_auth_failed`
         return
       }
     },

@@ -25,7 +25,11 @@ const configSchema = z.object({
 
   // Server
   PORT: z.coerce.number().default(3001),
-  FRONTEND_URL: z.string().default("http://localhost:3000"),
+  // Comma-separated list of frontend URLs (for CORS)
+  FRONTEND_URLS: z
+    .string()
+    .default("http://localhost:3000")
+    .transform((val) => val.split(",").map((url) => url.trim())),
 
   // Gemini AI
   GEMINI_API_KEY: z.string().optional(),
@@ -68,3 +72,6 @@ function loadConfig(): Config {
 }
 
 export const config = loadConfig()
+
+// Helper: Get primary frontend URL (first in list) for OAuth redirects
+export const primaryFrontendUrl = config.FRONTEND_URLS[0]

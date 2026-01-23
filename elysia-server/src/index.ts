@@ -22,10 +22,10 @@ async function main() {
   await settingsRepository.initializeDefaults()
 
   const _app = new Elysia()
-    // CORS
+    // CORS - supports multiple frontend URLs
     .use(
       cors({
-        origin: config.FRONTEND_URL,
+        origin: config.FRONTEND_URLS,
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allowedHeaders: [
