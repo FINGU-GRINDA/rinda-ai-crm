@@ -80,7 +80,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'auth/callback',
+        path: 'auth',
         element: <AuthCallback />,
       },
       // Protected routes
