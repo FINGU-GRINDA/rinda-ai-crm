@@ -186,7 +186,7 @@ export const leadsRoutes = new Elysia({ prefix: "/api/leads" })
         industry: prospect.industry,
         notes: prospect.notes,
         status: body.status || "new",
-        leadSource: prospect.sourceTitle || "Prospect",
+        leadSource: prospect.sourceArticle?.title || "Prospect",
         initialInquiry: prospect.notes,
         landingPageUrl: prospect.landingPageUrl,
       })

@@ -181,9 +181,16 @@ const publicAuthRoutes = new Elysia({ prefix: "/api/auth" })
           .where(eq(oauthStates.state, state))
           .limit(1)
 
-        if (!stateRecord || stateRecord.flowType !== "signin") {
+        if (!stateRecord) {
+          logger.error({ state }, "OAuth state not found in database")
           set.status = 400
           return { success: false, error: "Invalid or expired state parameter" }
+        }
+
+        if (stateRecord.flowType !== "signin") {
+          logger.error({ flowType: stateRecord.flowType }, "OAuth state has wrong flowType")
+          set.status = 400
+          return { success: false, error: "Invalid state flow type" }
         }
 
         await db.delete(oauthStates).where(eq(oauthStates.state, state))
@@ -271,12 +278,11 @@ const publicAuthRoutes = new Elysia({ prefix: "/api/auth" })
           },
         })
       } catch (error) {
-        logger.error(
-          { error: error instanceof Error ? error.message : String(error) },
-          "Google OAuth callback error",
-        )
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        const errorStack = error instanceof Error ? error.stack : undefined
+        logger.error({ error: errorMessage, stack: errorStack }, "Google OAuth callback error")
         set.status = 500
-        return { success: false, error: "Authentication failed" }
+        return { success: false, error: errorMessage || "Authentication failed" }
       }
     },
     {
@@ -333,14 +339,10 @@ const publicAuthRoutes = new Elysia({ prefix: "/api/auth" })
     }
   })
 
-// Cookie value type for Elysia cookies
-interface CookieValue {
-  value?: string
-}
-
 // Helper function to verify token and get auth context
-async function getAuthContext(cookie: Record<string, CookieValue | undefined>) {
-  const token = cookie.access_token?.value
+// biome-ignore lint/suspicious/noExplicitAny: Elysia cookie type is complex
+async function getAuthContext(cookie: any) {
+  const token = cookie.access_token?.value as string | undefined
 
   if (!token) {
     throw new Error("Authentication required")

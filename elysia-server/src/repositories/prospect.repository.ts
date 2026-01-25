@@ -26,7 +26,7 @@ function transformProspectResponse(prospect: Prospect): ProspectApiResponse {
     sourceArticle: {
       title: sourceTitle || null,
       uri: sourceUri || null,
-      publishedAt: sourcePublishedAt || null,
+      publishedAt: sourcePublishedAt ? new Date(sourcePublishedAt) : null,
     },
   }
 }
@@ -276,8 +276,8 @@ export const prospectRepository = {
 
   bulkCreate: async (
     dataList: Array<Partial<NewProspect>>,
-  ): Promise<{ created: Prospect[]; skipped: number }> => {
-    const created: Prospect[] = []
+  ): Promise<{ created: ProspectApiResponse[]; skipped: number }> => {
+    const created: ProspectApiResponse[] = []
     let skipped = 0
 
     for (const data of dataList) {

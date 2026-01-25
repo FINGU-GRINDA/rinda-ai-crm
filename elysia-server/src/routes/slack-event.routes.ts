@@ -16,7 +16,10 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
 
     // Always verify signature (function handles dev mode gracefully)
     if (!timestamp || !signature || !verifySlackRequest(timestamp, rawBody, signature)) {
-      logger.warn({ hasTimestamp: !!timestamp, hasSignature: !!signature }, "Invalid or missing Slack signature")
+      logger.warn(
+        { hasTimestamp: !!timestamp, hasSignature: !!signature },
+        "Invalid or missing Slack signature",
+      )
       set.status = 401
       return error("Invalid signature", ErrorCode.INVALID_SIGNATURE)
     }

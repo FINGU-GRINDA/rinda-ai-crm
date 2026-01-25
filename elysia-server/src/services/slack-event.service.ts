@@ -155,7 +155,10 @@ class SlackEventService {
       return result
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
-      logger.error({ error: errorMsg, messageId: savedMessage.id }, "Error processing monitored channel message")
+      logger.error(
+        { error: errorMsg, messageId: savedMessage.id },
+        "Error processing monitored channel message",
+      )
 
       // Track the error instead of marking as processed - allows retry
       await slackRepository.markFailed(savedMessage.id, errorMsg)
