@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, isNotNull, isNull, like, or, sql } from "drizzle-orm"
 import { db } from "../db"
 import { type NewProspect, type Prospect, prospects } from "../db/schema"
+import { logger } from "../utils/logger"
 
 /**
  * API response type for prospects with nested sourceArticle
@@ -203,6 +204,74 @@ export const prospectRepository = {
       .returning()
     if (!prospect) throw new Error("Failed to create prospect")
     return transformProspectResponse(prospect)
+  },
+
+  /**
+   * Find or create a prospect by company name (race-condition safe)
+   * Uses case-insensitive matching and handles unique constraint violations
+   */
+  findOrCreate: async (
+    data: Partial<NewProspect>,
+  ): Promise<{ prospect: ProspectApiResponse; created: boolean }> => {
+    if (!data.companyName) {
+      throw new Error("Company name is required for findOrCreate")
+    }
+
+    // First, try to find existing prospect (case-insensitive)
+    const existing = await db
+      .select()
+      .from(prospects)
+      .where(
+        and(
+          sql`LOWER(${prospects.companyName}) = LOWER(${data.companyName})`,
+          eq(prospects.dismissed, false),
+          isNull(prospects.convertedToCustomerId),
+        ),
+      )
+      .limit(1)
+
+    if (existing[0]) {
+      logger.info({ companyName: data.companyName }, "Found existing prospect")
+      return { prospect: transformProspectResponse(existing[0]), created: false }
+    }
+
+    // Try to create - handle race condition with unique constraint violation
+    try {
+      const prospect = await prospectRepository.create(data)
+      logger.info({ companyName: data.companyName, id: prospect.id }, "Created new prospect")
+      return { prospect, created: true }
+    } catch (err) {
+      // Handle unique constraint violation (race condition - another request created it)
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      if (
+        errorMessage.includes("unique") ||
+        errorMessage.includes("duplicate") ||
+        errorMessage.includes("violates unique constraint")
+      ) {
+        logger.info(
+          { companyName: data.companyName },
+          "Prospect created by concurrent request, fetching existing",
+        )
+        // Re-fetch the existing prospect
+        const existing = await db
+          .select()
+          .from(prospects)
+          .where(
+            and(
+              sql`LOWER(${prospects.companyName}) = LOWER(${data.companyName})`,
+              eq(prospects.dismissed, false),
+              isNull(prospects.convertedToCustomerId),
+            ),
+          )
+          .limit(1)
+
+        if (existing[0]) {
+          return { prospect: transformProspectResponse(existing[0]), created: false }
+        }
+      }
+      // Re-throw if it's not a unique constraint violation
+      throw err
+    }
   },
 
   bulkCreate: async (

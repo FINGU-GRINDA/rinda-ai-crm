@@ -5,14 +5,19 @@ import { logger } from "../utils/logger"
 
 export function verifySlackRequest(timestamp: string, body: string, signature: string): boolean {
   if (!config.SLACK_SIGNING_SECRET) {
-    logger.warn("SLACK_SIGNING_SECRET not configured, skipping verification")
-    return true // Skip verification if not configured
+    // Fail-closed: Only skip verification in development mode
+    if (process.env.NODE_ENV === "development") {
+      logger.warn("SLACK_SIGNING_SECRET not configured, skipping verification (dev mode only)")
+      return true
+    }
+    logger.error("SLACK_SIGNING_SECRET not configured - rejecting request in production")
+    return false
   }
 
-  // Check timestamp is within 5 minutes
+  // Check timestamp is within 5 minutes (replay attack prevention)
   const currentTime = Math.floor(Date.now() / 1000)
   if (Math.abs(currentTime - parseInt(timestamp, 10)) > 300) {
-    logger.warn("Slack request timestamp too old")
+    logger.warn({ timestamp, currentTime }, "Slack request timestamp too old (>5 minutes)")
     return false
   }
 
@@ -42,6 +47,6 @@ export const slackVerifyMiddleware = new Elysia().derive(async ({ request }) => 
     isSlackVerified:
       timestamp && signature
         ? verifySlackRequest(timestamp, body, signature)
-        : !config.SLACK_SIGNING_SECRET, // Allow if not configured
+        : process.env.NODE_ENV === "development" && !config.SLACK_SIGNING_SECRET, // Only allow in dev mode
   }
 })

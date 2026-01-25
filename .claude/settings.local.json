@@ -49,7 +49,12 @@
       "Bash(curl:*)",
       "Bash(git rm:*)",
       "Bash(git commit:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git push)",
+      "Bash(pushd:*)",
+      "Bash(popd)",
+      "Bash(bun run:*)",
+      "Bash(cd:*)"
     ]
   }
 }

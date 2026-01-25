@@ -5,6 +5,7 @@ import { customerContacts, customers, meetingSummaries } from "../db/schema"
 import {
   contactRepository,
   customerRepository,
+  followUpRepository,
   meetingRepository,
   notificationRepository,
   prospectRepository,
@@ -154,9 +155,12 @@ class SlackEventService {
       return result
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
-      logger.error({ error: errorMsg }, "Error processing monitored channel message")
-      await slackRepository.markProcessed(savedMessage.id)
-      return { handled: true, error: String(error) }
+      logger.error({ error: errorMsg, messageId: savedMessage.id }, "Error processing monitored channel message")
+
+      // Track the error instead of marking as processed - allows retry
+      await slackRepository.markFailed(savedMessage.id, errorMsg)
+
+      return { handled: false, error: errorMsg }
     }
   }
 
@@ -262,43 +266,34 @@ class SlackEventService {
       return { handled: true, isInquiry: false, reason: "no_company_name" }
     }
 
-    // Check if prospect already exists for this company
-    const existingProspect = await prospectRepository.findByCompanyName(parsedData.companyName)
+    // Use findOrCreate to prevent duplicate prospects (race-condition safe)
+    const { prospect, created: isNewProspect } = await prospectRepository.findOrCreate({
+      companyName: parsedData.companyName,
+      contactName: parsedData.contactName || undefined,
+      contactTitle: parsedData.contactTitle || undefined,
+      contactPhone: parsedData.contactPhone || undefined,
+      contactEmail: parsedData.contactEmail || undefined,
+      notes: parsedData.inquiryDetails || `[Slack CS]\n${event.text}`,
+      landingPageUrl: parsedData.landingPageUrl || undefined,
+      signalStrength: "medium",
+      sourceTitle: "Slack CS Channel",
+      sourceUri: `slack://channel/${event.channel}/${event.ts}`,
+    })
 
-    let prospect: Awaited<ReturnType<typeof prospectRepository.create>>
-    let isNewProspect = false
-
-    if (existingProspect) {
-      // Update existing prospect with new inquiry details
+    // If prospect existed, append new inquiry to notes
+    if (!isNewProspect) {
       logger.info(`Found existing prospect for ${parsedData.companyName}, updating notes`)
       const updatedNotes =
-        `${existingProspect.notes || ""}\n\n[Slack CS - ${new Date().toLocaleString("ko-KR")}]\n${parsedData.inquiryDetails || event.text}`.trim()
+        `${prospect.notes || ""}\n\n[Slack CS - ${new Date().toLocaleString("ko-KR")}]\n${parsedData.inquiryDetails || event.text}`.trim()
 
-      await prospectRepository.update(existingProspect.id, {
+      await prospectRepository.update(prospect.id, {
         notes: updatedNotes,
         // Update contact info if provided and not already set
-        contactName: existingProspect.contactName || parsedData.contactName || undefined,
-        contactEmail: existingProspect.contactEmail || parsedData.contactEmail || undefined,
-        contactPhone: existingProspect.contactPhone || parsedData.contactPhone || undefined,
-        contactTitle: existingProspect.contactTitle || parsedData.contactTitle || undefined,
+        contactName: prospect.contactName || parsedData.contactName || undefined,
+        contactEmail: prospect.contactEmail || parsedData.contactEmail || undefined,
+        contactPhone: prospect.contactPhone || parsedData.contactPhone || undefined,
+        contactTitle: prospect.contactTitle || parsedData.contactTitle || undefined,
       })
-
-      prospect = existingProspect
-    } else {
-      // Create new prospect
-      prospect = await prospectRepository.create({
-        companyName: parsedData.companyName,
-        contactName: parsedData.contactName || undefined,
-        contactTitle: parsedData.contactTitle || undefined,
-        contactPhone: parsedData.contactPhone || undefined,
-        contactEmail: parsedData.contactEmail || undefined,
-        notes: parsedData.inquiryDetails || `[Slack CS]\n${event.text}`,
-        landingPageUrl: parsedData.landingPageUrl || undefined,
-        signalStrength: "medium",
-        sourceTitle: "Slack CS Channel",
-        sourceUri: `slack://channel/${event.channel}/${event.ts}`,
-      })
-      isNewProspect = true
     }
 
     // Only create notification for new prospects
@@ -493,10 +488,10 @@ class SlackEventService {
       return { handled: true, reason: "no_company_identified" }
     }
 
-    // Check if already exists
+    // Check if already exists as customer
     const existingCustomer = await customerRepository.findByName(companyName)
     if (existingCustomer) {
-      // Add note to existing
+      // Add note to existing customer
       const updatedNotes =
         `${existingCustomer.notes || ""}\n\n[Slack Sales - ${new Date().toLocaleString("ko-KR")}]\n${event.text}`.trim()
       await customerRepository.update(existingCustomer.id, { notes: updatedNotes })
@@ -510,8 +505,8 @@ class SlackEventService {
       }
     }
 
-    // Create prospect
-    const prospect = await prospectRepository.create({
+    // Use findOrCreate to prevent duplicate prospects (race-condition safe)
+    const { prospect, created } = await prospectRepository.findOrCreate({
       companyName,
       industry: parsedData.industry || undefined,
       signalStrength: parsedData.urgency === "high" ? "high" : "medium",
@@ -520,12 +515,19 @@ class SlackEventService {
       sourceUri: `slack://channel/${event.channel}/${event.ts}`,
     })
 
+    // If prospect existed, append to notes
+    if (!created) {
+      const updatedNotes =
+        `${prospect.notes || ""}\n\n[Slack Sales - ${new Date().toLocaleString("ko-KR")}]\n${parsedData.summary || event.text}`.trim()
+      await prospectRepository.update(prospect.id, { notes: updatedNotes })
+    }
+
     await slackRepository.markProcessed(savedMessage.id, { prospectId: prospect.id })
 
     return {
       handled: true,
       channelType: "SALES",
-      subType: "new_customer",
+      subType: created ? "new_customer" : "existing_prospect",
       prospectId: prospect.id,
     }
   }
@@ -609,8 +611,40 @@ class SlackEventService {
         break
 
       case "create_followup":
-        // Skip for now - followup table not implemented
-        logger.info("Follow-up creation requested but not implemented yet")
+        if (updateData.followUp) {
+          // Calculate scheduled date based on scheduledDays
+          const scheduledDate = new Date()
+          scheduledDate.setDate(scheduledDate.getDate() + (updateData.followUp.scheduledDays || 1))
+
+          // Create the scheduled follow-up
+          const followUp = await followUpRepository.createScheduled({
+            customerId,
+            scheduledFor: scheduledDate,
+            type: updateData.followUp.type || "message",
+            content: updateData.followUp.content,
+            priority: "medium",
+            reason: "[Slack Sales] Auto-created from sales channel message",
+          })
+
+          logger.info(
+            { customerId, followUpId: followUp.id, scheduledFor: scheduledDate },
+            "Follow-up created from Slack",
+          )
+
+          // Create notification for the follow-up
+          await notificationRepository.create({
+            type: "followup",
+            title: "새 팔로업 예정",
+            message: `${updateData.followUp.content?.substring(0, 100) || "팔로업 예정됨"}`,
+            customerId,
+            priority: "medium",
+            metadata: JSON.stringify({
+              followUpId: followUp.id,
+              scheduledFor: scheduledDate.toISOString(),
+              followUpType: updateData.followUp.type,
+            }),
+          })
+        }
         break
 
       case "update_contact":

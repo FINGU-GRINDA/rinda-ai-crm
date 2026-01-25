@@ -1,24 +1,11 @@
-import crypto from "node:crypto"
 import { Elysia, t } from "elysia"
-import { config } from "../config"
+import { verifySlackRequest } from "../middleware/slack-verify"
 import { settingsRepository, slackRepository } from "../repositories"
 import { slackEventService } from "../services/slack-event.service"
 import { slackWebhookService } from "../services/slack-webhook.service"
 import type { SlackSettings } from "../types"
 import { logger } from "../utils/logger"
 import { ErrorCode, error, success, successList } from "../utils/response"
-
-// Slack signature verification
-function verifySlackSignature(timestamp: string, body: string, signature: string): boolean {
-  if (!config.SLACK_SIGNING_SECRET) return false
-
-  const sigBasestring = `v0:${timestamp}:${body}`
-  const mySignature =
-    "v0=" +
-    crypto.createHmac("sha256", config.SLACK_SIGNING_SECRET).update(sigBasestring).digest("hex")
-
-  return crypto.timingSafeEqual(Buffer.from(mySignature), Buffer.from(signature))
-}
 
 export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
   // Slack Event API endpoint
@@ -27,13 +14,11 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
     const timestamp = headers["x-slack-request-timestamp"]
     const signature = headers["x-slack-signature"]
 
-    // Verify signature in production
-    if (config.SLACK_SIGNING_SECRET && timestamp && signature) {
-      if (!verifySlackSignature(timestamp, rawBody, signature)) {
-        logger.warn("Invalid Slack signature")
-        set.status = 401
-        return error("Invalid signature", ErrorCode.INVALID_SIGNATURE)
-      }
+    // Always verify signature (function handles dev mode gracefully)
+    if (!timestamp || !signature || !verifySlackRequest(timestamp, rawBody, signature)) {
+      logger.warn({ hasTimestamp: !!timestamp, hasSignature: !!signature }, "Invalid or missing Slack signature")
+      set.status = 401
+      return error("Invalid signature", ErrorCode.INVALID_SIGNATURE)
     }
 
     const payload = JSON.parse(rawBody)
@@ -109,6 +94,38 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
     return successList(messages)
   })
 
+  // Get failed messages (exceeded max retries)
+  .get(
+    "/messages/failed",
+    async ({ query }) => {
+      const maxRetries = query.maxRetries ? parseInt(query.maxRetries, 10) : 3
+      const messages = await slackRepository.findPermanentlyFailed(maxRetries)
+      return successList(messages)
+    },
+    {
+      query: t.Object({
+        maxRetries: t.Optional(t.String()),
+      }),
+    },
+  )
+
+  // Get retryable messages (haven't exceeded max retries)
+  .get(
+    "/messages/retryable",
+    async ({ query }) => {
+      const maxRetries = query.maxRetries ? parseInt(query.maxRetries, 10) : 3
+      const limit = query.limit ? parseInt(query.limit, 10) : 50
+      const messages = await slackRepository.findRetryable(maxRetries, limit)
+      return successList(messages)
+    },
+    {
+      query: t.Object({
+        maxRetries: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+      }),
+    },
+  )
+
   // Get messages for a specific customer
   .get(
     "/messages/customer/:customerId",
@@ -157,33 +174,104 @@ export const slackEventRoutes = new Elysia({ prefix: "/api/slack/events" })
   })
 
   // Bulk reprocess all unprocessed messages
-  .post("/reprocess", async () => {
-    const unprocessed = await slackRepository.findUnprocessed()
-    let processed = 0
-    let failed = 0
+  .post(
+    "/reprocess",
+    async ({ query }) => {
+      const limit = query.limit ? parseInt(query.limit, 10) : 100
+      const unprocessed = await slackRepository.findUnprocessed(limit)
+      let processed = 0
+      let failed = 0
 
-    for (const message of unprocessed) {
-      try {
-        await slackEventService.processMonitoredChannelMessage(message, {
-          type: "message",
-          channel: message.channelId || "",
-          ts: message.slackTs || "",
-          text: message.text || "",
-        })
-        processed++
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err)
-        logger.warn({ messageId: message.id, error: errorMsg }, "Failed to reprocess message")
-        failed++
+      for (const message of unprocessed) {
+        try {
+          await slackEventService.processMonitoredChannelMessage(message, {
+            type: "message",
+            channel: message.channelId || "",
+            ts: message.slackTs || "",
+            text: message.text || "",
+          })
+          processed++
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err)
+          logger.warn({ messageId: message.id, error: errorMsg }, "Failed to reprocess message")
+          failed++
+        }
       }
-    }
 
-    return success({
-      total: unprocessed.length,
-      processed,
-      failed,
-    })
-  })
+      return success({
+        total: unprocessed.length,
+        processed,
+        failed,
+      })
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+    },
+  )
+
+  // Retry failed messages (that haven't exceeded max retries)
+  .post(
+    "/retry-failed",
+    async ({ query }) => {
+      const maxRetries = query.maxRetries ? parseInt(query.maxRetries, 10) : 3
+      const limit = query.limit ? parseInt(query.limit, 10) : 50
+      const retryable = await slackRepository.findRetryable(maxRetries, limit)
+
+      let succeeded = 0
+      let failed = 0
+
+      for (const message of retryable) {
+        try {
+          const result = await slackEventService.processMonitoredChannelMessage(message, {
+            type: "message",
+            channel: message.channelId || "",
+            ts: message.slackTs || "",
+            text: message.text || "",
+          })
+
+          if (result.handled !== false) {
+            succeeded++
+          } else {
+            failed++
+          }
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err)
+          logger.warn({ messageId: message.id, error: errorMsg }, "Retry failed")
+          failed++
+        }
+      }
+
+      return success({
+        total: retryable.length,
+        succeeded,
+        failed,
+      })
+    },
+    {
+      query: t.Object({
+        maxRetries: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+      }),
+    },
+  )
+
+  // Clear error for a specific message (manual reset)
+  .post(
+    "/messages/:id/clear-error",
+    async ({ params, set }) => {
+      const message = await slackRepository.clearError(params.id)
+      if (!message) {
+        set.status = 404
+        return error("Message not found", ErrorCode.NOT_FOUND)
+      }
+      return success(message)
+    },
+    {
+      params: t.Object({ id: t.String() }),
+    },
+  )
 
   // Webhook routes
   .post(

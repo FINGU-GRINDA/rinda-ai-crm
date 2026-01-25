@@ -18,6 +18,10 @@ export const slackMessages = pgTable(
     deleted: integer("deleted").default(0),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+    // Error tracking fields
+    processingError: text("processing_error"),
+    retryCount: integer("retry_count").default(0),
+    lastErrorAt: timestamp("last_error_at", { withTimezone: true }),
   },
   (table) => [
     index("idx_slack_customer").on(table.customerId),

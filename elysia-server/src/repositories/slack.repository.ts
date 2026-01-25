@@ -182,4 +182,71 @@ export const slackRepository = {
       )
       .orderBy(slackMessages.receivedAt)
   },
+
+  /**
+   * Mark a message as failed with error details
+   * Increments retry count and stores error message
+   */
+  markFailed: async (id: string, errorMessage: string): Promise<SlackMessage | null> => {
+    const [message] = await db
+      .update(slackMessages)
+      .set({
+        processingError: errorMessage,
+        retryCount: sql`COALESCE(${slackMessages.retryCount}, 0) + 1`,
+        lastErrorAt: new Date(),
+      })
+      .where(eq(slackMessages.id, id))
+      .returning()
+    logger.info({ messageId: id, retryCount: message?.retryCount }, "Message marked as failed")
+    return message || null
+  },
+
+  /**
+   * Find messages that can be retried (haven't exceeded max retries)
+   */
+  findRetryable: async (maxRetries: number = 3, limit: number = 10): Promise<SlackMessage[]> => {
+    return db
+      .select()
+      .from(slackMessages)
+      .where(
+        and(
+          eq(slackMessages.processed, 0),
+          sql`COALESCE(${slackMessages.retryCount}, 0) < ${maxRetries}`,
+        ),
+      )
+      .orderBy(slackMessages.receivedAt)
+      .limit(limit)
+  },
+
+  /**
+   * Find messages that have permanently failed (exceeded max retries)
+   */
+  findPermanentlyFailed: async (maxRetries: number = 3): Promise<SlackMessage[]> => {
+    return db
+      .select()
+      .from(slackMessages)
+      .where(
+        and(
+          eq(slackMessages.processed, 0),
+          sql`COALESCE(${slackMessages.retryCount}, 0) >= ${maxRetries}`,
+        ),
+      )
+      .orderBy(desc(slackMessages.lastErrorAt))
+  },
+
+  /**
+   * Clear error state for a message (for manual reset)
+   */
+  clearError: async (id: string): Promise<SlackMessage | null> => {
+    const [message] = await db
+      .update(slackMessages)
+      .set({
+        processingError: null,
+        retryCount: 0,
+        lastErrorAt: null,
+      })
+      .where(eq(slackMessages.id, id))
+      .returning()
+    return message || null
+  },
 }

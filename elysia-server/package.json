@@ -10,6 +10,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:migrate": "drizzle-kit migrate",
+    "db:reset": "bash ./scripts/db-reset.sh",
     "docker:db-up": "docker compose -f compose.db.yml up -d",
     "docker:db-down": "docker compose -f compose.db.yml down",
     "docker:db-logs": "docker compose -f compose.db.yml logs -f postgres",
