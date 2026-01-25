@@ -1,8 +1,9 @@
-// To re-enable auth protection: see git history for ProtectedRoute, PublicOnlyRoute
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import { AuthProvider } from '../contexts/AuthContext'
+import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { LoginForm } from '../components/auth/LoginForm'
+import { AuthCallback } from '../components/auth/AuthCallback'
 
 // Lazy load the dashboard for better performance
 const AppDashboard = lazy(() => import('../App').then(m => ({ default: m.AppDashboard })))
@@ -17,7 +18,37 @@ function LoadingFallback() {
   )
 }
 
-// App wrapper with AuthProvider (kept for components that use useAuth)
+// Protected route - redirects to login if not authenticated
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingFallback />
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <>{children}</>
+}
+
+// Public route - redirects to dashboard if already authenticated
+function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingFallback />
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <>{children}</>
+}
+
+// App wrapper with AuthProvider
 function AppWrapper() {
   return (
     <AuthProvider>
@@ -38,23 +69,30 @@ export const router = createBrowserRouter([
         index: true,
         element: <Navigate to="/dashboard" replace />,
       },
-      // Main app
+      // Login page (public only)
+      {
+        path: 'login',
+        element: (
+          <PublicOnlyRoute>
+            <LoginForm />
+          </PublicOnlyRoute>
+        ),
+      },
+      // OAuth callback
+      {
+        path: 'auth',
+        element: <AuthCallback />,
+      },
+      // Main app (protected)
       {
         path: 'dashboard',
         element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <AppDashboard />
-          </Suspense>
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <AppDashboard />
+            </Suspense>
+          </ProtectedRoute>
         ),
-      },
-      // Legacy routes redirect to dashboard
-      {
-        path: 'login',
-        element: <Navigate to="/dashboard" replace />,
-      },
-      {
-        path: 'auth/*',
-        element: <Navigate to="/dashboard" replace />,
       },
     ],
   },

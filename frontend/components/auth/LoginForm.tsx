@@ -6,7 +6,7 @@ import { IconLoader, IconX } from '../Icons'
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { login, register } = useAuth()
+  const { login, register, loginWithGoogle } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -67,16 +67,16 @@ export const LoginForm: React.FC = () => {
     }
   }
 
-  // const handleGoogleLogin = async () => {
-  //   setLoading(true)
-  //   setError('')
-  //   try {
-  //     await loginWithGoogle()
-  //   } catch (err) {
-  //     setError('Google sign-in failed')
-  //     setLoading(false)
-  //   }
-  // }
+  const handleGoogleLogin = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      await loginWithGoogle()
+    } catch (err) {
+      setError('Google sign-in failed')
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -168,7 +168,7 @@ export const LoginForm: React.FC = () => {
         </div>
 
         {/* Google Sign-In */}
-        {/* <button
+        <button
           onClick={handleGoogleLogin}
           disabled={loading}
           type="button"
@@ -193,7 +193,7 @@ export const LoginForm: React.FC = () => {
             />
           </svg>
           <span>Google</span>
-        </button> */}
+        </button>
 
         {/* Toggle Sign Up / Sign In */}
         <div className="text-center text-sm">
