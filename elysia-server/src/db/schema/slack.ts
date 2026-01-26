@@ -29,6 +29,7 @@ export const slackMessages = pgTable(
     index("idx_slack_processed").on(table.processed),
     index("idx_slack_deleted").on(table.deleted),
     index("idx_slack_received").on(table.receivedAt),
+    index("idx_slack_thread_ts").on(table.threadTs),
   ],
 )
 

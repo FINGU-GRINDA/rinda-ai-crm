@@ -52,6 +52,10 @@ export type {
   SlackMessage,
 } from "../db/schema/slack"
 
+// Import types for local use in interfaces below
+import type { MeetingSummary as MeetingSummaryType } from "../db/schema/meetings"
+import type { SlackMessage as SlackMessageType } from "../db/schema/slack"
+
 // API Response types
 export interface ApiResponse<T = unknown> {
   success: boolean
@@ -172,6 +176,27 @@ export interface ParsedMeetingNote {
   decisionMakerName: string | null
   meetingNote: string | null
   salesProposal: string | null
+}
+
+// Fuzzy match result with confidence scoring
+export interface FuzzyMatchResult {
+  customerId: string
+  customerName: string
+  matchType: "exact" | "partial" | "contact"
+  confidence: number // 0.0 to 1.0
+  alternativeMatches?: Array<{
+    customerId: string
+    customerName: string
+    confidence: number
+  }>
+}
+
+// Thread context for Slack message processing
+export interface ThreadContext {
+  isThreadReply: boolean
+  parentTs: string | null
+  parentMessage: SlackMessageType | null
+  existingMeeting: MeetingSummaryType | null
 }
 
 // Sales Channel classification

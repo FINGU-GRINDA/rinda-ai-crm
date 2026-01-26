@@ -23,6 +23,8 @@ export const meetingSummaries = pgTable(
     source: text("source").default("manual"), // 'manual' | 'slack'
     slackTs: text("slack_ts"), // Slack message timestamp for traceability
     slackChannelId: text("slack_channel_id"), // Slack channel ID
+    salesProposal: text("sales_proposal"), // Sales proposal from meeting note
+    customerMatchConfidence: text("customer_match_confidence"), // JSON: match metadata and confidence score
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

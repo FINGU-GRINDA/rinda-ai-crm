@@ -249,4 +249,54 @@ export const slackRepository = {
       .returning()
     return message || null
   },
+
+  /**
+   * Find parent message of a thread (the message that started the thread)
+   */
+  findParentMessage: async (threadTs: string): Promise<SlackMessage | null> => {
+    const result = await db
+      .select()
+      .from(slackMessages)
+      .where(
+        and(
+          eq(slackMessages.slackTs, threadTs),
+          or(eq(slackMessages.deleted, 0), isNull(slackMessages.deleted)),
+        ),
+      )
+      .limit(1)
+    return result[0] || null
+  },
+
+  /**
+   * Count messages in a thread (excluding deleted)
+   */
+  countThreadMessages: async (threadTs: string): Promise<number> => {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(slackMessages)
+      .where(
+        and(
+          eq(slackMessages.threadTs, threadTs),
+          or(eq(slackMessages.deleted, 0), isNull(slackMessages.deleted)),
+        ),
+      )
+    return result[0]?.count || 0
+  },
+
+  /**
+   * Check if all thread messages are processed
+   */
+  isThreadFullyProcessed: async (threadTs: string): Promise<boolean> => {
+    const unprocessed = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(slackMessages)
+      .where(
+        and(
+          eq(slackMessages.threadTs, threadTs),
+          eq(slackMessages.processed, 0),
+          or(eq(slackMessages.deleted, 0), isNull(slackMessages.deleted)),
+        ),
+      )
+    return (unprocessed[0]?.count || 0) === 0
+  },
 }

@@ -69,6 +69,35 @@ export const meetingRepository = {
     return result[0] || null
   },
 
+  // Find meeting by customer, date, and specific Slack channel (more specific dedup)
+  findByCustomerDateAndChannel: async (
+    customerId: string,
+    date: Date,
+    channelId: string,
+  ): Promise<MeetingSummary | null> => {
+    const startOfDay = new Date(date)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(date)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const result = await db
+      .select()
+      .from(meetingSummaries)
+      .where(
+        and(
+          eq(meetingSummaries.customerId, customerId),
+          eq(meetingSummaries.source, "slack"),
+          eq(meetingSummaries.slackChannelId, channelId),
+          gte(meetingSummaries.meetingDate, startOfDay),
+          lte(meetingSummaries.meetingDate, endOfDay),
+        ),
+      )
+      .orderBy(desc(meetingSummaries.meetingDate))
+      .limit(1)
+
+    return result[0] || null
+  },
+
   create: async (data: Partial<NewMeetingSummary>): Promise<MeetingSummary> => {
     const [meeting] = await db
       .insert(meetingSummaries)
@@ -89,6 +118,8 @@ export const meetingRepository = {
         source: data.source || "manual",
         slackTs: data.slackTs,
         slackChannelId: data.slackChannelId,
+        salesProposal: data.salesProposal,
+        customerMatchConfidence: data.customerMatchConfidence,
       })
       .returning()
     if (!meeting) throw new Error("Failed to create meeting summary")

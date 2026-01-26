@@ -13,12 +13,15 @@ import {
   slackRepository,
 } from "../repositories"
 import type {
+  FuzzyMatchResult,
+  MeetingSummary,
   ParsedMeetingNote,
   SalesMessageClassification,
   SalesUpdateData,
   SlackEvent,
   SlackMessage,
   SlackSettings,
+  ThreadContext,
 } from "../types"
 import { logger } from "../utils/logger"
 import { geminiService } from "./gemini.service"
@@ -331,11 +334,22 @@ class SlackEventService {
   private async handleMeetingNotesChannel(savedMessage: SlackMessage, event: SlackEvent) {
     logger.info("Processing Meeting Notes channel message")
 
-    // Phase 0: Check for exact duplicate by slackTs
+    // Phase 0: Check thread context first (NEW: thread-aware processing)
+    const threadContext = await this.getThreadContext(event)
+
+    // If this is a thread reply and parent already created a meeting, append to it
+    if (threadContext.isThreadReply && threadContext.existingMeeting) {
+      logger.info(
+        { parentTs: threadContext.parentTs, meetingId: threadContext.existingMeeting.id },
+        "Thread reply detected, appending to existing meeting",
+      )
+      return this.handleThreadReplyToMeeting(savedMessage, event, threadContext.existingMeeting)
+    }
+
+    // Phase 0.5: Check for exact duplicate by slackTs (for parent messages)
     const existingBySlackTs = await meetingRepository.findBySlackTs(event.ts)
     if (existingBySlackTs) {
       logger.info(`Meeting already exists for Slack message ${event.ts}, updating`)
-      // Update existing meeting with new content if provided
       const parsedNote = await geminiService.parseMeetingNote(event.text)
       if (parsedNote.meetingNote) {
         const appendedTranscription =
@@ -365,16 +379,37 @@ class SlackEventService {
       return { handled: true, reason: "no_company_name" }
     }
 
-    // Phase 1: Fuzzy lookup (waterfall)
+    // Phase 1: Fuzzy lookup with confidence scoring (waterfall)
     let customerId: string | null = null
     let createdNewCustomer = false
+    let matchConfidence: FuzzyMatchResult | null = null
 
-    // Try 1: Find by company name
-    customerId = await this.findCustomerByName(parsedNote.leadCompanyName)
+    // Try 1: Find by company name with confidence
+    matchConfidence = await this.findCustomerByNameWithConfidence(parsedNote.leadCompanyName)
+    if (matchConfidence) {
+      customerId = matchConfidence.customerId
+      logger.info(
+        {
+          searchTerm: parsedNote.leadCompanyName,
+          matchedCustomer: matchConfidence.customerName,
+          matchType: matchConfidence.matchType,
+          confidence: matchConfidence.confidence,
+        },
+        "Customer match found",
+      )
+    }
 
     // Try 2: Find via contacts if decision maker name provided
     if (!customerId && parsedNote.decisionMakerName) {
       customerId = await this.findCustomerByContactName(parsedNote.decisionMakerName)
+      if (customerId) {
+        matchConfidence = {
+          customerId,
+          customerName: parsedNote.decisionMakerName,
+          matchType: "contact",
+          confidence: 0.8, // Contact match has decent confidence
+        }
+      }
     }
 
     // Try 3: Create prospect → customer flow
@@ -384,36 +419,55 @@ class SlackEventService {
       createdNewCustomer = true
     }
 
-    // Phase 2: Find or create meeting with improved duplicate detection
-    let meeting: Awaited<ReturnType<typeof meetingRepository.create>>
+    // Phase 2: Find or create meeting with thread-aware duplicate detection
+    let meeting: MeetingSummary | undefined
     let isNewMeeting = false
 
-    // Try 1: Find existing meeting for this customer today (same day dedup)
-    const existingTodayMeeting = await meetingRepository.findByCustomerAndDate(
-      customerId,
-      new Date(),
-    )
+    // Priority 1: Check for thread parent's meeting (if this is orphan reply)
+    if (threadContext.isThreadReply && threadContext.parentTs) {
+      const parentMeeting = await meetingRepository.findBySlackTs(threadContext.parentTs)
+      if (parentMeeting) {
+        logger.info(`Found meeting via thread parent ${threadContext.parentTs}`)
+        meeting = parentMeeting
+      }
+    }
 
-    // Try 2: Find empty meeting (meeting without transcription)
-    const existingEmptyMeeting = !existingTodayMeeting
-      ? await this.findEmptyMeeting(customerId)
-      : null
+    // Priority 2: Find existing meeting for same channel today (more specific dedup)
+    if (!meeting) {
+      const existingTodayChannelMeeting = await meetingRepository.findByCustomerDateAndChannel(
+        customerId,
+        new Date(),
+        event.channel,
+      )
+      if (existingTodayChannelMeeting) {
+        logger.info(
+          `Found existing meeting for ${parsedNote.leadCompanyName} in same channel today`,
+        )
+        meeting = existingTodayChannelMeeting
+      }
+    }
 
-    if (existingTodayMeeting) {
-      logger.info(`Found existing meeting for ${parsedNote.leadCompanyName} today, updating`)
-      meeting = existingTodayMeeting
-    } else if (existingEmptyMeeting) {
-      logger.info(`Found empty meeting for ${parsedNote.leadCompanyName}, updating`)
-      meeting = existingEmptyMeeting
-    } else {
-      // Create new meeting with Slack source tracking
+    // Priority 3: Find empty meeting (meeting without transcription)
+    if (!meeting) {
+      const existingEmptyMeeting = await this.findEmptyMeeting(customerId)
+      if (existingEmptyMeeting) {
+        logger.info(`Found empty meeting for ${parsedNote.leadCompanyName}, updating`)
+        meeting = existingEmptyMeeting
+      }
+    }
+
+    // Priority 4: Create new meeting
+    if (!meeting) {
+      // Use thread parent's ts if this is a thread reply (for future thread replies)
+      const slackTsToUse = threadContext.parentTs || event.ts
       meeting = await meetingRepository.create({
         customerId,
         title: `${parsedNote.leadCompanyName} 미팅`,
         meetingDate: new Date(),
         source: "slack",
-        slackTs: event.ts,
+        slackTs: slackTsToUse,
         slackChannelId: event.channel,
+        customerMatchConfidence: matchConfidence ? JSON.stringify(matchConfidence) : undefined,
       })
       isNewMeeting = true
     }
@@ -428,14 +482,24 @@ class SlackEventService {
       // Update Slack tracking if this is an existing meeting being updated from Slack
       if (!isNewMeeting && !meeting.slackTs) {
         updateData.source = "slack"
-        updateData.slackTs = event.ts
+        updateData.slackTs = threadContext.parentTs || event.ts
         updateData.slackChannelId = event.channel
+      }
+
+      // Store sales proposal in meeting (not just customer notes)
+      if (parsedNote.salesProposal) {
+        updateData.salesProposal = parsedNote.salesProposal
+      }
+
+      // Store match confidence metadata
+      if (matchConfidence && !meeting.customerMatchConfidence) {
+        updateData.customerMatchConfidence = JSON.stringify(matchConfidence)
       }
 
       await meetingRepository.update(meeting.id, updateData)
     }
 
-    // Add sales proposal to customer notes
+    // Also append sales proposal to customer notes for backwards compatibility
     if (parsedNote.salesProposal) {
       const customer = await customerRepository.findById(customerId)
       const updatedNotes =
@@ -452,6 +516,8 @@ class SlackEventService {
       meetingId: meeting.id,
       createdNewCustomer,
       isNewMeeting,
+      isThreadReply: threadContext.isThreadReply,
+      matchConfidence: matchConfidence?.confidence,
       parsedData: parsedNote,
     }
   }
@@ -677,52 +743,6 @@ class SlackEventService {
     }
   }
 
-  // Helper: Fuzzy find customer by company name
-  private async findCustomerByName(companyName: string): Promise<string | null> {
-    // Try 1: Exact match (case-insensitive via SQL)
-    const exactMatch = await db
-      .select()
-      .from(customers)
-      .where(sql`LOWER(${customers.name}) = LOWER(${companyName})`)
-      .limit(1)
-
-    const firstExactMatch = exactMatch[0]
-    if (firstExactMatch) {
-      return firstExactMatch.id
-    }
-
-    // Try 2: Partial match (contains)
-    const partialMatches = await db
-      .select()
-      .from(customers)
-      .where(sql`LOWER(${customers.name}) LIKE LOWER(${`%${companyName}%`})`)
-      .limit(5)
-
-    if (partialMatches.length === 1) {
-      const match = partialMatches[0]
-      if (match) {
-        logger.info(`Fuzzy match found: "${companyName}" → "${match.name}"`)
-        return match.id
-      }
-    }
-
-    if (partialMatches.length > 1) {
-      const firstMatch = partialMatches[0]
-      if (firstMatch) {
-        logger.warn(
-          {
-            searchTerm: companyName,
-            matches: partialMatches.map((c) => c.name),
-          },
-          "Multiple fuzzy matches found - using first",
-        )
-        return firstMatch.id
-      }
-    }
-
-    return null
-  }
-
   // Helper: Find customer by contact name
   private async findCustomerByContactName(contactName: string): Promise<string | null> {
     const contacts = await db
@@ -823,6 +843,187 @@ class SlackEventService {
       .limit(1)
 
     return meetings[0] || null
+  }
+
+  // Helper: Get thread context for a Slack message
+  private async getThreadContext(event: SlackEvent): Promise<ThreadContext> {
+    // If this message has a thread_ts different from its ts, it's a reply
+    const isThreadReply = !!event.thread_ts && event.thread_ts !== event.ts
+
+    if (!isThreadReply) {
+      return {
+        isThreadReply: false,
+        parentTs: null,
+        parentMessage: null,
+        existingMeeting: null,
+      }
+    }
+
+    // At this point, we know event.thread_ts is defined (checked above)
+    const threadTs = event.thread_ts as string
+
+    // Find parent message
+    const parentMessage = await slackRepository.findBySlackTs(threadTs)
+
+    // Find meeting created from parent (using parent's slackTs)
+    const existingMeeting = await meetingRepository.findBySlackTs(threadTs)
+
+    return {
+      isThreadReply: true,
+      parentTs: threadTs,
+      parentMessage,
+      existingMeeting,
+    }
+  }
+
+  // Handler for thread replies to existing meetings
+  private async handleThreadReplyToMeeting(
+    savedMessage: SlackMessage,
+    event: SlackEvent,
+    existingMeeting: MeetingSummary,
+  ): Promise<Record<string, unknown>> {
+    const parsedNote = await geminiService.parseMeetingNote(event.text)
+
+    // Append new content to existing meeting
+    const timestamp = new Date().toLocaleString("ko-KR")
+    const appendedTranscription =
+      `${existingMeeting.transcription || ""}\n\n[Thread Reply - ${timestamp}]\n${parsedNote.meetingNote || event.text}`.trim()
+
+    const updateData: Parameters<typeof meetingRepository.update>[1] = {
+      transcription: appendedTranscription,
+    }
+
+    // Update summary if new note provides more detail
+    if (parsedNote.meetingNote) {
+      updateData.summary = parsedNote.meetingNote.substring(0, 500)
+    }
+
+    // Handle salesProposal from reply - store in meeting
+    if (parsedNote.salesProposal) {
+      const existingSalesProposal = existingMeeting.salesProposal || ""
+      updateData.salesProposal =
+        `${existingSalesProposal}\n\n[Thread Reply - ${timestamp}]\n${parsedNote.salesProposal}`.trim()
+    }
+
+    await meetingRepository.update(existingMeeting.id, updateData)
+
+    await slackRepository.markProcessed(savedMessage.id, {
+      customerId: existingMeeting.customerId,
+    })
+
+    return {
+      handled: true,
+      channelType: "MEETING_NOTES",
+      customerId: existingMeeting.customerId,
+      meetingId: existingMeeting.id,
+      isThreadReply: true,
+      action: "appended_to_existing",
+    }
+  }
+
+  // Fuzzy find customer by company name with confidence scoring
+  private async findCustomerByNameWithConfidence(
+    searchName: string,
+  ): Promise<FuzzyMatchResult | null> {
+    // Try 1: Exact match (confidence: 1.0)
+    const exactMatch = await db
+      .select()
+      .from(customers)
+      .where(sql`LOWER(${customers.name}) = LOWER(${searchName})`)
+      .limit(1)
+
+    if (exactMatch[0]) {
+      return {
+        customerId: exactMatch[0].id,
+        customerName: exactMatch[0].name,
+        matchType: "exact",
+        confidence: 1.0,
+      }
+    }
+
+    // Try 2: Partial match with confidence scoring
+    const partialMatches = await db
+      .select()
+      .from(customers)
+      .where(sql`LOWER(${customers.name}) LIKE LOWER(${`%${searchName}%`})`)
+      .limit(10)
+
+    if (partialMatches.length === 0) {
+      return null
+    }
+
+    // Calculate confidence scores using string similarity
+    const scoredMatches = partialMatches.map((customer) => ({
+      customerId: customer.id,
+      customerName: customer.name,
+      confidence: this.calculateStringSimilarity(searchName, customer.name),
+    }))
+
+    // Sort by confidence descending
+    scoredMatches.sort((a, b) => b.confidence - a.confidence)
+
+    const bestMatch = scoredMatches[0]
+
+    // Guard check (should not happen since we check partialMatches.length above)
+    if (!bestMatch) {
+      return null
+    }
+
+    // If confidence is too low, log a warning
+    if (bestMatch.confidence < 0.5) {
+      logger.warn(
+        {
+          searchTerm: searchName,
+          bestMatch: bestMatch.customerName,
+          confidence: bestMatch.confidence,
+        },
+        "Low confidence fuzzy match - may need manual review",
+      )
+    }
+
+    // Collect high-confidence alternatives
+    const highConfidenceMatches = scoredMatches.filter((m) => m.confidence > 0.7)
+
+    return {
+      customerId: bestMatch.customerId,
+      customerName: bestMatch.customerName,
+      matchType: "partial",
+      confidence: bestMatch.confidence,
+      alternativeMatches:
+        highConfidenceMatches.length > 1 ? highConfidenceMatches.slice(1) : undefined,
+    }
+  }
+
+  // String similarity using Dice coefficient
+  private calculateStringSimilarity(str1: string, str2: string): number {
+    const s1 = str1.toLowerCase()
+    const s2 = str2.toLowerCase()
+
+    if (s1 === s2) return 1.0
+    if (s1.length === 0 || s2.length === 0) return 0.0
+
+    // Check if one contains the other
+    if (s2.includes(s1)) return 0.9
+    if (s1.includes(s2)) return 0.85
+
+    // Bigram comparison for partial similarity
+    const getBigrams = (s: string) => {
+      const bigrams = new Set<string>()
+      for (let i = 0; i < s.length - 1; i++) {
+        bigrams.add(s.substring(i, i + 2))
+      }
+      return bigrams
+    }
+
+    const bigrams1 = getBigrams(s1)
+    const bigrams2 = getBigrams(s2)
+
+    let intersection = 0
+    bigrams1.forEach((bg) => {
+      if (bigrams2.has(bg)) intersection++
+    })
+
+    return (2 * intersection) / (bigrams1.size + bigrams2.size)
   }
 }
 
