@@ -3,6 +3,7 @@ import { config } from "../config"
 import { db } from "../db"
 import { customerContacts, customers, meetingSummaries } from "../db/schema"
 import {
+  attachmentRepository,
   contactRepository,
   customerRepository,
   followUpRepository,
@@ -24,6 +25,7 @@ import type {
   ThreadContext,
 } from "../types"
 import { logger } from "../utils/logger"
+import { fileProcessingService } from "./file-processing.service"
 import { geminiService } from "./gemini.service"
 
 class SlackEventService {
@@ -66,6 +68,9 @@ class SlackEventService {
     if (config.SALES_CHANNEL_ID) {
       this.channelHandlers.set(config.SALES_CHANNEL_ID, this.handleSalesChannel.bind(this))
     }
+
+    // Initialize file processing service with Gemini fallback for image analysis
+    fileProcessingService.initialize(geminiService.analyzeImage.bind(geminiService))
 
     this.initialized = true
   }
@@ -265,7 +270,38 @@ class SlackEventService {
   private async handleCSChannel(savedMessage: SlackMessage, event: SlackEvent) {
     logger.info("Processing CS channel message")
 
-    const parsedData = await geminiService.parseCSInquiry(event.text)
+    // Process file attachments if present
+    let fileContent = ""
+    let processedFiles: Array<{
+      fileId: string
+      fileName: string
+      mimetype: string
+      text: string | null
+      error: string | null
+    }> = []
+
+    if (event.files && event.files.length > 0) {
+      logger.info({ fileCount: event.files.length }, "Processing file attachments")
+      const fileResult = await fileProcessingService.processSlackFiles(event.files)
+      fileContent = fileResult.combinedText
+      processedFiles = fileResult.files
+      logger.info(
+        {
+          totalFiles: event.files.length,
+          successfulFiles: processedFiles.filter((f) => !f.error).length,
+          processingTimeMs: fileResult.totalProcessingTimeMs,
+        },
+        "File processing complete",
+      )
+    }
+
+    // Combine message text with extracted file content
+    const combinedText = fileContent
+      ? `${event.text}\n\n[Attached Files Content]\n${fileContent}`
+      : event.text
+
+    // Parse with combined content (AI now sees message + all file contents)
+    const parsedData = await geminiService.parseCSInquiry(combinedText)
 
     if (!parsedData.companyName) {
       await slackRepository.markProcessed(savedMessage.id)
@@ -321,12 +357,33 @@ class SlackEventService {
 
     await slackRepository.markProcessed(savedMessage.id, { prospectId: prospect.id })
 
+    // Store attachment metadata if files were processed
+    if (processedFiles.length > 0) {
+      const attachmentRecords = processedFiles.map((file) => ({
+        fileName: file.fileName,
+        fileType: file.mimetype,
+        fileUrl: `slack://file/${file.fileId}`,
+        entityType: "slack_message" as const,
+        entityId: savedMessage.id,
+        metadata: JSON.stringify({
+          slackFileId: file.fileId,
+          extractedText: file.text?.substring(0, 5000), // Limit stored text
+          processingError: file.error,
+        }),
+        description: file.text ? "Processed successfully" : file.error || "Processing failed",
+      }))
+
+      await attachmentRepository.createBulk(attachmentRecords)
+    }
+
     return {
       handled: true,
       channelType: "CS",
       prospectId: prospect.id,
       isNewProspect,
       parsedData,
+      attachmentsProcessed: processedFiles.length,
+      attachmentErrors: processedFiles.filter((f) => f.error).length,
     }
   }
 

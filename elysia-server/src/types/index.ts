@@ -101,6 +101,7 @@ export interface SlackEvent {
   deleted_ts?: string
   message?: SlackEventMessage
   previous_message?: SlackEventMessage
+  files?: SlackFile[]
 }
 
 export interface SlackChannelMessage {
@@ -118,6 +119,8 @@ export interface SlackFile {
   name: string
   mimetype: string
   url: string
+  url_private_download?: string
+  size?: number
 }
 
 export interface SlackReply {

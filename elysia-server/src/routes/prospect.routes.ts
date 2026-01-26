@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia"
-import { customerRepository, prospectRepository } from "../repositories"
+import { customerRepository, prospectRepository, slackRepository } from "../repositories"
 import { ErrorCode, error, success, successList } from "../utils/response"
 
 export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
@@ -226,6 +226,9 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
 
       // Mark prospect as converted
       await prospectRepository.markAsConverted(params.id, customer.id)
+
+      // Update Slack messages linked to this prospect with the new customer ID
+      await slackRepository.updateCustomerIdByProspect(params.id, customer.id)
 
       return success({
         customer,

@@ -735,6 +735,48 @@ ${messageText}
       }
     )
   }
+
+  /**
+   * Analyze an image using Gemini Vision API
+   * Used as fallback when Tesseract OCR confidence is low
+   */
+  async analyzeImage(buffer: Buffer, mimetype: string, fileName: string): Promise<string> {
+    this.initialize()
+
+    if (!this.model) {
+      throw new Error("Gemini model not available")
+    }
+
+    try {
+      // Convert buffer to base64
+      const base64Data = buffer.toString("base64")
+
+      // Create the image part for Gemini multimodal
+      const imagePart = {
+        inlineData: {
+          data: base64Data,
+          mimeType: mimetype,
+        },
+      }
+
+      const prompt = `이 이미지를 분석해주세요. 이미지에 있는 모든 텍스트, 표, 차트, 그리고 중요한 시각적 정보를 추출해주세요. 비즈니스 문서인 경우 핵심 내용을 요약해주세요.
+
+이미지 파일명: ${fileName}
+
+다음 형식으로 응답해주세요:
+[이미지 유형]: (예: 명함, 계약서, 인포그래픽, 사진 등)
+[추출된 텍스트]: (이미지에서 읽을 수 있는 모든 텍스트)
+[핵심 정보]: (중요한 정보 요약)`
+
+      const result = await this.model.generateContent([prompt, imagePart])
+      const response = await result.response
+      return response.text()
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      logger.error({ error: errorMsg, fileName }, "Image analysis with Gemini failed")
+      throw new Error(`Image analysis failed: ${errorMsg}`)
+    }
+  }
 }
 
 export const geminiService = new GeminiService()

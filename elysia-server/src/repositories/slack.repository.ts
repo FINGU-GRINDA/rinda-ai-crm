@@ -299,4 +299,22 @@ export const slackRepository = {
       )
     return (unprocessed[0]?.count || 0) === 0
   },
+
+  /**
+   * Update customerId for all messages linked to a prospect
+   * Used when a prospect is converted to a customer
+   */
+  updateCustomerIdByProspect: async (prospectId: string, customerId: string): Promise<number> => {
+    const result = await db
+      .update(slackMessages)
+      .set({ customerId })
+      .where(eq(slackMessages.prospectId, prospectId))
+      .returning({ id: slackMessages.id })
+
+    logger.info(
+      { prospectId, customerId, updatedCount: result.length },
+      "Updated Slack messages with new customer ID",
+    )
+    return result.length
+  },
 }

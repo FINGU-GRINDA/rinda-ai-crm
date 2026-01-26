@@ -1,3 +1,4 @@
+export { attachmentRepository } from "./attachment.repository"
 export { contactRepository } from "./contact.repository"
 export { customerRepository } from "./customer.repository"
 export { emailRepository } from "./email.repository"
