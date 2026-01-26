@@ -1,13 +1,10 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { Customer, CustomerStatus, Prospect } from '../types';
+import { Customer, CustomerStatus } from '../types';
 import {
   IconBuilding,
   IconFileText,
   IconArrowRight,
   IconBrain,
-  IconSparkles,
-  IconTrendingUp,
-  IconNews,
   IconTrash
 } from './Icons';
 
@@ -42,7 +39,6 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
 };
 
 export const KANBAN_COLUMNS: { id: CustomerStatus; title: string; accent: string }[] = [
-  { id: 'prospect', title: '발굴 고객', accent: 'border-l-purple-500' },
   { id: 'new', title: '새로운 고객', accent: 'border-l-slate-400' },
   { id: 'contact', title: '연락 중', accent: 'border-l-blue-500' },
   { id: 'negotiation', title: '제안 검토', accent: 'border-l-indigo-600' },
@@ -55,7 +51,6 @@ interface KanbanBoardProps {
   selectedCustomerId: string | null;
   onSelectCustomer: (customerId: string) => void;
   onDeleteCustomer: (customer: Customer) => void;
-  onConvertProspect: (prospectId: string) => void;
   onStatusChange: (customerId: string, newStatus: CustomerStatus) => Promise<void>;
   onAddCustomer?: () => void;
 }
@@ -65,7 +60,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   selectedCustomerId,
   onSelectCustomer,
   onDeleteCustomer,
-  onConvertProspect,
   onStatusChange,
   onAddCustomer,
 }) => {
@@ -106,7 +100,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   // Empty state component with contextual messages
   const EmptyState: React.FC<{ columnId: CustomerStatus }> = ({ columnId }) => {
     const messages: Record<CustomerStatus, { title: string; subtitle?: string; showCTA: boolean }> = {
-      prospect: { title: '발굴된 고객이 없습니다', subtitle: 'ICP 설정에서 자동 수집을 활성화하세요', showCTA: false },
       new: { title: '신규 고객이 없습니다', subtitle: '고객을 추가하거나 프로스펙트를 전환하세요', showCTA: true },
       contact: { title: '연락 중인 고객이 없습니다', subtitle: '신규 고객을 이 단계로 드래그하세요', showCTA: false },
       negotiation: { title: '제안 검토 중인 고객이 없습니다', subtitle: '제안서를 보낸 고객을 여기로 이동하세요', showCTA: false },
@@ -145,17 +138,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     customer: Customer;
     showDragHandle?: boolean;
   }> = ({ customer, showDragHandle = true }) => {
-    const isProspect = customer.status === 'prospect';
-    const prospectData = (customer as any).prospectData;
-
     return (
       <div
         key={customer.id}
         role="button"
         aria-label={`${customer.name} - ${customer.industry}`}
         tabIndex={0}
-        draggable={!isProspect && showDragHandle}
-        onDragStart={!isProspect && showDragHandle ? (e) => handleDragStart(e, customer.id) : undefined}
+        draggable={showDragHandle}
+        onDragStart={showDragHandle ? (e) => handleDragStart(e, customer.id) : undefined}
         onClick={() => onSelectCustomer(customer.id)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -163,25 +153,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             onSelectCustomer(customer.id);
           }
         }}
-        className={`bg-white p-4 rounded-lg shadow-sm border ${
-          isProspect
-            ? 'border-neutral-300 cursor-pointer'
-            : 'border-neutral-200 cursor-grab active:cursor-grabbing'
-        } hover:shadow-md hover:border-blue-600 hover:-translate-y-0.5 transition-all group select-none ${
+        className={`bg-white p-4 rounded-lg shadow-sm border border-neutral-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-blue-600 hover:-translate-y-0.5 transition-all group select-none ${
           draggedCustomerId === customer.id ? 'opacity-50 grayscale scale-95 ring-2 ring-blue-100' : ''
         } ${selectedCustomerId === customer.id ? 'ring-2 ring-blue-600 border-blue-600' : ''}`}
       >
         <div className="flex justify-between items-start mb-2">
           <h4 className="font-semibold text-slate-800 text-sm flex-1">{customer.name}</h4>
           <div className="flex items-center gap-1">
-            {isProspect && prospectData && (
-              <Tooltip text={`신호 강도: ${prospectData.signalStrength === 'high' ? '높음' : prospectData.signalStrength === 'medium' ? '중간' : '낮음'}`}>
-                <IconTrendingUp className={`w-4 h-4 flex-shrink-0 ${
-                  prospectData.signalStrength === 'high' ? 'text-neutral-900' :
-                  prospectData.signalStrength === 'medium' ? 'text-neutral-600' : 'text-neutral-400'
-                }`} />
-              </Tooltip>
-            )}
             {customer.enrichedData && (
               <Tooltip text="AI 분석 완료">
                 <IconBrain className="w-4 h-4 text-blue-600 flex-shrink-0 ml-2" />
@@ -204,17 +182,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <span className="text-xs text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded">{customer.industry}</span>
-          {isProspect && prospectData && (
-            <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${
-              prospectData.signalStrength === 'high' ? 'bg-neutral-900 text-white' :
-              prospectData.signalStrength === 'medium' ? 'bg-neutral-700 text-white' :
-              'bg-neutral-200 text-neutral-700'
-            }`}>
-              <IconSparkles className="w-3 h-3" />
-              {prospectData.signalStrength === 'high' ? '높음' :
-               prospectData.signalStrength === 'medium' ? '중간' : '낮음'}
-            </span>
-          )}
           {customer.proposals.length > 0 && (
             <span className="text-xs text-neutral-700 bg-neutral-200 px-2 py-0.5 rounded flex items-center gap-1">
               <IconFileText className="w-3 h-3" />
@@ -223,58 +190,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           )}
         </div>
 
-        {isProspect && prospectData?.sourceArticle?.uri && (
-          <div className="bg-neutral-100 p-2 rounded text-[11px] text-neutral-800 leading-snug mb-2 border border-neutral-200">
-            <div className="flex items-start gap-1 mb-1">
-              <IconNews className="w-3 h-3 mt-0.5 flex-shrink-0" />
-              <span className="font-semibold">출처: </span>
-              <a
-                href={prospectData.sourceArticle.uri}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:underline truncate text-blue-600"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {prospectData.sourceArticle.title || 'Source Article'}
-              </a>
-            </div>
-            {prospectData.notes && (
-              <div className="text-neutral-700 line-clamp-2 mt-1">
-                {prospectData.notes}
-              </div>
-            )}
-          </div>
-        )}
-
-        {!isProspect && customer.enrichedData?.salesOpportunity ? (
+        {customer.enrichedData?.salesOpportunity ? (
           <div className="bg-blue-50 p-2 rounded text-[11px] text-neutral-800 leading-snug line-clamp-2 mb-2 border border-blue-100">
             <span className="font-semibold">💡 AI 인사이트: </span>
             {customer.enrichedData.salesOpportunity}
           </div>
-        ) : !isProspect && (
+        ) : (
           <div className="text-xs text-neutral-400 italic mb-2">AI 분석을 실행해보세요</div>
         )}
 
         <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-50">
-          <span>
-            {isProspect && prospectData
-              ? formatSafeDate(prospectData.detectedAt)
-              : formatSafeDate(undefined)
-            }
-          </span>
-          {isProspect ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onConvertProspect(customer.id);
-              }}
-              className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors"
-            >
-              고객 등록
-            </button>
-          ) : (
-            <IconArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity" />
-          )}
+          <span>{formatSafeDate(undefined)}</span>
+          <IconArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity" />
         </div>
       </div>
     );

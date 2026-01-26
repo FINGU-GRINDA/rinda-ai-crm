@@ -148,6 +148,44 @@ export const customerRoutes = new Elysia({ prefix: "/api/customers" })
     },
   )
 
+  // Update customer status
+  .put(
+    "/:id/status",
+    async ({ params, body, set }) => {
+      // If status is 'lost', use markAsLost for proper handling
+      if (body.status === "lost") {
+        const customer = await customerRepository.markAsLost(params.id, body.lostReason || "")
+        if (!customer) {
+          set.status = 404
+          return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
+        }
+        return success(customer)
+      }
+
+      // For other statuses, use regular update
+      const customer = await customerRepository.update(params.id, { status: body.status })
+      if (!customer) {
+        set.status = 404
+        return error("Customer not found", ErrorCode.CUSTOMER_NOT_FOUND)
+      }
+      return success(customer)
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        status: t.Union([
+          t.Literal("prospect"),
+          t.Literal("new"),
+          t.Literal("contact"),
+          t.Literal("negotiation"),
+          t.Literal("won"),
+          t.Literal("lost"),
+        ]),
+        lostReason: t.Optional(t.String()),
+      }),
+    },
+  )
+
   // Get customer contacts
   .get(
     "/:id/contacts",

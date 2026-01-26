@@ -199,13 +199,14 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
       }
 
       // Create customer from prospect
+      // Use the parsed lead source from prospect, fallback to "Slack CS Channel"
       const customer = await customerRepository.create({
         name: prospect.companyName,
         website: prospect.website,
         industry: prospect.industry,
         notes: prospect.notes,
         status: body.status || "new",
-        leadSource: prospect.sourceArticle?.title || "Prospect",
+        leadSource: prospect.sourceArticle?.title || "Slack CS Channel",
         initialInquiry: prospect.notes,
         landingPageUrl: prospect.landingPageUrl,
       })

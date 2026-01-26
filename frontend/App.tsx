@@ -142,7 +142,8 @@ export const AppDashboard: React.FC = () => {
   const tabCounts = useMemo(() => ({
     customers: customers.length,
     prospects: prospects.length,
-    meetings: meetings.length
+    meetings: meetings.length,
+    icp: 0 // Coming soon - no data yet
   }), [customers, prospects, meetings]);
 
   // Statistics
@@ -821,9 +822,12 @@ export const AppDashboard: React.FC = () => {
             <ProspectsBoard
               prospects={prospects}
               onSelectProspect={(prospectId) => {
-                console.log('Selected prospect:', prospectId);
+                const prospect = prospects.find(p => p.id === prospectId);
+                if (prospect) {
+                  // Handle prospect selection if needed
+                }
               }}
-              onConvertToCustomer={handleConvertProspectToCustomer}
+              onConvertProspect={handleConvertProspectToCustomer}
               onDismissProspect={handleDismissProspect}
             />
           ) : activeTab === 'meetings' ? (
@@ -833,6 +837,15 @@ export const AppDashboard: React.FC = () => {
               loading={meetingsLoading}
               onRefresh={fetchMeetings}
             />
+          ) : activeTab === 'icp' ? (
+            <div className="flex flex-col items-center justify-center h-full py-20">
+              <div className="text-6xl mb-4">🚀</div>
+              <h2 className="text-2xl font-bold text-slate-700 mb-2">Coming Soon</h2>
+              <p className="text-slate-500 text-center max-w-md">
+                발굴 고객 기능이 곧 출시됩니다.<br/>
+                AI 기반 잠재 고객 발굴 기능을 준비 중입니다.
+              </p>
+            </div>
           ) : filteredCustomers.length === 0 && searchQuery ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

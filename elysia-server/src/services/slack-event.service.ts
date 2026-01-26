@@ -186,8 +186,49 @@ class SlackEventService {
         return { handled: false, reason: "missing_deleted_ts" }
       }
 
-      logger.info(`Message deleted: ${deletedTs} in channel ${channelId}`)
+      logger.info({ deletedTs, channelId }, "Processing message deletion with cascade")
 
+      // Find the message to get linked customer/prospect IDs before deleting
+      const slackMessage = await slackRepository.findBySlackTs(deletedTs)
+
+      let deletedCustomerId: string | null = null
+      let deletedProspectId: string | null = null
+
+      if (slackMessage) {
+        // Cascade delete: Delete linked customer if exists
+        if (slackMessage.customerId) {
+          logger.info(
+            { customerId: slackMessage.customerId, slackTs: deletedTs },
+            "Cascade deleting customer linked to deleted Slack message",
+          )
+          await customerRepository.delete(slackMessage.customerId)
+          deletedCustomerId = slackMessage.customerId
+        }
+
+        // Cascade delete: Delete linked prospect if exists
+        if (slackMessage.prospectId) {
+          logger.info(
+            { prospectId: slackMessage.prospectId, slackTs: deletedTs },
+            "Cascade deleting prospect linked to deleted Slack message",
+          )
+          await prospectRepository.delete(slackMessage.prospectId)
+          deletedProspectId = slackMessage.prospectId
+        }
+
+        // Delete attachments linked to this message
+        const deletedAttachments = await attachmentRepository.deleteByEntity(
+          "slack_message",
+          slackMessage.id,
+        )
+        if (deletedAttachments > 0) {
+          logger.info(
+            { count: deletedAttachments, slackMessageId: slackMessage.id },
+            "Deleted attachments linked to Slack message",
+          )
+        }
+      }
+
+      // Mark the slack message as deleted
       const marked = await slackRepository.markDeleted(deletedTs, channelId)
 
       return {
@@ -197,6 +238,10 @@ class SlackEventService {
         channelId,
         found: marked,
         previousText: previousMessage?.text,
+        cascadeDeleted: {
+          customerId: deletedCustomerId,
+          prospectId: deletedProspectId,
+        },
       }
     } catch (error) {
       const errorMsg2 = error instanceof Error ? error.message : String(error)
@@ -309,6 +354,7 @@ class SlackEventService {
     }
 
     // Use findOrCreate to prevent duplicate prospects (race-condition safe)
+    // Use AI-parsed leadSource if available, fallback to "Slack CS Channel"
     const { prospect, created: isNewProspect } = await prospectRepository.findOrCreate({
       companyName: parsedData.companyName,
       contactName: parsedData.contactName || undefined,
@@ -318,7 +364,7 @@ class SlackEventService {
       notes: parsedData.inquiryDetails || `[Slack CS]\n${event.text}`,
       landingPageUrl: parsedData.landingPageUrl || undefined,
       signalStrength: "medium",
-      sourceTitle: "Slack CS Channel",
+      sourceTitle: parsedData.leadSource || "Slack CS Channel",
       sourceUri: `slack://channel/${event.channel}/${event.ts}`,
     })
 
