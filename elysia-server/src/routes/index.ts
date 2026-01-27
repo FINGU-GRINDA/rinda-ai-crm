@@ -15,6 +15,7 @@ import { notificationRoutes } from "./notification.routes"
 import { prospectRoutes } from "./prospect.routes"
 import { settingsRoutes } from "./settings.routes"
 import { slackApiRoutes } from "./slack-api.routes"
+import { slackBackfillRoutes } from "./slack-backfill.routes"
 import { slackEventRoutes } from "./slack-event.routes"
 
 export const routes = new Elysia()
@@ -37,6 +38,7 @@ export const routes = new Elysia()
   // Integration routes
   .use(aiRoutes)
   .use(slackApiRoutes)
+  .use(slackBackfillRoutes)
   .use(slackEventRoutes)
   .use(gmailRoutes)
   .use(calendarRoutes)

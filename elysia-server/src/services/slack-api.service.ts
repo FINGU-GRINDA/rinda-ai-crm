@@ -4,7 +4,7 @@ import type { Channel } from "@slack/web-api/dist/types/response/ConversationsIn
 import type { Channel as ListChannel } from "@slack/web-api/dist/types/response/ConversationsListResponse"
 import type { User as SlackUser } from "@slack/web-api/dist/types/response/UsersInfoResponse"
 import { config } from "../config"
-import type { SlackChannelMessage, SlackFile, SlackReply } from "../types"
+import type { SlackChannelMessage, SlackReply } from "../types"
 import { logger } from "../utils/logger"
 
 class SlackApiService {
@@ -34,6 +34,9 @@ class SlackApiService {
     options: {
       limit?: number
       includeReplies?: boolean
+      oldest?: string // Unix timestamp (seconds) - fetch messages after this
+      latest?: string // Unix timestamp (seconds) - fetch messages before this
+      cursor?: string // Pagination cursor for next page
     } = {},
   ): Promise<{
     messages: Array<{
@@ -47,6 +50,8 @@ class SlackApiService {
         name: string
         mimetype: string
         url: string
+        url_private_download?: string
+        size?: number
       }>
       replies?: Array<{
         ts: string
@@ -55,6 +60,7 @@ class SlackApiService {
       }>
     }>
     hasMore: boolean
+    nextCursor?: string
   }> {
     this.initialize()
 
@@ -62,12 +68,15 @@ class SlackApiService {
       throw new Error("Slack API client not available")
     }
 
-    const { limit = 10, includeReplies = false } = options
+    const { limit = 10, includeReplies = false, oldest, latest, cursor } = options
 
     try {
       const result = await this.client.conversations.history({
         channel: channelId,
         limit,
+        oldest,
+        latest,
+        cursor,
       })
 
       const messages: SlackChannelMessage[] = await Promise.all(
@@ -82,14 +91,14 @@ class SlackApiService {
 
           // Include files if present
           if (msg.files && msg.files.length > 0) {
-            message.files = msg.files.map(
-              (f): SlackFile => ({
-                id: f.id || "",
-                name: f.name || "",
-                mimetype: f.mimetype || "",
-                url: f.url_private || f.permalink || "",
-              }),
-            )
+            message.files = msg.files.map((f) => ({
+              id: f.id || "",
+              name: f.name || "",
+              mimetype: f.mimetype || "",
+              url: f.url_private || f.permalink || "",
+              url_private_download: f.url_private_download,
+              size: f.size,
+            }))
           }
 
           // Fetch replies if requested and message has replies
@@ -122,6 +131,7 @@ class SlackApiService {
       return {
         messages,
         hasMore: result.has_more || false,
+        nextCursor: result.response_metadata?.next_cursor,
       }
     } catch (error) {
       const errorMsg1 = error instanceof Error ? error.message : String(error)

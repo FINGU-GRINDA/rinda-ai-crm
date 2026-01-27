@@ -149,6 +149,8 @@ class SlackEventService {
   }
 
   async processMonitoredChannelMessage(savedMessage: SlackMessage, event: SlackEvent) {
+    this.ensureInitialized()
+
     try {
       const channelId = event.channel
       const handler = this.channelHandlers.get(channelId)
