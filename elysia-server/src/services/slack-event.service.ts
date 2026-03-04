@@ -27,6 +27,7 @@ import type {
 import { logger } from "../utils/logger"
 import { fileProcessingService } from "./file-processing.service"
 import { geminiService } from "./gemini.service"
+import { slackApiService } from "./slack-api.service"
 
 class SlackEventService {
   private monitoredChannels: Set<string> | null = null
@@ -316,6 +317,17 @@ class SlackEventService {
   // CS Channel Handler
   private async handleCSChannel(savedMessage: SlackMessage, event: SlackEvent) {
     logger.info("Processing CS channel message")
+
+    // Reply to the CS channel message, mentioning openclaw bot to research the lead
+    if (config.OPENCLAW_BOT_USER_ID) {
+      await slackApiService.postMessage(
+        event.channel,
+        `<@${config.OPENCLAW_BOT_USER_ID}> verify the potential client's scale and credibility, such as their website link, revenue size, etc..`,
+        {
+          threadTs: event.thread_ts || event.ts,
+        },
+      )
+    }
 
     // Process file attachments if present
     let fileContent = ""

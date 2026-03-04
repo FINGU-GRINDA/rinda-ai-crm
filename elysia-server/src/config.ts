@@ -40,6 +40,7 @@ const configSchema = z.object({
   CS_CHANNEL_ID: z.string().optional(),
   SALES_CHANNEL_ID: z.string().optional(),
   MEETING_NOTES_CHANNEL_ID: z.string().optional(),
+  OPENCLAW_BOT_USER_ID: z.string().optional(),
 
   // Google OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
