@@ -52,7 +52,7 @@ interface NotificationSettingsTabProps {
 }
 
 export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = ({
-  onSettingsChange,
+  onSettingsChange: _onSettingsChange,
 }) => {
   const [settings, setSettings] = useState<NotificationSettings>(() => getNotificationSettings())
 

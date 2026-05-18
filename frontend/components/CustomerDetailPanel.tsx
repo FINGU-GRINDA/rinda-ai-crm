@@ -639,7 +639,7 @@ const MeetingTabContent: React.FC<{
   loading: boolean
   onMeetingClick: (meeting: MeetingSummary) => void
   onRefresh: () => void
-}> = ({ customer, meetings, loading, onMeetingClick, onRefresh }) => {
+}> = ({ customer: _customer, meetings, loading, onMeetingClick, onRefresh }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
