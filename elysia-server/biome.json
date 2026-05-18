@@ -34,12 +34,12 @@
         "noUselessConstructor": "off"
       },
       "style": {
-        "noNonNullAssertion": "warn",
+        "noNonNullAssertion": "error",
         "useConst": "error",
         "useTemplate": "error"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "error",
         "noArrayIndexKey": "off"
       },
       "correctness": {
