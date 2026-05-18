@@ -1,5 +1,13 @@
+import type { ApiResponse } from "../../elysia-server/src/types/api"
 import { apiClient } from "../src/services/apiClient"
 import type { EnrichedData, ImageSize } from "../types"
+
+interface AiGenerateResult {
+  content?: string
+}
+
+const getErrorMessageFrom = (error: unknown): string =>
+  error instanceof Error ? error.message : ""
 
 // 1. Customer Enrichment using backend API
 export const enrichCustomerData = async (
@@ -25,12 +33,12 @@ export const enrichCustomerData = async (
 }
 `
 
-    const response = await apiClient.request("/api/ai/generate", {
+    const response = await apiClient.request<ApiResponse<AiGenerateResult>>("/api/ai/generate", {
       method: "POST",
       body: JSON.stringify({ prompt }),
     })
 
-    const result = (response as any).data || {}
+    const result = response.success ? response.data : {}
     const text = result.content || ""
 
     // Extract JSON from response
@@ -39,28 +47,31 @@ export const enrichCustomerData = async (
       throw new Error("AI 응답에서 JSON을 찾을 수 없습니다.")
     }
 
-    const data = JSON.parse(jsonMatch[0])
+    const data: Record<string, unknown> = JSON.parse(jsonMatch[0])
 
     return {
-      summary: data.summary || "",
-      ceo: data.ceo || "",
-      foundedYear: data.foundedYear || "",
-      recentNews: data.recentNews || [],
-      competitors: data.competitors || [],
-      salesOpportunity: data.salesOpportunity || "",
-      sources: data.sources || [],
+      summary: typeof data.summary === "string" ? data.summary : "",
+      ceo: typeof data.ceo === "string" ? data.ceo : "",
+      foundedYear: typeof data.foundedYear === "string" ? data.foundedYear : "",
+      recentNews: Array.isArray(data.recentNews) ? (data.recentNews as string[]) : [],
+      competitors: Array.isArray(data.competitors) ? (data.competitors as string[]) : [],
+      salesOpportunity: typeof data.salesOpportunity === "string" ? data.salesOpportunity : "",
+      sources: Array.isArray(data.sources)
+        ? (data.sources as { title: string; uri: string }[])
+        : [],
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Enrichment failed:", error)
 
-    // Provide more specific error messages
-    if (error?.message?.includes("AI service not available")) {
+    const message = getErrorMessageFrom(error)
+
+    if (message.includes("AI service not available")) {
       throw new Error(
         "AI 서비스를 사용할 수 없습니다. 서버의 Gemini API 키가 설정되어 있는지 확인해주세요.",
       )
     }
 
-    throw new Error(error.message || "고객 정보 수집에 실패했습니다.")
+    throw new Error(message || "고객 정보 수집에 실패했습니다.")
   }
 }
 
@@ -88,23 +99,25 @@ ${userNotes || "없음"}
 제안서를 Markdown 형식으로 작성해주세요:
 `
 
-    const response = await apiClient.request("/api/ai/generate", {
+    const response = await apiClient.request<ApiResponse<AiGenerateResult>>("/api/ai/generate", {
       method: "POST",
       body: JSON.stringify({ prompt }),
     })
 
-    const result = (response as any).data || {}
+    const result = response.success ? response.data : {}
     return result.content || "제안서 생성에 실패했습니다."
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Proposal strategy generation failed:", error)
 
-    if (error?.message?.includes("AI service not available")) {
+    const message = getErrorMessageFrom(error)
+
+    if (message.includes("AI service not available")) {
       throw new Error(
         "AI 서비스를 사용할 수 없습니다. 서버의 Gemini API 키가 설정되어 있는지 확인해주세요.",
       )
     }
 
-    throw new Error(error.message || "제안서 생성에 실패했습니다.")
+    throw new Error(message || "제안서 생성에 실패했습니다.")
   }
 }
 

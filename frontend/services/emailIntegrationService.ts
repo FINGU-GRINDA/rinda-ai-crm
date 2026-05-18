@@ -1,5 +1,41 @@
+import type { ApiResponse } from "../../elysia-server/src/types/api"
 import { apiClient } from "../src/services/apiClient"
 import type { Customer, EmailIntegration, EmailMessage } from "../types"
+
+interface RawEmailMessage {
+  id?: string
+  gmail_message_id?: string
+  thread_id?: string
+  subject?: string
+  sender?: string
+  recipient?: string
+  date?: string
+  received_at?: string
+  body?: string
+  snippet?: string
+  customer_id?: string | null
+}
+
+type EmailMessageWithExtras = EmailMessage & {
+  gmailMessageId?: string
+  snippet?: string
+}
+
+const toEmailMessage = (
+  email: RawEmailMessage,
+  fallbackCustomerId: string | null,
+): EmailMessageWithExtras => ({
+  id: email.id ?? "",
+  gmailMessageId: email.gmail_message_id,
+  threadId: email.thread_id,
+  subject: email.subject ?? "",
+  from: email.sender ?? "",
+  to: email.recipient ?? "",
+  date: email.date || email.received_at || "",
+  body: email.body || email.snippet || "",
+  snippet: email.snippet,
+  customerId: email.customer_id ?? fallbackCustomerId ?? undefined,
+})
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? ""
@@ -48,9 +84,13 @@ export const connectEmailProvider = async (
     } else {
       throw new Error(data.error || "OAuth URL을 가져올 수 없습니다.")
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gmail connection failed:", error)
-    throw new Error(error.message || "Gmail 연결에 실패했습니다. 서버 설정을 확인해주세요.")
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Gmail 연결에 실패했습니다. 서버 설정을 확인해주세요."
+    throw new Error(message)
   }
 }
 
@@ -67,7 +107,7 @@ export const disconnectEmailProvider = async (): Promise<void> => {
     if (!data.success) {
       throw new Error(data.error || "Gmail 연결 해제에 실패했습니다.")
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gmail disconnection failed:", error)
     throw error
   }
@@ -81,19 +121,8 @@ export const fetchEmails = async (maxResults: number = 50): Promise<EmailMessage
     const response = await fetch(`${API_BASE_URL}/api/gmail/messages?limit=${maxResults}`)
     const data = await response.json()
 
-    if (data.success && data.data) {
-      return data.data.map((email: any) => ({
-        id: email.id,
-        gmailMessageId: email.gmail_message_id,
-        threadId: email.thread_id,
-        subject: email.subject,
-        from: email.sender,
-        to: email.recipient,
-        date: email.date || email.received_at,
-        body: email.body || email.snippet,
-        snippet: email.snippet,
-        customerId: email.customer_id,
-      }))
+    if (data.success && Array.isArray(data.data)) {
+      return (data.data as RawEmailMessage[]).map((email) => toEmailMessage(email, null))
     }
     return []
   } catch (error) {
@@ -127,7 +156,7 @@ export const syncEmails = async (
     }
 
     throw new Error(data.error || "이메일 동기화에 실패했습니다.")
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Email sync failed:", error)
     throw error
   }
@@ -146,19 +175,8 @@ export const getCustomerEmails = async (
     )
     const data = await response.json()
 
-    if (data.success && data.data) {
-      return data.data.map((email: any) => ({
-        id: email.id,
-        gmailMessageId: email.gmail_message_id,
-        threadId: email.thread_id,
-        subject: email.subject,
-        from: email.sender,
-        to: email.recipient,
-        date: email.date || email.received_at,
-        body: email.body || email.snippet,
-        snippet: email.snippet,
-        customerId: email.customer_id,
-      }))
+    if (data.success && Array.isArray(data.data)) {
+      return (data.data as RawEmailMessage[]).map((email) => toEmailMessage(email, null))
     }
     return []
   } catch (error) {
@@ -175,19 +193,8 @@ export const getUnmatchedEmails = async (limit: number = 50): Promise<EmailMessa
     const response = await fetch(`${API_BASE_URL}/api/gmail/messages/unmatched?limit=${limit}`)
     const data = await response.json()
 
-    if (data.success && data.data) {
-      return data.data.map((email: any) => ({
-        id: email.id,
-        gmailMessageId: email.gmail_message_id,
-        threadId: email.thread_id,
-        subject: email.subject,
-        from: email.sender,
-        to: email.recipient,
-        date: email.date || email.received_at,
-        body: email.body || email.snippet,
-        snippet: email.snippet,
-        customerId: null,
-      }))
+    if (data.success && Array.isArray(data.data)) {
+      return (data.data as RawEmailMessage[]).map((email) => toEmailMessage(email, null))
     }
     return []
   } catch (error) {
@@ -255,12 +262,15 @@ export const matchEmailToCustomer = async (
     관련이 없다면 "없음"을 반환해주세요.
     `
 
-    const response = await apiClient.request("/api/ai/generate", {
-      method: "POST",
-      body: JSON.stringify({ prompt }),
-    })
+    const response = await apiClient.request<ApiResponse<{ content?: string }>>(
+      "/api/ai/generate",
+      {
+        method: "POST",
+        body: JSON.stringify({ prompt }),
+      },
+    )
 
-    const result = (response as any).data || {}
+    const result = response.success ? response.data : {}
     const matchedName = (result.content || "").trim()
     const customer = customers.find((c) => c.name === matchedName)
 
@@ -314,20 +324,24 @@ export const analyzeEmailForStatusUpdate = async (
     }
     `
 
-    const response = await apiClient.request("/api/ai/generate", {
-      method: "POST",
-      body: JSON.stringify({ prompt }),
-    })
+    const response = await apiClient.request<ApiResponse<{ content?: string }>>(
+      "/api/ai/generate",
+      {
+        method: "POST",
+        body: JSON.stringify({ prompt }),
+      },
+    )
 
-    const result = (response as any).data || {}
+    const result = response.success ? response.data : {}
     const text = result.content || "{}"
 
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/)
-      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
+      const parsed: Record<string, unknown> = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
       return {
-        suggestedStatus: parsed.suggestedStatus || undefined,
-        insights: parsed.insights || "이메일을 분석했습니다.",
+        suggestedStatus:
+          typeof parsed.suggestedStatus === "string" ? parsed.suggestedStatus : undefined,
+        insights: typeof parsed.insights === "string" ? parsed.insights : "이메일을 분석했습니다.",
       }
     } catch {
       return {

@@ -1,6 +1,7 @@
 import { Bell, Home, Search, Settings } from "lucide-react"
 import type React from "react"
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import type { ApiResponse } from "../elysia-server/src/types/api"
 import { AppHeader, StatsBar } from "./components/AppHeader"
 import { BackgroundTaskToast } from "./components/BackgroundTaskToast"
 import { BusinessCardScanner } from "./components/BusinessCardScanner"
@@ -34,7 +35,12 @@ import {
   transformApiProposal,
   transformApiProspect,
 } from "./src/utils/apiTransformers"
-import { isErrorResponse, isSuccessListResponse, isSuccessResponse } from "./src/utils/typeGuards"
+import {
+  getErrorMessage,
+  isErrorResponse,
+  isSuccessListResponse,
+  isSuccessResponse,
+} from "./src/utils/typeGuards"
 import type {
   BackgroundTask,
   BusinessCardData,
@@ -70,6 +76,20 @@ import { UnifiedSettings } from "./components/settings"
 
 // Mobile Bottom Tab Type
 type MobileBottomTab = "home" | "search" | "notifications" | "settings"
+
+// Shape returned by POST /api/ai/enrich/:customerId — backend bundles enrichment + strategy.
+interface EnrichmentResult {
+  enrichment: {
+    summary?: string
+    ceo?: string
+    foundedYear?: string
+    recentNews?: string | string[]
+    competitors?: string | string[]
+    salesOpportunity?: string
+    sources?: string | { title: string; uri: string }[]
+  }
+  followUpStrategy: FollowUpStrategy | null
+}
 
 // Dashboard Component - exported for router
 export const AppDashboard: React.FC = () => {
@@ -430,20 +450,22 @@ export const AppDashboard: React.FC = () => {
     try {
       setEnrichmentProgress({ percent: 10, message: "웹 검색 중..." })
 
-      // Call backend endpoint that generates BOTH enrichment AND follow-up strategy
-      const response = await apiClient.request(`/api/ai/enrich/${selectedCustomerId}`, {
-        method: "POST",
-      })
+      const response = await apiClient.request<ApiResponse<EnrichmentResult>>(
+        `/api/ai/enrich/${selectedCustomerId}`,
+        {
+          method: "POST",
+        },
+      )
 
       setEnrichmentProgress({ percent: 50, message: "AI 분석 중..." })
 
       if (!isSuccessResponse(response)) {
-        throw new Error((response as any).error || "Failed to enrich customer data")
+        throw new Error(getErrorMessage(response) || "Failed to enrich customer data")
       }
 
-      const result = (response as any).data
+      const result = response.data
       const enrichmentData = result.enrichment
-      const strategyData = result.followUpStrategy as FollowUpStrategy | null
+      const strategyData = result.followUpStrategy
 
       setEnrichmentProgress({ percent: 80, message: "결과 정리 중..." })
 
@@ -486,8 +508,9 @@ export const AppDashboard: React.FC = () => {
       )
 
       setEnrichmentProgress({ percent: 100, message: "완료!" })
-    } catch (error: any) {
-      const errorMessage = error?.message || "분석 중 문제가 발생했어요. API 키를 확인해주세요."
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "분석 중 문제가 발생했어요. API 키를 확인해주세요."
       setError(errorMessage)
       setTimeout(() => setError(null), 5000)
     } finally {
@@ -672,8 +695,7 @@ export const AppDashboard: React.FC = () => {
       const response = await apiClient.convertLeadToCustomer(prospectId, { status: "new" })
 
       if (isSuccessResponse(response)) {
-        const responseData = response.data as unknown as { customer: any }
-        const newCustomer = transformApiCustomer(responseData.customer)
+        const newCustomer = transformApiCustomer(response.data.customer)
         setCustomers((prev) => [...prev, newCustomer])
 
         // Refresh prospects list
@@ -1288,21 +1310,27 @@ export const AppDashboard: React.FC = () => {
         <AIAssistant
           customers={customers}
           onAction={(action, data) => {
-            if (action === "enrich_customer" && data.customerId) {
-              const customer = customers.find((c) => c.id === data.customerId)
+            const customerId = typeof data.customerId === "string" ? data.customerId : undefined
+            if (action === "enrich_customer" && customerId) {
+              const customer = customers.find((c) => c.id === customerId)
               if (customer) {
-                setSelectedCustomerId(data.customerId)
+                setSelectedCustomerId(customerId)
                 handleEnrichment()
               }
-            } else if (action === "save_proposal" && data.proposal && data.customerId) {
-              const customer = customers.find((c) => c.id === data.customerId)
-              if (customer) {
-                setSelectedCustomerId(data.customerId)
-                if (data.proposal.title && data.proposal.content) {
+            } else if (action === "save_proposal" && data.proposal && customerId) {
+              const customer = customers.find((c) => c.id === customerId)
+              if (customer && typeof data.proposal === "object" && data.proposal !== null) {
+                setSelectedCustomerId(customerId)
+                const proposal = data.proposal as {
+                  title?: unknown
+                  content?: unknown
+                  imageUrl?: unknown
+                }
+                if (typeof proposal.title === "string" && typeof proposal.content === "string") {
                   handleSaveProposal({
-                    title: data.proposal.title,
-                    content: data.proposal.content,
-                    imageUrl: data.proposal.imageUrl,
+                    title: proposal.title,
+                    content: proposal.content,
+                    imageUrl: typeof proposal.imageUrl === "string" ? proposal.imageUrl : undefined,
                   })
                 }
               }

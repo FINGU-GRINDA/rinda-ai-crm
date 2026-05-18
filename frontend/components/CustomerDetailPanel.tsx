@@ -2,6 +2,8 @@ import type React from "react"
 import { useCallback, useEffect, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import { apiClient } from "../src/services/apiClient"
+import { transformApiMeeting } from "../src/utils/apiTransformers"
+import { isSuccessListResponse } from "../src/utils/typeGuards"
 import { aiAccentText } from "../styles/design-tokens"
 import type { Customer, CustomerStatus, FollowUpAction, MeetingSummary, Proposal } from "../types"
 import { Button } from "./Button"
@@ -75,9 +77,9 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
     if (!customer.id) return
     setLoadingMeetings(true)
     try {
-      const response = (await apiClient.getCustomerMeetings(customer.id)) as any
-      if (response.success) {
-        setMeetings(response.data || [])
+      const response = await apiClient.getCustomerMeetings(customer.id)
+      if (isSuccessListResponse(response)) {
+        setMeetings(response.data.map(transformApiMeeting))
       }
     } catch (error) {
       console.error("Failed to fetch meetings:", error)

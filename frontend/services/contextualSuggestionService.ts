@@ -147,18 +147,23 @@ export const detectRiskSignals = async (
 
   try {
     const response = await apiClient.detectRiskSignals(customer.id)
-    const result = (response as any).data
-
-    if (result.hasRisk) {
-      return {
-        id: `suggest_risk_${customer.id}_${Date.now()}`,
-        type: "risk",
-        title: "위험 신호 감지",
-        description: `${customer.name}: ${result.riskReason}`,
-        customerId: customer.id,
-        action: "review_customer",
-        priority: result.priority || "medium",
-        createdAt: new Date(now).toISOString(),
+    if (response.success) {
+      const result = response.data
+      const priorityValue: "high" | "medium" | "low" =
+        result.priority === "high" || result.priority === "medium" || result.priority === "low"
+          ? result.priority
+          : "medium"
+      if (result.hasRisk) {
+        return {
+          id: `suggest_risk_${customer.id}_${Date.now()}`,
+          type: "risk",
+          title: "위험 신호 감지",
+          description: `${customer.name}: ${typeof result.riskReason === "string" ? result.riskReason : ""}`,
+          customerId: customer.id,
+          action: "review_customer",
+          priority: priorityValue,
+          createdAt: new Date(now).toISOString(),
+        }
       }
     }
   } catch (error) {

@@ -10,7 +10,12 @@ import { IconBrain, IconLoader, IconSend, IconX } from "./Icons"
 
 interface AIAssistantProps {
   customers: Customer[]
-  onAction?: (action: string, data: any) => void
+  onAction?: (action: string, data: Record<string, unknown>) => void
+}
+
+const getActionResultSuccess = (result: unknown): boolean | null => {
+  if (!result || typeof result !== "object" || !("success" in result)) return null
+  return Boolean((result as { success: unknown }).success)
 }
 
 export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction }) => {
@@ -65,10 +70,12 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
 
       setMessages((prev) => [...prev, userMessage, assistantMessage])
 
-      // Handle action if needed
-      if (assistantMessage.metadata?.result?.success && onAction) {
-        const action = assistantMessage.metadata.action
-        const data = assistantMessage.metadata.result.data
+      const result = assistantMessage.metadata?.result
+      if (onAction && getActionResultSuccess(result) === true) {
+        const action = assistantMessage.metadata?.action
+        const dataValue = (result as { data?: unknown }).data
+        const data =
+          dataValue && typeof dataValue === "object" ? (dataValue as Record<string, unknown>) : null
 
         if (action === "enrich" && data) {
           onAction("enrich_customer", data)
@@ -76,11 +83,12 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
           onAction("save_proposal", data)
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
       const errorMessage: AIMessage = {
         id: `error_${Math.random().toString(36).substr(2, 9)}`,
         role: "assistant",
-        content: `죄송합니다. 오류가 발생했습니다: ${error.message}`,
+        content: `죄송합니다. 오류가 발생했습니다: ${message}`,
         timestamp: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, errorMessage])
@@ -178,15 +186,17 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  {message.metadata?.result && (
-                    <div className="mt-2 pt-2 border-t border-opacity-20">
-                      {message.metadata.result.success ? (
-                        <span className="text-xs opacity-75">완료됐어요</span>
-                      ) : (
-                        <span className="text-xs opacity-75">처리하지 못했어요</span>
-                      )}
-                    </div>
-                  )}
+                  {(() => {
+                    const success = getActionResultSuccess(message.metadata?.result)
+                    if (success === null) return null
+                    return (
+                      <div className="mt-2 pt-2 border-t border-opacity-20">
+                        <span className="text-xs opacity-75">
+                          {success ? "완료됐어요" : "처리하지 못했어요"}
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             ))}

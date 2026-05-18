@@ -130,13 +130,14 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({
               return prev
             })
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("Background proposal generation failed:", error)
+          const errMsg = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다"
           updateTask(taskId, {
             status: "error",
             progress: 0,
             message: "제안서 생성 실패",
-            error: error.message || "알 수 없는 오류가 발생했습니다",
+            error: errMsg,
             completedAt: new Date().toISOString(),
           })
         }

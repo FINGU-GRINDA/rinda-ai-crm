@@ -77,8 +77,9 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
         totalArticles: result.totalArticles,
       })
       onSettingsChange?.()
-    } catch (error: any) {
-      alert(`수집 실패: ${error?.message || "알 수 없는 오류"}`)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "알 수 없는 오류"
+      alert(`수집 실패: ${message}`)
     } finally {
       setIsRunning(false)
     }

@@ -175,7 +175,11 @@ const playNotificationSound = (): void => {
 
   try {
     // Use Web Audio API for notification sound
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const AudioCtor: typeof AudioContext =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext ||
+      AudioContext
+    const audioContext = new AudioCtor()
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
 

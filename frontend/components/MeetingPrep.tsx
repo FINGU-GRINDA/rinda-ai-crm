@@ -39,8 +39,9 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
     try {
       const prep = await generateMeetingPreparation(customer, event)
       setPreparation(prep)
-    } catch (err: any) {
-      setError(err.message || "미팅 준비 자료 생성에 실패했습니다.")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "미팅 준비 자료 생성에 실패했습니다."
+      setError(message)
     } finally {
       setIsLoading(false)
     }
