@@ -1,5 +1,6 @@
 import { boolean, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
+import { workspaces } from "./workspaces"
 
 export const signalStrengthEnum = pgEnum("signal_strength", ["high", "medium", "low"])
 
@@ -7,6 +8,7 @@ export const prospects = pgTable(
   "prospects",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     companyName: text("company_name").notNull(),
     website: text("website"),
     industry: text("industry"),
@@ -38,6 +40,8 @@ export const prospects = pgTable(
     index("idx_prospects_signal").on(table.signalStrength),
     index("idx_prospects_detected").on(table.detectedAt),
     index("idx_prospects_email").on(table.contactEmail),
+    index("idx_prospects_workspace").on(table.workspaceId),
+    index("idx_prospects_workspace_signal").on(table.workspaceId, table.signalStrength),
   ],
 )
 

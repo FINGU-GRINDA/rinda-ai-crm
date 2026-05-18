@@ -11,6 +11,14 @@ import type {
   ApiProposal,
   ApiCustomerContact,
   ApiMeetingSummary,
+  ApiWorkspace,
+  ApiWorkspaceWithRole,
+  ApiPipeline,
+  ApiPipelineStage,
+  ApiDeal,
+  ApiDealCard,
+  ApiDealWithHistory,
+  ForecastCategory,
 } from '../../../elysia-server/src/types/api'
 
 // Empty string => relative /api paths.
@@ -883,6 +891,180 @@ class APIClient {
   async reprocessMixpanelEvents(): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request('/api/mixpanel/reprocess', {
       method: 'POST',
+    });
+  }
+
+  // ==========================
+  // Workspace Endpoints (Phase 0)
+  // ==========================
+
+  async listWorkspaces(): Promise<ApiListResponse<ApiWorkspaceWithRole>> {
+    return this.request('/api/workspaces');
+  }
+
+  async getCurrentWorkspace(): Promise<ApiResponse<ApiWorkspace & { role: string }>> {
+    return this.request('/api/workspaces/current');
+  }
+
+  async createWorkspace(data: {
+    organizationName: string;
+    workspaceName?: string;
+    baseCurrency?: string;
+    locale?: string;
+    timezone?: string;
+    pipelineTemplate?: 'b2b-saas' | 'agency' | 'ecommerce';
+  }): Promise<ApiResponse<{ organization: unknown; workspace: ApiWorkspace; membership: unknown }>> {
+    return this.request('/api/workspaces', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ==========================
+  // Pipeline Endpoints (Phase 1)
+  // ==========================
+
+  async listPipelines(): Promise<ApiListResponse<ApiPipeline>> {
+    return this.request('/api/pipelines');
+  }
+
+  async getPipeline(id: string): Promise<ApiResponse<ApiPipeline>> {
+    return this.request(`/api/pipelines/${id}`);
+  }
+
+  async createPipeline(data: {
+    name: string;
+    description?: string;
+    isDefault?: boolean;
+    displayOrder?: number;
+  }): Promise<ApiResponse<ApiPipeline>> {
+    return this.request('/api/pipelines', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createPipelineStage(pipelineId: string, data: {
+    name: string;
+    stageType?: 'open' | 'won' | 'lost';
+    displayOrder?: number;
+    defaultProbability?: string;
+    color?: string;
+    rottingDays?: number;
+  }): Promise<ApiResponse<ApiPipelineStage>> {
+    return this.request(`/api/pipelines/${pipelineId}/stages`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePipelineStage(pipelineId: string, stageId: string, patch: {
+    name?: string;
+    displayOrder?: number;
+    defaultProbability?: string;
+    color?: string;
+    rottingDays?: number;
+  }): Promise<ApiResponse<ApiPipelineStage>> {
+    return this.request(`/api/pipelines/${pipelineId}/stages/${stageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async archivePipelineStage(pipelineId: string, stageId: string): Promise<ApiResponse<{ archived: boolean }>> {
+    return this.request(`/api/pipelines/${pipelineId}/stages/${stageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ==========================
+  // Deal Endpoints (Phase 1)
+  // ==========================
+
+  async listDeals(options: {
+    pipelineId?: string;
+    stageId?: string;
+    ownerId?: string;
+    customerId?: string;
+    forecastCategory?: ForecastCategory;
+    search?: string;
+    includeClosed?: boolean;
+    limit?: number;
+    offset?: number;
+    orderBy?: 'created' | 'updated' | 'expected_close' | 'amount' | 'stage_entered';
+    order?: 'asc' | 'desc';
+  } = {}): Promise<ApiListResponse<ApiDealCard>> {
+    const params = new URLSearchParams();
+    if (options.pipelineId) params.append('pipelineId', options.pipelineId);
+    if (options.stageId) params.append('stageId', options.stageId);
+    if (options.ownerId) params.append('ownerId', options.ownerId);
+    if (options.customerId) params.append('customerId', options.customerId);
+    if (options.forecastCategory) params.append('forecastCategory', options.forecastCategory);
+    if (options.search) params.append('search', options.search);
+    if (options.includeClosed) params.append('includeClosed', 'true');
+    if (options.limit) params.append('limit', options.limit.toString());
+    if (options.offset) params.append('offset', options.offset.toString());
+    if (options.orderBy) params.append('orderBy', options.orderBy);
+    if (options.order) params.append('order', options.order);
+    const qs = params.toString();
+    return this.request(`/api/deals${qs ? `?${qs}` : ''}`);
+  }
+
+  async getDeal(id: string): Promise<ApiResponse<ApiDealWithHistory>> {
+    return this.request(`/api/deals/${id}`);
+  }
+
+  async createDeal(data: {
+    pipelineId: string;
+    stageId: string;
+    title: string;
+    description?: string;
+    customerId?: string;
+    ownerId?: string;
+    amountMinor?: string;
+    currency?: string;
+    probability?: string;
+    forecastCategory?: ForecastCategory;
+    expectedCloseDate?: string;
+    source?: string;
+    externalId?: string;
+    customFields?: Record<string, unknown>;
+  }): Promise<ApiResponse<ApiDeal>> {
+    return this.request('/api/deals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDeal(id: string, patch: {
+    title?: string;
+    description?: string;
+    customerId?: string;
+    ownerId?: string;
+    amountMinor?: string;
+    currency?: string;
+    probability?: string;
+    forecastCategory?: ForecastCategory;
+    expectedCloseDate?: string;
+    source?: string;
+    customFields?: Record<string, unknown>;
+  }): Promise<ApiResponse<ApiDeal>> {
+    return this.request(`/api/deals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async moveDealStage(id: string, stageId: string, note?: string): Promise<ApiResponse<ApiDeal>> {
+    return this.request(`/api/deals/${id}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ stageId, note }),
+    });
+  }
+
+  async deleteDeal(id: string): Promise<ApiResponse<{ deleted: boolean }>> {
+    return this.request(`/api/deals/${id}`, {
+      method: 'DELETE',
     });
   }
 }

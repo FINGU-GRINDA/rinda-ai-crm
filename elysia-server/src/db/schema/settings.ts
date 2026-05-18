@@ -1,11 +1,19 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import type { AllSettings } from "../../types"
+import { workspaces } from "./workspaces"
 
-export const settings = pgTable("settings", {
-  key: text("key").primaryKey(),
-  value: text("value").notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-})
+export const settings = pgTable(
+  "settings",
+  {
+    key: text("key").primaryKey(),
+    // Future: composite key (workspaceId, key) for per-workspace settings.
+    // Null = global default; populated rows will scope to a workspace.
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+    value: text("value").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_settings_workspace").on(table.workspaceId)],
+)
 
 export type Setting = typeof settings.$inferSelect
 export type NewSetting = typeof settings.$inferInsert

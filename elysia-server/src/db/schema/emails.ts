@@ -1,10 +1,12 @@
 import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers, proposals } from "./customers"
+import { workspaces } from "./workspaces"
 
 export const emailMessages = pgTable(
   "email_messages",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     gmailMessageId: text("gmail_message_id").unique(),
     threadId: text("thread_id"),
     subject: text("subject"),
@@ -24,6 +26,7 @@ export const emailMessages = pgTable(
     index("idx_emails_customer").on(table.customerId),
     index("idx_emails_gmail_id").on(table.gmailMessageId),
     index("idx_emails_date").on(table.date),
+    index("idx_emails_workspace").on(table.workspaceId),
   ],
 )
 

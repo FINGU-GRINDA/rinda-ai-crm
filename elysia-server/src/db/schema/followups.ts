@@ -1,5 +1,6 @@
 import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
+import { workspaces } from "./workspaces"
 
 export const followUpTypeEnum = pgEnum("follow_up_type", ["email", "call", "meeting", "message"])
 export const followUpStatusEnum = pgEnum("follow_up_status", ["planned", "completed", "cancelled"])
@@ -10,6 +11,7 @@ export const followUpHistory = pgTable(
   "follow_up_history",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
@@ -21,6 +23,7 @@ export const followUpHistory = pgTable(
   (table) => [
     index("idx_followup_customer").on(table.customerId),
     index("idx_followup_status").on(table.status),
+    index("idx_followup_workspace").on(table.workspaceId),
   ],
 )
 
@@ -28,6 +31,7 @@ export const scheduledFollowUps = pgTable(
   "scheduled_follow_ups",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
@@ -43,6 +47,7 @@ export const scheduledFollowUps = pgTable(
     index("idx_scheduled_customer").on(table.customerId),
     index("idx_scheduled_status").on(table.status),
     index("idx_scheduled_for").on(table.scheduledFor),
+    index("idx_scheduled_workspace").on(table.workspaceId),
   ],
 )
 

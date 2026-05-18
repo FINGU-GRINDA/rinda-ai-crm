@@ -1,11 +1,13 @@
 import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
 import { prospects } from "./prospects"
+import { workspaces } from "./workspaces"
 
 export const slackMessages = pgTable(
   "slack_messages",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     slackTs: text("slack_ts").unique(),
     channelId: text("channel_id"),
     userId: text("user_id"),
@@ -30,6 +32,7 @@ export const slackMessages = pgTable(
     index("idx_slack_deleted").on(table.deleted),
     index("idx_slack_received").on(table.receivedAt),
     index("idx_slack_thread_ts").on(table.threadTs),
+    index("idx_slack_workspace").on(table.workspaceId),
   ],
 )
 

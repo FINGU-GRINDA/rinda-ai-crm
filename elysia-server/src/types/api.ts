@@ -234,3 +234,134 @@ export interface ApiCustomerWithRelations extends ApiCustomer {
   meetings?: ApiMeetingSummary[]
   followUpHistory?: ApiFollowUpHistory[]
 }
+
+// ============================================================================
+// Workspace / Organization (Phase 0)
+// ============================================================================
+
+export type WorkspaceMemberRole = "owner" | "admin" | "manager" | "member" | "viewer"
+
+export interface ApiWorkspace {
+  id: string
+  organizationId: string
+  name: string
+  slug: string
+  locale: string
+  baseCurrency: string
+  timezone: string
+  isSandbox: number
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ApiWorkspaceWithRole extends ApiWorkspace {
+  role: WorkspaceMemberRole
+  isDefault: number
+  organizationName: string
+}
+
+// ============================================================================
+// Pipeline + Stage (Phase 1)
+// ============================================================================
+
+export type StageType = "open" | "won" | "lost"
+
+export interface ApiPipelineStage {
+  id: string
+  workspaceId: string
+  pipelineId: string
+  name: string
+  stageType: StageType
+  displayOrder: number
+  defaultProbability: string // numeric stored as string
+  color: string
+  rottingDays: number | null
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ApiPipeline {
+  id: string
+  workspaceId: string
+  name: string
+  description: string | null
+  isDefault: number
+  displayOrder: number
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+  stages: ApiPipelineStage[]
+}
+
+// ============================================================================
+// Deal (Phase 1)
+// ============================================================================
+
+export type ForecastCategory = "pipeline" | "best_case" | "commit" | "closed" | "omitted"
+
+export interface ApiDealCard {
+  id: string
+  humanId: string
+  title: string
+  // bigint columns are serialised as strings by the server
+  amountMinor: string
+  currency: string
+  baseAmountMinor: string
+  probability: string | null
+  forecastCategory: ForecastCategory
+  expectedCloseDate: string | null
+  actualCloseDate: string | null
+  stageId: string
+  pipelineId: string
+  stageEnteredAt: string
+  createdAt: string
+  updatedAt: string
+  customer: { id: string; name: string } | null
+  owner: { id: string; name: string; email: string }
+  stage: { id: string; name: string; color: string; stageType: string }
+}
+
+export interface ApiDeal {
+  id: string
+  workspaceId: string
+  pipelineId: string
+  stageId: string
+  customerId: string | null
+  ownerId: string
+  humanId: string
+  title: string
+  description: string | null
+  amountMinor: string
+  currency: string
+  baseAmountMinor: string
+  fxRateAtClose: string | null
+  probability: string | null
+  forecastCategory: ForecastCategory
+  expectedCloseDate: string | null
+  actualCloseDate: string | null
+  stageEnteredAt: string
+  lostReason: string | null
+  source: string | null
+  externalId: string | null
+  customFields: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ApiDealStageHistoryEntry {
+  id: string
+  workspaceId: string
+  dealId: string
+  fromStageId: string | null
+  toStageId: string
+  changedBy: string | null
+  durationInFromStageSeconds: string | null
+  note: string | null
+  changedAt: string
+}
+
+export interface ApiDealWithHistory extends ApiDeal {
+  stageHistory: ApiDealStageHistoryEntry[]
+}
