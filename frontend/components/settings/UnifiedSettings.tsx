@@ -89,7 +89,7 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
           : null
 
   // Update connection status on open and when settings change
-  const updateConnectionStatus = () => {
+  const updateConnectionStatus = useCallback(() => {
     const emailSettings = safeGetItem<{ isConnected?: boolean }>("rinda_email_settings", {})
     const calendarSettings = safeGetItem<{ isConnected?: boolean }>("rinda_calendar_settings", {})
     const mixpanelSettings = safeGetItem<{ isEnabled?: boolean }>("rinda_mixpanel_settings", {})
@@ -101,7 +101,7 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
       calendar: calendarSettings.isConnected || false,
       mixpanel: mixpanelSettings.isEnabled || false,
     })
-  }
+  }, [])
 
   useEffect(() => {
     if (isOpen) {

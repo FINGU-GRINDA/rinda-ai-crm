@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   deleteNotification,
   getNotifications,
@@ -33,28 +33,38 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [isOpen, setIsOpen] = useState(false)
   const [isChecking, setIsChecking] = useState(false)
 
-  const loadNotifications = () => {
+  const loadNotifications = useCallback(() => {
     const all = getNotifications()
     setNotifications(all)
     setUnreadCount(getUnreadCount())
-  }
+  }, [])
 
-  const checkNotifications = async () => {
+  // Keep a ref to the latest customers so the interval callback always sees fresh data
+  // without having to re-create the interval each time the customers list changes.
+  const customersRef = useRef(customers)
+  useEffect(() => {
+    customersRef.current = customers
+  }, [customers])
+
+  const checkNotifications = useCallback(async () => {
     setIsChecking(true)
     try {
-      await runNotificationChecks(customers)
+      await runNotificationChecks(customersRef.current)
       loadNotifications()
     } catch (error) {
       console.error("Notification check failed:", error)
     } finally {
       setIsChecking(false)
     }
-  }
+  }, [loadNotifications])
 
-  // Load notifications on mount
+  // Load notifications on mount and reload when customers change.
+  // `customers` is intentionally in the deps so a new customer list re-reads the
+  // local notification store (loadNotifications doesn't reference customers directly).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: customers is the trigger, not a value read
   useEffect(() => {
     loadNotifications()
-  }, [loadNotifications])
+  }, [loadNotifications, customers])
 
   // Check for new notifications every 5 minutes (independent of customers)
   useEffect(() => {
@@ -67,11 +77,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
     return () => clearInterval(interval)
   }, [checkNotifications])
-
-  // Reload notifications when customers change
-  useEffect(() => {
-    loadNotifications()
-  }, [loadNotifications])
 
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {

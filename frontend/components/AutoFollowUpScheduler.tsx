@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   autoScheduleFollowUps,
   completeScheduledFollowUp,
@@ -60,12 +60,12 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
     return filterFollowUps(pending, filters, customers)
   }, [scheduledFollowUps, filters, customers])
 
-  const loadFollowUps = () => {
+  const loadFollowUps = useCallback(() => {
     const all = getScheduledFollowUps()
     setScheduledFollowUps(all)
     setDueFollowUps(getDueFollowUps())
     setUpcomingFollowUps(getUpcomingFollowUps(7))
-  }
+  }, [])
 
   useEffect(() => {
     loadFollowUps()

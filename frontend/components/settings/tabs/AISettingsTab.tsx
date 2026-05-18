@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { IconCheck, IconExternalLink, IconEye, IconEyeOff, IconLoader, IconX } from "../../Icons"
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? ""
@@ -38,7 +38,7 @@ export const AISettingsTab: React.FC<AISettingsTabProps> = ({
   // Track if form has unsaved changes
   const isDirty = apiKey.trim().length > 0
 
-  const fetchServerStatus = async () => {
+  const fetchServerStatus = useCallback(async () => {
     setIsLoadingServerStatus(true)
     try {
       const response = await fetch(`${API_BASE_URL}/api/ai/status`)
@@ -53,28 +53,25 @@ export const AISettingsTab: React.FC<AISettingsTabProps> = ({
     } finally {
       setIsLoadingServerStatus(false)
     }
-  }
+  }, [])
 
-  useEffect(() => {
-    // 서버 AI 상태 확인
-    fetchServerStatus()
-  }, [
-    // 서버 AI 상태 확인
-    fetchServerStatus,
-  ])
-
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setErrorMessage(
       "API Key 관리가 서버로 이동되었습니다. 서버 환경설정을 통해 GEMINI_API_KEY를 설정하세요.",
     )
     setSuccessMessage("")
-  }
+  }, [])
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setApiKey("")
     setErrorMessage("")
     setSuccessMessage("")
-  }
+  }, [])
+
+  useEffect(() => {
+    // 서버 AI 상태 확인
+    fetchServerStatus()
+  }, [fetchServerStatus])
 
   // Report form state to parent component
   useEffect(() => {

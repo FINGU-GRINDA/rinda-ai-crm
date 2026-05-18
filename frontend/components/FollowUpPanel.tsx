@@ -115,13 +115,7 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
         generateNewStrategy()
       }
     }
-  }, [
-    customer.id,
-    customer.followUpStrategy,
-    loadStoredStrategy, // Fallback: generate on-demand for customers without stored strategy
-    generateNewStrategy,
-    customer,
-  ])
+  }, [customer, loadStoredStrategy, generateNewStrategy])
 
   // Keep generateStrategy for the "regenerate" button
   const generateStrategy = generateNewStrategy

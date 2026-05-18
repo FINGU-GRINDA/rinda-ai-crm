@@ -48,7 +48,7 @@
         "noUnusedVariables": "error",
         "noUnusedImports": "error",
         "noUnusedFunctionParameters": "error",
-        "useExhaustiveDependencies": "warn",
+        "useExhaustiveDependencies": "error",
         "noInvalidUseBeforeDeclaration": "error",
         "useHookAtTopLevel": "error"
       },

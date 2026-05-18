@@ -17,6 +17,15 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { apiClient } from "../src/services/apiClient"
 import type { Customer, MeetingSummary, RecordingStatus } from "../types"
 
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
 interface MeetingRecorderProps {
   isOpen: boolean
   onClose: () => void
@@ -180,15 +189,6 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     }
   }, [isPlaying])
 
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
-  }
-
   const generateSummary = useCallback(async () => {
     // Validate required fields
     if (!audioBlob || !selectedCustomerId || !title || !meetingDate) {
@@ -226,7 +226,7 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
       setError(err.message || "미팅 요약 생성에 실패했습니다.")
       setRecordingStatus("error")
     }
-  }, [audioBlob, selectedCustomerId, title, meetingDate, onComplete, blobToBase64])
+  }, [audioBlob, selectedCustomerId, title, meetingDate, onComplete])
 
   const handleClose = useCallback(() => {
     if (
