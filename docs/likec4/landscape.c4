@@ -1,0 +1,65 @@
+model {
+  // ---- People ----
+  salesUser = actor 'Sales User' {
+    description 'Korean sales rep using the CRM to manage customers, prospects, meetings and follow-ups.'
+  }
+
+  slackUser = actor 'Slack User' {
+    description 'CS / Sales team member interacting through Slack channels (CS, Sales, Meeting Notes).'
+  }
+
+  // ---- The product ----
+  rinda = system 'RINDA CRM' {
+    description 'AI-powered sales management platform: customer analysis, proposal generation, follow-up automation.'
+  }
+
+  // ---- External systems ----
+  gemini = externalSystem 'Google Gemini' {
+    #ai
+    description 'Google Generative AI: customer analysis, proposal drafting, image generation.'
+  }
+
+  slack = externalSystem 'Slack' {
+    #integration
+    description 'Workspace messaging: events, slash commands, channel notifications.'
+  }
+
+  gmail = externalSystem 'Gmail' {
+    #integration
+    description 'Per-user email sync via Google APIs.'
+  }
+
+  gcal = externalSystem 'Google Calendar' {
+    #integration
+    description 'Meeting tracking and prep material generation.'
+  }
+
+  googleOAuth = externalSystem 'Google OAuth' {
+    #auth
+    description 'OAuth2 provider for Gmail and Calendar scopes.'
+  }
+
+  mixpanel = externalSystem 'Mixpanel' {
+    #integration
+    description 'Product analytics: event ingestion and JQL queries.'
+  }
+
+  // ---- Top-level relationships (people <-> product, product <-> externals) ----
+  salesUser -> rinda 'Manages CRM, runs AI analyses' 'HTTPS'
+  slackUser -> rinda 'Posts / reacts in channels' 'Slack events'
+
+  rinda -> gemini 'Generates analyses, proposals, images' 'HTTPS'
+  rinda -> slack 'Posts notifications, reads events' 'HTTPS / webhooks'
+  slack -> rinda 'Event callbacks, slash commands' 'Webhook'
+  rinda -> gmail 'Fetches user mailboxes' 'HTTPS'
+  rinda -> gcal 'Reads meetings, writes prep notes' 'HTTPS'
+  rinda -> googleOAuth 'OAuth2 token exchange' 'HTTPS'
+  rinda -> mixpanel 'Sends events / queries JQL' 'HTTPS'
+}
+
+views {
+  view index {
+    title 'RINDA CRM — Landscape'
+    include *
+  }
+}

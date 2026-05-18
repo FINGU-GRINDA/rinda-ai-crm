@@ -2,7 +2,7 @@ import { cors } from "@elysiajs/cors"
 import { swagger } from "@elysiajs/swagger"
 import { Elysia } from "elysia"
 import { config } from "./config"
-import { testConnection } from "./db"
+import { runMigrations, waitForDatabase } from "./db/bootstrap"
 import { errorHandler } from "./middleware/error-handler"
 import { loggerMiddleware } from "./middleware/logger"
 import { settingsRepository } from "./repositories"
@@ -11,12 +11,11 @@ import { logger } from "./utils/logger"
 import { success } from "./utils/response"
 
 async function main() {
-  // Test database connection
-  const dbConnected = await testConnection()
-  if (!dbConnected) {
-    logger.error("Failed to connect to database. Exiting...")
-    process.exit(1)
-  }
+  // Wait for the database to accept connections, then run migrations.
+  // Replaces the `pg_isready` loop + smart-migrate.sh that used to run in
+  // the Docker entrypoint.
+  await waitForDatabase()
+  await runMigrations()
 
   // Initialize default settings
   await settingsRepository.initializeDefaults()

@@ -1,0 +1,109 @@
+views {
+  view rinda_context of rinda {
+    title 'RINDA CRM — Containers'
+    include *
+    include rinda.backend.services
+    include rinda.backend.repositories
+  }
+
+  view frontend_internals of rinda.frontend {
+    title 'Frontend internals'
+    include *
+    include rinda.backend
+  }
+
+  view backend_internals of rinda.backend {
+    title 'Backend internals'
+    include *
+    include rinda.frontend
+    include rinda.db
+  }
+
+  view backend_routes of rinda.backend.routes {
+    title 'Backend routes'
+    include *
+    include rinda.backend.authMw
+    include rinda.backend.services
+  }
+
+  view backend_services of rinda.backend.services {
+    title 'Backend services'
+    include *
+    include rinda.backend.repositories
+    include gemini
+    include slack
+    include gmail
+    include gcal
+    include googleOAuth
+    include mixpanel
+  }
+
+  view ai_slice {
+    title 'AI flow — analysis & proposal generation'
+    include salesUser
+    include rinda.frontend.aiUi
+    include rinda.frontend.apiClient
+    include rinda.backend.routes.aiRoutes
+    include rinda.backend.services.geminiSvc
+    include rinda.backend.repositories
+    include rinda.db
+    include gemini
+  }
+
+  view slack_slice {
+    title 'Slack integration slice'
+    include slackUser
+    include slack
+    include rinda.backend.routes.slackEventRoutes
+    include rinda.backend.routes.slackApiRoutes
+    include rinda.backend.routes.slackBackfillRtes
+    include rinda.backend.services.slackEventSvc
+    include rinda.backend.services.slackApiSvc
+    include rinda.backend.services.slackBackfillSvc
+    include rinda.backend.services.slackWebhookSvc
+    include rinda.backend.repositories
+    include rinda.db
+  }
+
+  view google_slice {
+    title 'Google integrations slice (OAuth / Gmail / Calendar)'
+    include salesUser
+    include rinda.frontend
+    include rinda.backend.routes.gmailRoutes
+    include rinda.backend.routes.calendarRoutes
+    include rinda.backend.services.gmailSvc
+    include rinda.backend.services.calendarSvc
+    include rinda.backend.services.googleOAuthSvc
+    include rinda.backend.repositories
+    include googleOAuth
+    include gmail
+    include gcal
+  }
+
+  dynamic view proposal_flow {
+    title 'Dynamic — "Generate proposal" request flow'
+    salesUser -> rinda.frontend.aiUi 'Clicks "Generate Proposal"'
+    rinda.frontend.aiUi -> rinda.frontend.apiClient 'callGenerateProposal()'
+    rinda.frontend.apiClient -> rinda.backend.routes.aiRoutes 'POST /api/ai/proposal'
+    rinda.backend.routes.aiRoutes -> rinda.backend.authMw 'verifies JWT'
+    rinda.backend.routes.aiRoutes -> rinda.backend.services.geminiSvc 'generateProposal(customer)'
+    rinda.backend.services.geminiSvc -> gemini 'generateContent + image'
+    rinda.backend.services.geminiSvc -> rinda.backend.repositories 'persist proposal & attachment'
+    rinda.backend.repositories -> rinda.db 'INSERT proposals, attachments'
+    rinda.backend.routes.aiRoutes -> rinda.frontend.apiClient 'returns proposal JSON'
+    rinda.frontend.apiClient -> rinda.frontend.aiUi 'renders ProposalViewModal'
+  }
+
+  dynamic view slack_event_flow {
+    title 'Dynamic — Inbound Slack event'
+    slackUser -> slack 'posts in CS channel'
+    slack -> rinda.backend.routes.slackEventRoutes 'event_callback (signed)'
+    rinda.backend.routes.slackEventRoutes -> rinda.backend.services.slackWebhookSvc 'verify signature'
+    rinda.backend.routes.slackEventRoutes -> rinda.backend.services.slackEventSvc 'handle event'
+    rinda.backend.services.slackEventSvc -> rinda.backend.services.geminiSvc 'classify / extract intent'
+    rinda.backend.services.slackEventSvc -> rinda.backend.repositories 'upsert slack message / link to customer'
+    rinda.backend.repositories -> rinda.db 'INSERT slack_messages'
+    rinda.backend.services.slackEventSvc -> rinda.backend.services.slackApiSvc 'react / reply'
+    rinda.backend.services.slackApiSvc -> slack 'chat.postMessage'
+  }
+}

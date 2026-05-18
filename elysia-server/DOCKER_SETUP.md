@@ -133,7 +133,7 @@ git checkout .env
 
 The `compose.db.yml` includes:
 
-- **PostgreSQL 16 Alpine** - Lightweight PostgreSQL database
+- **PostgreSQL 18 Alpine** - Lightweight PostgreSQL database
 - **Redis 7 Alpine** - In-memory data store for caching and sessions
 - **pgAdmin 4** - Web-based PostgreSQL management tool (optional)
 - **RedisInsight** - Web-based Redis management tool (optional)

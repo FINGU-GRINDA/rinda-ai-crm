@@ -1,42 +1,55 @@
-FROM oven/bun:1-alpine
+# syntax=docker/dockerfile:1.7
+# =============================================================================
+# Rinda CRM - Elysia Server
+# Production image for Dokploy deployment
+#
+# The server itself handles DB readiness + migrations on boot
+# (see src/db/bootstrap.ts), so this image stays a thin runtime.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Install dependencies
+# -----------------------------------------------------------------------------
+FROM oven/bun:1.1-alpine AS deps
 
 WORKDIR /app
 
-# Install PostgreSQL client for health checks
-RUN apk add --no-cache postgresql-client
+# Copy lockfile + manifest first to maximize Docker layer cache hits.
+COPY package.json bun.lock ./
 
-# Copy package files
-COPY package.json ./
-COPY bun.lock* ./
+RUN bun install --frozen-lockfile --production=false
 
-# Install dependencies using bun
-RUN bun install --frozen-lockfile || bun install
+# -----------------------------------------------------------------------------
+# Stage 2: Runtime
+# -----------------------------------------------------------------------------
+FROM oven/bun:1.1-alpine AS runtime
 
-# Copy source code and configuration files
+# tini -> proper PID 1 signal handling
+# curl -> used by HEALTHCHECK
+RUN apk add --no-cache tini curl
+
+WORKDIR /app
+
+# Copy installed node_modules from the deps stage.
+COPY --from=deps /app/node_modules ./node_modules
+
+# Application source. Keep .dockerignore in sync.
+COPY package.json bun.lock ./
+COPY tsconfig.json drizzle.config.ts ./
 COPY src ./src
-COPY tsconfig.json ./
-COPY drizzle.config.ts ./
-# Copy migration files
 COPY drizzle ./drizzle
-# Copy scripts
-COPY scripts ./scripts
-# Copy .env files
-COPY .env* ./
 
-# Make scripts executable
-RUN chmod +x ./scripts/*.sh
+# Drop privileges. The oven/bun image ships a `bun` user (uid 1000).
+RUN chown -R bun:bun /app
+USER bun
 
-# Expose port
+ENV NODE_ENV=production \
+    PORT=3001
+
 EXPOSE 3001
 
-# Run migrations and start the app
-CMD sh -c 'echo "[+] Waiting for PostgreSQL to be ready..." && \
-  until pg_isready -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" > /dev/null 2>&1; do \
-    echo "    Waiting for database connection..." && sleep 2; \
-  done && \
-  echo "[+] PostgreSQL is ready!" && \
-  echo "[+] Running smart migration check..." && \
-  sh ./scripts/smart-migrate.sh && \
-  echo "[+] Database is ready!" && \
-  echo "[+] Starting elysia-server..." && \
-  exec bun run start'
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -fsS "http://localhost:${PORT}/health" || exit 1
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["bun", "run", "src/index.ts"]
