@@ -4,6 +4,21 @@ function getEnvOrDefault(key: string, defaultValue: string): string {
   return process.env[key] || defaultValue
 }
 
+function parseOriginList(raw: string): string[] {
+  const trimmed = raw.trim()
+  if (trimmed.startsWith("[")) {
+    const parsed: unknown = JSON.parse(trimmed)
+    if (!Array.isArray(parsed) || !parsed.every((v): v is string => typeof v === "string")) {
+      throw new Error("FRONTEND_URLS JSON value must be an array of strings")
+    }
+    return parsed.map((url) => url.trim()).filter(Boolean)
+  }
+  return trimmed
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean)
+}
+
 export const NODE_ENV = getEnvOrDefault("NODE_ENV", "development") as
   | "development"
   | "production"
@@ -20,11 +35,14 @@ const configSchema = z.object({
 
   // Server
   PORT: z.coerce.number().default(3001),
-  // Comma-separated list of frontend URLs (for CORS)
+  // CORS allowlist. Accepts either format:
+  //   - JSON array: ["https://a.com","https://b.com"]
+  //   - Comma-separated: https://a.com,https://b.com
+  // First entry is also used as the OAuth redirect origin.
   FRONTEND_URLS: z
     .string()
     .default("http://localhost:3000")
-    .transform((val) => val.split(",").map((url) => url.trim())),
+    .transform((val) => parseOriginList(val)),
 
   // Gemini AI
   GEMINI_API_KEY: z.string().optional(),

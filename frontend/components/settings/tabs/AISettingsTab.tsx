@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IconEye, IconEyeOff, IconCheck, IconLoader, IconExternalLink, IconX } from '../../Icons';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 export interface AIFormState {
   isDirty: boolean;

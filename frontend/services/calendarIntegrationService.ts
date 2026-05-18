@@ -2,7 +2,7 @@ import { CalendarEvent, CalendarIntegration, MeetingPreparation, Customer } from
 import { apiClient } from '../src/services/apiClient';
 
 // API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 // Calendar Integration Storage (localStorage as fallback)
 const CALENDAR_INTEGRATION_KEY = 'rinda_calendar_integration';

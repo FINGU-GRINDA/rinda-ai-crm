@@ -2,7 +2,7 @@ import { EmailMessage, EmailIntegration, Customer } from '../types';
 import { apiClient } from '../src/services/apiClient';
 
 // API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 /**
  * Gmail 연동 상태 가져오기
