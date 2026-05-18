@@ -33,6 +33,24 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [isOpen, setIsOpen] = useState(false)
   const [isChecking, setIsChecking] = useState(false)
 
+  const loadNotifications = () => {
+    const all = getNotifications()
+    setNotifications(all)
+    setUnreadCount(getUnreadCount())
+  }
+
+  const checkNotifications = async () => {
+    setIsChecking(true)
+    try {
+      await runNotificationChecks(customers)
+      loadNotifications()
+    } catch (error) {
+      console.error("Notification check failed:", error)
+    } finally {
+      setIsChecking(false)
+    }
+  }
+
   // Load notifications on mount
   useEffect(() => {
     loadNotifications()
@@ -54,24 +72,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   useEffect(() => {
     loadNotifications()
   }, [loadNotifications])
-
-  const loadNotifications = () => {
-    const all = getNotifications()
-    setNotifications(all)
-    setUnreadCount(getUnreadCount())
-  }
-
-  const checkNotifications = async () => {
-    setIsChecking(true)
-    try {
-      await runNotificationChecks(customers)
-      loadNotifications()
-    } catch (error) {
-      console.error("Notification check failed:", error)
-    } finally {
-      setIsChecking(false)
-    }
-  }
 
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {

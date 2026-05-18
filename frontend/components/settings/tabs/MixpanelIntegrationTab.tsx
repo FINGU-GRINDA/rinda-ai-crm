@@ -68,18 +68,6 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({
   const [successMessage, setSuccessMessage] = useState("")
   const [newEvent, setNewEvent] = useState("")
 
-  // Load settings on mount
-  useEffect(() => {
-    fetchSettings()
-    fetchConnectionStatus()
-  }, [fetchConnectionStatus, fetchSettings])
-
-  // Check if form is dirty whenever formData changes
-  useEffect(() => {
-    const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData)
-    setIsDirty(hasChanges)
-  }, [formData, originalData])
-
   const fetchSettings = async () => {
     try {
       const response = await fetch(`${API_BASE}/mixpanel/settings`)
@@ -111,6 +99,18 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({
       console.error("Failed to fetch connection status:", error)
     }
   }
+
+  // Load settings on mount
+  useEffect(() => {
+    fetchSettings()
+    fetchConnectionStatus()
+  }, [fetchConnectionStatus, fetchSettings])
+
+  // Check if form is dirty whenever formData changes
+  useEffect(() => {
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData)
+    setIsDirty(hasChanges)
+  }, [formData, originalData])
 
   // Submit all form changes
   const handleSubmit = async () => {

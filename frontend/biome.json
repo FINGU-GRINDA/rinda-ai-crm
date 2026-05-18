@@ -49,7 +49,7 @@
         "noUnusedImports": "warn",
         "noUnusedFunctionParameters": "warn",
         "useExhaustiveDependencies": "warn",
-        "noInvalidUseBeforeDeclaration": "warn",
+        "noInvalidUseBeforeDeclaration": "error",
         "useHookAtTopLevel": "warn"
       },
       "performance": {

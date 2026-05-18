@@ -43,10 +43,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
-
   const checkAuth = useCallback(async () => {
     try {
       const response = await apiClient.getCurrentUser()
@@ -62,6 +58,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   const register = useCallback(async (email: string, password: string, name: string) => {
     try {

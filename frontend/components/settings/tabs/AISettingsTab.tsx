@@ -38,14 +38,6 @@ export const AISettingsTab: React.FC<AISettingsTabProps> = ({
   // Track if form has unsaved changes
   const isDirty = apiKey.trim().length > 0
 
-  useEffect(() => {
-    // 서버 AI 상태 확인
-    fetchServerStatus()
-  }, [
-    // 서버 AI 상태 확인
-    fetchServerStatus,
-  ])
-
   const fetchServerStatus = async () => {
     setIsLoadingServerStatus(true)
     try {
@@ -62,6 +54,14 @@ export const AISettingsTab: React.FC<AISettingsTabProps> = ({
       setIsLoadingServerStatus(false)
     }
   }
+
+  useEffect(() => {
+    // 서버 AI 상태 확인
+    fetchServerStatus()
+  }, [
+    // 서버 AI 상태 확인
+    fetchServerStatus,
+  ])
 
   const handleSave = async () => {
     setErrorMessage(

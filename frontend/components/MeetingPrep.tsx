@@ -24,14 +24,6 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (event.meetingPrep) {
-      setPreparation(event.meetingPrep)
-    } else {
-      loadPreparation()
-    }
-  }, [loadPreparation, event.meetingPrep])
-
   const loadPreparation = async () => {
     setIsLoading(true)
     setError(null)
@@ -45,6 +37,14 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (event.meetingPrep) {
+      setPreparation(event.meetingPrep)
+    } else {
+      loadPreparation()
+    }
+  }, [loadPreparation, event.meetingPrep])
 
   const formatTime = (timestamp: string | number) => {
     return new Date(timestamp).toLocaleString("ko-KR", {
