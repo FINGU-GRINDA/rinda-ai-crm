@@ -626,11 +626,13 @@ export const AppDashboard: React.FC = () => {
     }
 
     try {
-      const response = await apiClient.updateCustomerStatus(selectedCustomerId!, newStatus)
+      const response = await apiClient.updateCustomerStatus(selectedCustomer.id, newStatus)
 
       if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data)
-        setCustomers((prev) => prev.map((c) => (c.id === selectedCustomerId ? updatedCustomer : c)))
+        setCustomers((prev) =>
+          prev.map((c) => (c.id === selectedCustomer.id ? updatedCustomer : c)),
+        )
       } else if (isErrorResponse(response)) {
         throw new Error(response.error)
       }
@@ -725,11 +727,13 @@ export const AppDashboard: React.FC = () => {
     if (!selectedCustomer) return
 
     try {
-      const response = await apiClient.updateCustomerStatus(selectedCustomerId!, "lost", reason)
+      const response = await apiClient.updateCustomerStatus(selectedCustomer.id, "lost", reason)
 
       if (isSuccessResponse(response)) {
         const updatedCustomer = transformApiCustomer(response.data)
-        setCustomers((prev) => prev.map((c) => (c.id === selectedCustomerId ? updatedCustomer : c)))
+        setCustomers((prev) =>
+          prev.map((c) => (c.id === selectedCustomer.id ? updatedCustomer : c)),
+        )
       } else if (isErrorResponse(response)) {
         throw new Error(response.error)
       }
