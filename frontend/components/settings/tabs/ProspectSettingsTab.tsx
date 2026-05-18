@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { ICPProfile } from '../../../types';
 import {
   getICPProfiles,
-  saveICPProfiles,
   getCollectionSettings,
-  saveCollectionSettings,
   CollectionSettings,
   runProspectCollection,
+  STORAGE_KEY_ICPS,
+  STORAGE_KEY_COLLECTION_SETTINGS,
 } from '../../../services/prospectService';
+import { setItemOrThrow } from '../../../src/utils/safeStorage';
 import { IconX, IconClock, IconLoader, IconSparkles } from '../../Icons';
 import { useSettingsToast } from '../SettingsToastContext';
 import {
@@ -89,7 +90,18 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
     const next = { ...collectionSettings, ...updates };
     setCollectionSettings(next);
     try {
-      saveCollectionSettings(next);
+      setItemOrThrow(STORAGE_KEY_COLLECTION_SETTINGS, next);
+      toast.show('success', message);
+    } catch {
+      toast.show('error', '저장에 실패했습니다');
+    }
+  };
+
+  const persistProfiles = (next: ICPProfile[], message: string) => {
+    setProfiles(next);
+    try {
+      setItemOrThrow(STORAGE_KEY_ICPS, next);
+      onSettingsChange?.();
       toast.show('success', message);
     } catch {
       toast.show('error', '저장에 실패했습니다');
@@ -174,11 +186,8 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
       updated = [...profiles, newProfile];
     }
 
-    setProfiles(updated);
-    saveICPProfiles(updated);
+    persistProfiles(updated, editingId ? '프로필이 수정되었습니다' : '프로필이 추가되었습니다');
     resetForm();
-    onSettingsChange?.();
-    toast.show('success', editingId ? '프로필이 수정되었습니다' : '프로필이 추가되었습니다');
   };
 
   const handleEdit = (profile: ICPProfile) => {
@@ -197,10 +206,8 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
   const handleDelete = (id: string) => {
     if (!confirm('이 ICP 프로필을 삭제할까요?')) return;
     const updated = profiles.filter((p) => p.id !== id);
-    setProfiles(updated);
-    saveICPProfiles(updated);
+    persistProfiles(updated, '프로필이 삭제되었습니다');
     if (editingId === id) resetForm();
-    toast.show('success', '프로필이 삭제되었습니다');
   };
 
   const addKeywords = () => {

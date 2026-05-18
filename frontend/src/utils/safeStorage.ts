@@ -50,6 +50,15 @@ export function safeSetItem(key: string, value: unknown): void {
 }
 
 /**
+ * Set item in localStorage, re-throwing any error so the caller can react
+ * (e.g. show an error toast). Use this when the UI needs to distinguish
+ * between a successful and a failed write.
+ */
+export function setItemOrThrow(key: string, value: unknown): void {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+/**
  * Safely remove item from localStorage
  * @param key - localStorage key to remove
  */

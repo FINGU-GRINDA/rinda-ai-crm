@@ -2,9 +2,9 @@ import { ICPProfile, Prospect } from "../types";
 import { apiClient } from "../src/services/apiClient";
 import { sendNewProspectNotification } from "./slackIntegrationService";
 
-const STORAGE_KEY_ICPS = 'rinda_icp_profiles';
+export const STORAGE_KEY_ICPS = 'rinda_icp_profiles';
 const STORAGE_KEY_PROSPECTS = 'rinda_prospects';
-const STORAGE_KEY_COLLECTION_SETTINGS = 'rinda_collection_settings';
+export const STORAGE_KEY_COLLECTION_SETTINGS = 'rinda_collection_settings';
 
 export interface CollectionSettings {
   enabled: boolean;

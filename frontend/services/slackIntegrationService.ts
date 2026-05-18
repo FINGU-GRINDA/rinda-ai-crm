@@ -6,7 +6,7 @@
 import { SlackSettings, Prospect, Customer, ScheduledFollowUp } from '../types';
 import { apiClient } from '../src/services/apiClient';
 
-const SLACK_SETTINGS_KEY = 'rinda_slack_settings';
+export const SLACK_SETTINGS_KEY = 'rinda_slack_settings';
 
 // Default Slack settings
 const DEFAULT_SLACK_SETTINGS: SlackSettings = {

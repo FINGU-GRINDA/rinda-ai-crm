@@ -60,6 +60,3 @@ export const row =
 
 export const chip =
   "inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-medium";
-
-export const chipRemovable =
-  "inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-medium";

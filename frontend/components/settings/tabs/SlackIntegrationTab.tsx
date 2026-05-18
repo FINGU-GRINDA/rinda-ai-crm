@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { SlackSettings } from '../../../types';
 import {
   getSlackSettings,
-  saveSlackSettings,
   validateWebhookUrl,
   sendTestMessage,
+  SLACK_SETTINGS_KEY,
 } from '../../../services/slackIntegrationService';
+import { setItemOrThrow } from '../../../src/utils/safeStorage';
 import { IconCheck, IconLoader, IconExternalLink } from '../../Icons';
 import { useSettingsToast } from '../SettingsToastContext';
 import {
@@ -76,13 +77,34 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
   const persist = (next: SlackSettings, message = '저장되었습니다') => {
     setSettings(next);
     try {
-      saveSlackSettings(next);
+      setItemOrThrow(SLACK_SETTINGS_KEY, next);
       onSettingsChange?.();
       toast.show('success', message);
     } catch (error) {
       console.error(error);
       toast.show('error', '저장에 실패했습니다');
     }
+  };
+
+  // Merge-on-write update so async handlers don't overwrite changes the user
+  // made while the request was in flight. Reads the latest state via the
+  // functional updater rather than the closure-captured snapshot.
+  const persistMerge = (
+    updates: Partial<SlackSettings>,
+    message = '저장되었습니다',
+  ) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...updates };
+      try {
+        setItemOrThrow(SLACK_SETTINGS_KEY, next);
+        onSettingsChange?.();
+        toast.show('success', message);
+      } catch (error) {
+        console.error(error);
+        toast.show('error', '저장에 실패했습니다');
+      }
+      return next;
+    });
   };
 
   const handleValidate = async () => {
@@ -112,10 +134,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
     setIsSendingTest(true);
     const result = await sendTestMessage(settings.webhookUrl);
     if (result.success) {
-      persist(
-        { ...settings, lastTestAt: new Date().toISOString() },
-        '테스트 메시지를 보냈습니다',
-      );
+      persistMerge({ lastTestAt: new Date().toISOString() }, '테스트 메시지를 보냈습니다');
     } else {
       toast.show('error', result.error || '테스트 메시지 전송에 실패했습니다');
     }
