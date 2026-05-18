@@ -6,7 +6,6 @@ import type {
   CalendarSettings,
   CollectionSettings,
   EmailSettings,
-  MixpanelSettings,
   NotificationSettings,
   SettingsKey,
   SlackSettings,
@@ -161,17 +160,6 @@ export const settingsRepository = {
   updateCollectionSettings: async (data: Partial<CollectionSettings>) => {
     const current = await settingsRepository.getCollectionSettings()
     return settingsRepository.set("collection", { ...current, ...data })
-  },
-
-  // Mixpanel settings
-  getMixpanelSettings: async (): Promise<MixpanelSettings> => {
-    const value = await settingsRepository.get("mixpanel")
-    return (value || defaultSettings.mixpanel) as MixpanelSettings
-  },
-
-  updateMixpanelSettings: async (data: Partial<MixpanelSettings>) => {
-    const current = await settingsRepository.getMixpanelSettings()
-    return settingsRepository.set("mixpanel", { ...current, ...data })
   },
 
   // Initialize default settings

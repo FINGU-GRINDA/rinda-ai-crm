@@ -1,6 +1,6 @@
 import React from 'react';
 import { SettingsTabType } from '../../types';
-import { IconBrain, IconSparkles, IconMail, IconCalendar, IconBell, IconActivity } from '../Icons';
+import { IconBrain, IconSparkles, IconMail, IconCalendar, IconBell } from '../Icons';
 
 // Slack 아이콘 (lucide-react에 없으므로 직접 정의)
 const IconSlack: React.FC<{ className?: string }> = ({ className }) => (
@@ -24,27 +24,36 @@ interface TabConfig {
 }
 
 const SETTINGS_TABS: TabConfig[] = [
-  { id: 'ai', label: 'AI 설정', icon: IconBrain, description: 'Gemini API Key' },
-  { id: 'prospect', label: '잠재고객 탐색', icon: IconSparkles, description: 'ICP 프로필 및 수집' },
-  { id: 'slack', label: 'Slack 연동', icon: IconSlack, description: 'Webhook 알림' },
-  { id: 'email', label: '이메일 연동', icon: IconMail, description: 'Gmail/Outlook' },
-  { id: 'calendar', label: '캘린더 연동', icon: IconCalendar, description: 'Google/Outlook' },
-  { id: 'mixpanel', label: 'Mixpanel', icon: IconActivity, description: '이벤트 통합' },
-  { id: 'notifications', label: '알림 설정', icon: IconBell, description: '알림 관리' },
+  { id: 'ai', label: 'AI 모델', icon: IconBrain, description: 'Gemini 연동 상태' },
+  { id: 'prospect', label: '잠재고객 탐색', icon: IconSparkles, description: 'ICP · 자동 수집' },
+  { id: 'slack', label: 'Slack', icon: IconSlack, description: 'Webhook 알림' },
+  { id: 'email', label: '이메일', icon: IconMail, description: 'Gmail · Outlook' },
+  { id: 'calendar', label: '캘린더', icon: IconCalendar, description: 'Google · Outlook' },
+  { id: 'notifications', label: '알림', icon: IconBell, description: '브라우저 · 이메일' },
 ];
+
+interface ConnectionStatus {
+  slack?: boolean;
+  email?: boolean;
+  calendar?: boolean;
+}
 
 interface SettingsTabBarProps {
   activeTab: SettingsTabType;
   onTabChange: (tab: SettingsTabType) => void;
-  connectionStatus?: {
-    ai?: boolean;
-    slack?: boolean;
-    email?: boolean;
-    calendar?: boolean;
-    mixpanel?: boolean;
-  };
+  connectionStatus?: ConnectionStatus;
   horizontal?: boolean;
 }
+
+const isConnected = (tabId: SettingsTabType, status: ConnectionStatus): boolean => {
+  if (tabId === 'slack') return !!status.slack;
+  if (tabId === 'email') return !!status.email;
+  if (tabId === 'calendar') return !!status.calendar;
+  return false;
+};
+
+const isConnectable = (tabId: SettingsTabType): boolean =>
+  tabId === 'slack' || tabId === 'email' || tabId === 'calendar';
 
 export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
   activeTab,
@@ -52,48 +61,35 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
   connectionStatus = {},
   horizontal = false,
 }) => {
-  const getStatusBadge = (tabId: SettingsTabType) => {
-    if (tabId === 'ai' && connectionStatus.ai) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
-    }
-    if (tabId === 'slack' && connectionStatus.slack) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
-    }
-    if (tabId === 'email' && connectionStatus.email) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
-    }
-    if (tabId === 'calendar' && connectionStatus.calendar) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
-    }
-    if (tabId === 'mixpanel' && connectionStatus.mixpanel) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />;
-    }
-    return null;
-  };
-
-  // Horizontal mode for mobile
+  // Horizontal (mobile)
   if (horizontal) {
     return (
       <>
         {SETTINGS_TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const connected = isConnectable(tab.id) && isConnected(tab.id, connectionStatus);
 
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
-                ${isActive
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                isActive
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-100 text-slate-600'
-                }
-              `}
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+              <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
-              {getStatusBadge(tab.id)}
+              {connected && (
+                <span
+                  className={`inline-block w-1.5 h-1.5 rounded-full ${
+                    isActive ? 'bg-emerald-300' : 'bg-emerald-500'
+                  }`}
+                  aria-label="연결됨"
+                />
+              )}
             </button>
           );
         })}
@@ -101,37 +97,50 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
     );
   }
 
-  // Vertical mode for desktop
+  // Vertical (desktop)
   return (
-    <div className="flex flex-col space-y-1 w-48 border-r border-slate-200 pr-4">
+    <nav className="flex flex-col space-y-1 w-52" aria-label="설정 메뉴">
       {SETTINGS_TABS.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
+        const connected = isConnectable(tab.id) && isConnected(tab.id, connectionStatus);
 
         return (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`
-              flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all
-              ${isActive
-                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }
-            `}
+            className={`group flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+              isActive
+                ? 'bg-indigo-50 text-indigo-700'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
           >
-            <Icon className={`w-5 h-5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+            <Icon
+              className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
+              }`}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className={`text-sm font-medium truncate ${isActive ? 'text-indigo-700' : ''}`}>
-                  {tab.label}
-                </span>
-                {getStatusBadge(tab.id)}
+                <span className="text-sm font-medium truncate">{tab.label}</span>
+                {connected && (
+                  <span
+                    className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"
+                    aria-label="연결됨"
+                  />
+                )}
               </div>
+              <p
+                className={`text-xs mt-0.5 truncate ${
+                  isActive ? 'text-indigo-500' : 'text-slate-500'
+                }`}
+              >
+                {tab.description}
+              </p>
             </div>
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 };

@@ -276,7 +276,7 @@ export interface AIMessage {
 }
 
 // Settings Types
-export type SettingsTabType = 'ai' | 'prospect' | 'slack' | 'email' | 'calendar' | 'notifications' | 'mixpanel';
+export type SettingsTabType = 'ai' | 'prospect' | 'slack' | 'email' | 'calendar' | 'notifications';
 
 export interface SlackSettings {
   webhookUrl: string;

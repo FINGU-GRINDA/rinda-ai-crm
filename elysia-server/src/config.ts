@@ -65,10 +65,6 @@ const configSchema = z.object({
   JWT_REFRESH_SECRET: z.string().optional(),
   ENCRYPTION_KEY: z.string().optional(),
 
-  // Mixpanel
-  MIXPANEL_PROJECT_ID: z.string().optional(),
-  MIXPANEL_PROJECT_SECRET: z.string().optional(),
-
   LOGGING_LEVEL: z.string().default(isProduction ? "info" : "debug"),
 })
 

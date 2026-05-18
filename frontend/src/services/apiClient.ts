@@ -852,39 +852,6 @@ class APIClient {
   async getCalendarEvent(eventId: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/api/calendar/events/${eventId}`);
   }
-
-  // ==========================
-  // Mixpanel Integration Endpoints
-  // ==========================
-
-  async getMixpanelStatus(): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.request('/api/mixpanel/status');
-  }
-
-  async getMixpanelSettings(): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.request('/api/mixpanel/settings');
-  }
-
-  async updateMixpanelSettings(settings: Record<string, unknown>): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.request('/api/mixpanel/settings', {
-      method: 'PUT',
-      body: JSON.stringify(settings),
-    });
-  }
-
-  async getMixpanelEvents(options: { limit?: number; offset?: number; processed?: boolean } = {}): Promise<ApiListResponse<Record<string, unknown>>> {
-    const params = new URLSearchParams();
-    if (options.limit) params.append('limit', options.limit.toString());
-    if (options.offset) params.append('offset', options.offset.toString());
-    if (options.processed !== undefined) params.append('processed', options.processed.toString());
-    return this.request(`/api/mixpanel/events?${params.toString()}`);
-  }
-
-  async reprocessMixpanelEvents(): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.request('/api/mixpanel/reprocess', {
-      method: 'POST',
-    });
-  }
 }
 
 // Export singleton instance

@@ -174,29 +174,6 @@ export const settingsRoutes = new Elysia({ prefix: "/api/settings" })
     },
   )
 
-  // Mixpanel settings
-  .get("/mixpanel", async () => {
-    const settings = await settingsRepository.getMixpanelSettings()
-    return success(settings)
-  })
-
-  .put(
-    "/mixpanel",
-    async ({ body }) => {
-      const result = await settingsRepository.updateMixpanelSettings(body)
-      return success(result)
-    },
-    {
-      body: t.Object({
-        enabled: t.Optional(t.Boolean()),
-        projectToken: t.Optional(t.String()),
-        apiSecret: t.Optional(t.String()),
-        autoCreateLeads: t.Optional(t.Boolean()),
-        eventMappings: t.Optional(t.Record(t.String(), t.String())),
-      }),
-    },
-  )
-
   // Initialize default settings
   .post("/initialize", async () => {
     await settingsRepository.initializeDefaults()

@@ -1,6 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NotificationSettings } from '../../../types';
-import { IconBell } from '../../Icons';
+import { useSettingsToast } from '../SettingsToastContext';
+import {
+  pageTitle,
+  pageDesc,
+  card,
+  sectionTitle,
+  sectionDesc,
+  infoNote,
+  toggle,
+  checkbox,
+  divideRows,
+} from '../tokens';
 
 const NOTIFICATION_SETTINGS_KEY = 'rinda_notification_settings';
 
@@ -39,235 +50,182 @@ const getNotificationSettings = (): NotificationSettings => {
 };
 
 const saveNotificationSettings = (settings: NotificationSettings): void => {
-  try {
-    localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
-  } catch (error) {
-    console.error('Failed to save notification settings:', error);
-  }
+  localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
 };
 
 interface NotificationSettingsTabProps {
   onSettingsChange?: () => void;
 }
 
+const BROWSER_TYPES: { key: keyof NotificationSettings['browser']['types']; label: string; desc: string }[] = [
+  { key: 'followUp', label: '팔로우업 알림', desc: '예정된 팔로우업 시간이 되면 표시' },
+  { key: 'meeting', label: '미팅 알림', desc: '미팅 시작 전 표시' },
+  { key: 'prospect', label: '잠재고객 발견', desc: 'AI가 새 잠재고객을 발견했을 때 표시' },
+  { key: 'news', label: '고객 뉴스', desc: '담당 고객 관련 뉴스 표시' },
+  { key: 'risk', label: '위험 신호', desc: '거래 위험이 감지되면 표시' },
+];
+
 export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = ({ onSettingsChange }) => {
   const [settings, setSettings] = useState<NotificationSettings>(() => getNotificationSettings());
+  const toast = useSettingsToast();
 
-  const handleBrowserSettingsChange = (updates: Partial<NotificationSettings['browser']>) => {
-    const newSettings: NotificationSettings = {
-      ...settings,
-      browser: { ...settings.browser, ...updates },
-    };
-    setSettings(newSettings);
-    saveNotificationSettings(newSettings);
+  const persist = (next: NotificationSettings, message = '저장되었습니다') => {
+    setSettings(next);
+    try {
+      saveNotificationSettings(next);
+      onSettingsChange?.();
+      toast.show('success', message);
+    } catch (error) {
+      console.error(error);
+      toast.show('error', '저장에 실패했습니다');
+    }
   };
 
-  const handleBrowserTypeChange = (type: keyof NotificationSettings['browser']['types'], value: boolean) => {
-    const newSettings: NotificationSettings = {
+  const setBrowser = (updates: Partial<NotificationSettings['browser']>) => {
+    persist({ ...settings, browser: { ...settings.browser, ...updates } });
+  };
+
+  const setBrowserType = (key: keyof NotificationSettings['browser']['types'], value: boolean) => {
+    persist({
       ...settings,
       browser: {
         ...settings.browser,
-        types: { ...settings.browser.types, [type]: value },
+        types: { ...settings.browser.types, [key]: value },
       },
-    };
-    setSettings(newSettings);
-    saveNotificationSettings(newSettings);
+    });
   };
 
-  const handleEmailSettingsChange = (updates: Partial<NotificationSettings['email']>) => {
-    const newSettings: NotificationSettings = {
-      ...settings,
-      email: { ...settings.email, ...updates },
-    };
-    setSettings(newSettings);
-    saveNotificationSettings(newSettings);
+  const setEmail = (updates: Partial<NotificationSettings['email']>) => {
+    persist({ ...settings, email: { ...settings.email, ...updates } });
   };
 
-  const requestBrowserPermission = async () => {
-    if ('Notification' in window) {
+  const handleBrowserToggle = async (enabled: boolean) => {
+    if (enabled && 'Notification' in window) {
       const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        handleBrowserSettingsChange({ enabled: true });
+      if (permission !== 'granted') {
+        toast.show('error', '브라우저 권한이 거부되었습니다');
+        return;
       }
     }
+    setBrowser({ enabled });
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-1">알림 설정</h3>
-        <p className="text-sm text-slate-500">CRM 알림을 어떻게 받을지 설정합니다.</p>
-      </div>
+      <header>
+        <h3 className={pageTitle}>알림</h3>
+        <p className={pageDesc}>어디로 알림을 받을지 선택합니다. Slack 알림은 Slack 탭에서 설정합니다.</p>
+      </header>
 
       {/* Browser Notifications */}
-      <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
-        <div className="flex items-center gap-2 mb-4">
-          <IconBell className="w-5 h-5 text-slate-600" />
-          <h4 className="text-base font-semibold text-slate-800">브라우저 알림</h4>
+      <section>
+        <div className="mb-3">
+          <h4 className={sectionTitle}>브라우저 알림</h4>
+          <p className={sectionDesc}>데스크탑 알림을 표시합니다</p>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className={`${card} p-0`}>
+          <div className={`flex items-center justify-between gap-4 px-5 py-4`}>
             <div>
-              <label className="text-sm font-medium text-slate-700">브라우저 알림 활성화</label>
-              <p className="text-xs text-slate-500">데스크탑 알림을 표시합니다</p>
+              <p className="text-sm font-medium text-slate-900">사용</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {settings.browser.enabled ? '활성화됨' : '비활성화됨'}
+              </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.browser.enabled}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    requestBrowserPermission();
-                  } else {
-                    handleBrowserSettingsChange({ enabled: false });
-                  }
-                }}
+                onChange={(e) => handleBrowserToggle(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className={toggle} />
             </label>
           </div>
 
           {settings.browser.enabled && (
-            <div className="space-y-3 pt-3 border-t border-slate-200">
-              <p className="text-sm font-medium text-slate-700">알림 유형</p>
-
-              <label className="flex items-center justify-between p-3 bg-white rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                <div>
-                  <span className="text-sm font-medium text-slate-700">팔로우업 알림</span>
-                  <p className="text-xs text-slate-500">예정된 팔로우업 시간 알림</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.browser.types.followUp}
-                  onChange={(e) => handleBrowserTypeChange('followUp', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3 bg-white rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                <div>
-                  <span className="text-sm font-medium text-slate-700">미팅 알림</span>
-                  <p className="text-xs text-slate-500">예정된 미팅 알림</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.browser.types.meeting}
-                  onChange={(e) => handleBrowserTypeChange('meeting', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3 bg-white rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                <div>
-                  <span className="text-sm font-medium text-slate-700">뉴스 알림</span>
-                  <p className="text-xs text-slate-500">고객 관련 뉴스 알림</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.browser.types.news}
-                  onChange={(e) => handleBrowserTypeChange('news', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3 bg-white rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                <div>
-                  <span className="text-sm font-medium text-slate-700">잠재고객 발견</span>
-                  <p className="text-xs text-slate-500">새 잠재고객 발견 시 알림</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.browser.types.prospect}
-                  onChange={(e) => handleBrowserTypeChange('prospect', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3 bg-white rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                <div>
-                  <span className="text-sm font-medium text-slate-700">위험 경고</span>
-                  <p className="text-xs text-slate-500">거래 위험 감지 시 알림</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.browser.types.risk}
-                  onChange={(e) => handleBrowserTypeChange('risk', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                />
-              </label>
+            <div className={`${divideRows} border-t border-slate-100`}>
+              {BROWSER_TYPES.map((type) => (
+                <label
+                  key={type.key}
+                  className="flex items-center justify-between gap-4 px-5 py-3.5 cursor-pointer hover:bg-slate-50/70 transition-colors"
+                >
+                  <div>
+                    <span className="text-sm font-medium text-slate-800">{type.label}</span>
+                    <p className="text-xs text-slate-500 mt-0.5">{type.desc}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.browser.types[type.key]}
+                    onChange={(e) => setBrowserType(type.key, e.target.checked)}
+                    className={checkbox}
+                  />
+                </label>
+              ))}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Email Notifications */}
-      <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
-        <div className="flex items-center gap-2 mb-4">
-          <IconBell className="w-5 h-5 text-slate-600" />
-          <h4 className="text-base font-semibold text-slate-800">이메일 알림</h4>
+      <section>
+        <div className="mb-3">
+          <h4 className={sectionTitle}>이메일 알림</h4>
+          <p className={sectionDesc}>주요 활동을 이메일로 받습니다</p>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className={`${card} p-0`}>
+          <div className="flex items-center justify-between gap-4 px-5 py-4">
             <div>
-              <label className="text-sm font-medium text-slate-700">이메일 알림 활성화</label>
-              <p className="text-xs text-slate-500">중요 알림을 이메일로 받습니다</p>
+              <p className="text-sm font-medium text-slate-900">사용</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {settings.email.enabled ? '활성화됨' : '비활성화됨'}
+              </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.email.enabled}
-                onChange={(e) => handleEmailSettingsChange({ enabled: e.target.checked })}
+                onChange={(e) => setEmail({ enabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className={toggle} />
             </label>
           </div>
 
           {settings.email.enabled && (
-            <div className="space-y-3 pt-3 border-t border-slate-200">
-              <div className="flex items-center justify-between">
+            <div className="border-t border-slate-100 px-5 py-4 space-y-4">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-700">일간 요약</label>
-                  <p className="text-xs text-slate-500">하루 활동을 요약하여 매일 발송</p>
+                  <p className="text-sm font-medium text-slate-800">일간 요약</p>
+                  <p className="text-xs text-slate-500 mt-0.5">하루 활동을 정해진 시간에 발송</p>
                 </div>
                 <input
                   type="checkbox"
                   checked={settings.email.dailyDigest}
-                  onChange={(e) => handleEmailSettingsChange({ dailyDigest: e.target.checked })}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  onChange={(e) => setEmail({ dailyDigest: e.target.checked })}
+                  className={checkbox}
                 />
               </div>
 
               {settings.email.dailyDigest && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">발송 시간</label>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-slate-700">발송 시간</label>
                   <input
                     type="time"
                     value={settings.email.digestTime}
-                    onChange={(e) => handleEmailSettingsChange({ digestTime: e.target.value })}
-                    className="border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    onChange={(e) => setEmail({ digestTime: e.target.value })}
+                    className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
               )}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <span className="text-xl">💡</span>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-blue-900 mb-1">Slack 알림</p>
-            <p className="text-xs text-blue-700">
-              Slack으로 알림을 받으시려면 'Slack 연동' 탭에서 설정해주세요.
-            </p>
-          </div>
-        </div>
+      <div className={infoNote}>
+        Slack 메시지로 알림을 받으려면 <span className="font-medium text-slate-800">Slack</span> 탭에서 Webhook을 연동하세요.
       </div>
     </div>
   );
