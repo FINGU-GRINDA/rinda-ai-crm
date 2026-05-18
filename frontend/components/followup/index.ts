@@ -1,7 +1,7 @@
-export { FollowUpSchedulerHeader } from './FollowUpSchedulerHeader';
-export { FollowUpCompletionModal } from './FollowUpCompletionModal';
-export { FollowUpFormModal } from './FollowUpFormModal';
-export { CustomerFollowUpWidget } from './CustomerFollowUpWidget';
-export { FollowUpFilterBar } from './FollowUpFilterBar';
-export { FollowUpCalendarView } from './FollowUpCalendarView';
-export { FollowUpStatsDashboard } from './FollowUpStatsDashboard';
+export { CustomerFollowUpWidget } from "./CustomerFollowUpWidget"
+export { FollowUpCalendarView } from "./FollowUpCalendarView"
+export { FollowUpCompletionModal } from "./FollowUpCompletionModal"
+export { FollowUpFilterBar } from "./FollowUpFilterBar"
+export { FollowUpFormModal } from "./FollowUpFormModal"
+export { FollowUpSchedulerHeader } from "./FollowUpSchedulerHeader"
+export { FollowUpStatsDashboard } from "./FollowUpStatsDashboard"

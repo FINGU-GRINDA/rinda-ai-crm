@@ -1,5 +1,5 @@
 /* Import Pretendard font - must be first */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
 
 /* Tailwind v4 - use @import instead of @tailwind directives */
 @import "tailwindcss";
@@ -11,7 +11,8 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  font-family:
+    "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 }
 
 #root {
@@ -40,7 +41,8 @@ body {
 
 /* Shake effect for errors */
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
   25% {
@@ -57,7 +59,8 @@ body {
 
 /* Pulse success effect */
 @keyframes pulse-success {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
   }
@@ -73,7 +76,8 @@ body {
 
 /* Subtle pulse for disabled but important buttons */
 @keyframes pulse-subtle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -137,7 +141,7 @@ body {
 
 /* Focus visible for keyboard navigation */
 *:focus-visible {
-  outline: 2px solid #4F46E5;
+  outline: 2px solid #4f46e5;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -147,7 +151,7 @@ body {
   position: absolute;
   top: -100px;
   left: 0;
-  background: #4F46E5;
+  background: #4f46e5;
   color: white;
   padding: 0.5rem 1rem;
   text-decoration: none;
@@ -210,13 +214,15 @@ body {
 
 /* Touch feedback */
 @media (hover: none) and (pointer: coarse) {
-  button, a, [role="button"] {
+  button,
+  a,
+  [role="button"] {
     -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
   }
 
   /* Disable hover effects on touch devices */
   .no-touch-hover:hover {
-    transform: none !important;
+    transform: none;
   }
 }
 
@@ -250,7 +256,7 @@ body {
 .drag-handle {
   width: 40px;
   height: 4px;
-  background-color: #CBD5E1;
+  background-color: #cbd5e1;
   border-radius: 2px;
   margin: 8px auto;
 }
@@ -289,4 +295,3 @@ body {
 .animate-slide-in-from-left {
   animation: slide-in-from-left 0.3s ease-out;
 }
-

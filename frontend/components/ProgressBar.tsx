@@ -1,15 +1,15 @@
-import React from 'react';
+import type React from "react"
 
 interface ProgressBarProps {
-  progress: number;  // 0-100
-  message?: string;
-  showPercentage?: boolean;
+  progress: number // 0-100
+  message?: string
+  showPercentage?: boolean
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   progress,
   message,
-  showPercentage = false
+  showPercentage = false,
 }) => {
   return (
     <div className="w-full">
@@ -17,9 +17,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs text-slate-600">{message}</span>
           {showPercentage && (
-            <span className="text-xs font-semibold text-blue-600">
-              {Math.round(progress)}%
-            </span>
+            <span className="text-xs font-semibold text-blue-600">{Math.round(progress)}%</span>
           )}
         </div>
       )}
@@ -33,5 +31,5 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,43 +1,39 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Customer } from '../types';
-import { CreditCard, Mic, LogOut, User, ChevronDown } from 'lucide-react';
-import { NotificationCenter } from './NotificationCenter';
-import { FollowUpSchedulerHeader } from './followup';
-import { useAuth } from '../contexts/AuthContext';
-import {
-  IconPlus,
-  IconSearch,
-  IconX,
-  IconDashboard,
-  IconSettings
-} from './Icons';
+import { ChevronDown, CreditCard, LogOut, Mic, User } from "lucide-react"
+import type React from "react"
+import { useEffect, useRef, useState } from "react"
+import { useAuth } from "../contexts/AuthContext"
+import type { Customer } from "../types"
+import { FollowUpSchedulerHeader } from "./followup"
+import { IconDashboard, IconPlus, IconSearch, IconSettings, IconX } from "./Icons"
+import { NotificationCenter } from "./NotificationCenter"
 
 // Profile Dropdown Component
 const ProfileDropdown: React.FC = () => {
-  const { user, logout } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user, logout } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
-  if (!user) return null;
+  if (!user) return null
 
-  const initials = user.name
-    ?.split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || user.email[0].toUpperCase();
+  const initials =
+    user.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || user.email[0].toUpperCase()
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -59,14 +55,16 @@ const ProfileDropdown: React.FC = () => {
         <span className="text-sm font-medium text-slate-700 hidden lg:block max-w-[120px] truncate">
           {user.name || user.email}
         </span>
-        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
           {/* User Info */}
           <div className="px-4 py-3 border-b border-slate-100">
-            <p className="text-sm font-medium text-slate-800 truncate">{user.name || 'User'}</p>
+            <p className="text-sm font-medium text-slate-800 truncate">{user.name || "User"}</p>
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
           </div>
 
@@ -74,7 +72,7 @@ const ProfileDropdown: React.FC = () => {
           <div className="py-1">
             <button
               onClick={() => {
-                setIsOpen(false);
+                setIsOpen(false)
                 // Could open profile settings here
               }}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
@@ -84,8 +82,8 @@ const ProfileDropdown: React.FC = () => {
             </button>
             <button
               onClick={() => {
-                setIsOpen(false);
-                logout();
+                setIsOpen(false)
+                logout()
               }}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
@@ -96,8 +94,8 @@ const ProfileDropdown: React.FC = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
 // Tooltip Component
 const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => (
@@ -108,23 +106,23 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
       <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
     </div>
   </div>
-);
+)
 
 interface AppHeaderProps {
-  customers: Customer[];
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  filterIndustry: string;
-  onFilterChange: (industry: string) => void;
-  industries: string[];
-  showStats: boolean;
-  onToggleStats: () => void;
-  showFollowUpScheduler: boolean;
-  onToggleFollowUpScheduler: () => void;
-  onOpenSettings: () => void;
-  onAddCustomer: () => void;
-  onOpenBusinessCardScanner: () => void;
-  onOpenMeetingRecorder: () => void;
+  customers: Customer[]
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  filterIndustry: string
+  onFilterChange: (industry: string) => void
+  industries: string[]
+  showStats: boolean
+  onToggleStats: () => void
+  showFollowUpScheduler: boolean
+  onToggleFollowUpScheduler: () => void
+  onOpenSettings: () => void
+  onAddCustomer: () => void
+  onOpenBusinessCardScanner: () => void
+  onOpenMeetingRecorder: () => void
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -143,7 +141,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenBusinessCardScanner,
   onOpenMeetingRecorder,
 }) => {
-
   return (
     <>
       {/* Mobile Header */}
@@ -196,7 +193,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             />
             {searchQuery && (
               <button
-                onClick={() => onSearchChange('')}
+                onClick={() => onSearchChange("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 <IconX className="w-4 h-4" />
@@ -210,9 +207,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             onChange={(e) => onFilterChange(e.target.value)}
             className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
           >
-            {industries.map(industry => (
+            {industries.map((industry) => (
               <option key={industry} value={industry}>
-                {industry === 'all' ? '모든 산업 분야' : industry}
+                {industry === "all" ? "모든 산업 분야" : industry}
               </option>
             ))}
           </select>
@@ -245,8 +242,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 onClick={onToggleStats}
                 className={`p-2 rounded-lg transition-colors ${
                   showStats
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 <IconDashboard className="w-4 h-4" />
@@ -290,18 +287,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </header>
     </>
-  );
-};
+  )
+}
 
 // Stats Bar Component
 interface StatsBarProps {
   stats: {
-    total: number;
-    enriched: number;
-    proposals: number;
-    byStatus: Record<string, number>;
-  };
-  lastCollectionTime: number | null;
+    total: number
+    enriched: number
+    proposals: number
+    byStatus: Record<string, number>
+  }
+  lastCollectionTime: number | null
 }
 
 export const StatsBar: React.FC<StatsBarProps> = ({ stats, lastCollectionTime }) => {
@@ -330,11 +327,13 @@ export const StatsBar: React.FC<StatsBarProps> = ({ stats, lastCollectionTime })
       {lastCollectionTime && (
         <div className="flex items-center gap-2">
           <span className="text-slate-600 font-medium">마지막 수집</span>
-          <span className="text-slate-700">{new Date(lastCollectionTime).toLocaleTimeString('ko-KR')}</span>
+          <span className="text-slate-700">
+            {new Date(lastCollectionTime).toLocaleTimeString("ko-KR")}
+          </span>
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default AppHeader;
+export default AppHeader

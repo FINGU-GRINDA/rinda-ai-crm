@@ -1,12 +1,12 @@
-import React from 'react';
-import { Customer } from '../../types';
-import { IconTrash } from '../Icons';
+import type React from "react"
+import type { Customer } from "../../types"
+import { IconTrash } from "../Icons"
 
 interface DeleteConfirmModalProps {
-  isOpen: boolean;
-  customer: Customer | null;
-  onConfirm: () => void;
-  onCancel: () => void;
+  isOpen: boolean
+  customer: Customer | null
+  onConfirm: () => void
+  onCancel: () => void
 }
 
 export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
@@ -15,7 +15,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  if (!isOpen || !customer) return null;
+  if (!isOpen || !customer) return null
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
@@ -55,7 +55,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default DeleteConfirmModal;
+export default DeleteConfirmModal

@@ -1,86 +1,98 @@
-import React, { useState, useEffect } from 'react';
-import { BackgroundTask } from '../types';
-import { useBackgroundTasks } from '../contexts/BackgroundTaskContext';
-import { IconCheck, IconX, IconLoader, IconFileText, IconBrain } from './Icons';
+import type React from "react"
+import { useEffect, useState } from "react"
+import { useBackgroundTasks } from "../contexts/BackgroundTaskContext"
+import type { BackgroundTask } from "../types"
+import { IconBrain, IconCheck, IconFileText, IconLoader, IconX } from "./Icons"
 
 interface BackgroundTaskToastProps {
-  onViewResult?: (task: BackgroundTask) => void;
+  onViewResult?: (task: BackgroundTask) => void
 }
 
 export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onViewResult }) => {
-  const { tasks, dismissTask } = useBackgroundTasks();
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const { tasks, dismissTask } = useBackgroundTasks()
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
 
   // Auto-collapse completed tasks after 10 seconds
   useEffect(() => {
-    const completedTasks = tasks.filter(t => t.status === 'completed' || t.status === 'error');
-    const timers: NodeJS.Timeout[] = [];
+    const completedTasks = tasks.filter((t) => t.status === "completed" || t.status === "error")
+    const timers: NodeJS.Timeout[] = []
 
-    completedTasks.forEach(task => {
+    completedTasks.forEach((_task) => {
       const timer = setTimeout(() => {
         // Don't auto-dismiss, but could add this behavior if desired
-      }, 10000);
-      timers.push(timer);
-    });
+      }, 10000)
+      timers.push(timer)
+    })
 
     // Cleanup all timers when effect unmounts or dependencies change
     return () => {
-      timers.forEach(timer => clearTimeout(timer));
-    };
-  }, [tasks]);
+      timers.forEach((timer) => clearTimeout(timer))
+    }
+  }, [tasks])
 
   const toggleExpand = (taskId: string) => {
-    setExpandedTasks(prev => {
-      const next = new Set(prev);
+    setExpandedTasks((prev) => {
+      const next = new Set(prev)
       if (next.has(taskId)) {
-        next.delete(taskId);
+        next.delete(taskId)
       } else {
-        next.add(taskId);
+        next.add(taskId)
       }
-      return next;
-    });
-  };
+      return next
+    })
+  }
 
   // Only show running, completed, and error tasks (not dismissed ones)
-  const visibleTasks = tasks.filter(t =>
-    t.status === 'running' || t.status === 'pending' ||
-    t.status === 'completed' || t.status === 'error'
-  );
+  const visibleTasks = tasks.filter(
+    (t) =>
+      t.status === "running" ||
+      t.status === "pending" ||
+      t.status === "completed" ||
+      t.status === "error",
+  )
 
   if (visibleTasks.length === 0) {
-    return null;
+    return null
   }
 
   return (
     <div className="fixed bottom-4 right-4 z-50 space-y-3 max-w-sm w-full">
-      {visibleTasks.map(task => (
+      {visibleTasks.map((task) => (
         <div
           key={task.id}
           className={`bg-white rounded-xl shadow-2xl border overflow-hidden transform transition-all duration-300 animate-in slide-in-from-right ${
-            task.status === 'completed' ? 'border-emerald-200' :
-            task.status === 'error' ? 'border-red-200' :
-            'border-blue-200'
+            task.status === "completed"
+              ? "border-emerald-200"
+              : task.status === "error"
+                ? "border-red-200"
+                : "border-blue-200"
           }`}
         >
           {/* Header */}
           <div
             className={`px-4 py-3 flex items-center justify-between cursor-pointer ${
-              task.status === 'completed' ? 'bg-emerald-50' :
-              task.status === 'error' ? 'bg-red-50' :
-              'bg-blue-50'
+              task.status === "completed"
+                ? "bg-emerald-50"
+                : task.status === "error"
+                  ? "bg-red-50"
+                  : "bg-blue-50"
             }`}
             onClick={() => toggleExpand(task.id)}
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {/* Status Icon */}
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                task.status === 'completed' ? 'bg-emerald-100' :
-                task.status === 'error' ? 'bg-red-100' :
-                'bg-blue-100'
-              }`}>
-                {task.status === 'running' || task.status === 'pending' ? (
+              <div
+                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                  task.status === "completed"
+                    ? "bg-emerald-100"
+                    : task.status === "error"
+                      ? "bg-red-100"
+                      : "bg-blue-100"
+                }`}
+              >
+                {task.status === "running" || task.status === "pending" ? (
                   <IconLoader className="w-4 h-4 text-blue-600 animate-spin" />
-                ) : task.status === 'completed' ? (
+                ) : task.status === "completed" ? (
                   <IconCheck className="w-4 h-4 text-emerald-600" />
                 ) : (
                   <IconX className="w-4 h-4 text-red-600" />
@@ -90,31 +102,39 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
               {/* Task Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <IconFileText className={`w-4 h-4 flex-shrink-0 ${
-                    task.status === 'completed' ? 'text-emerald-600' :
-                    task.status === 'error' ? 'text-red-600' :
-                    'text-blue-600'
-                  }`} />
+                  <IconFileText
+                    className={`w-4 h-4 flex-shrink-0 ${
+                      task.status === "completed"
+                        ? "text-emerald-600"
+                        : task.status === "error"
+                          ? "text-red-600"
+                          : "text-blue-600"
+                    }`}
+                  />
                   <h4 className="font-semibold text-sm text-slate-800 truncate">
                     {task.customerName} 제안서
                   </h4>
                 </div>
-                <p className={`text-xs mt-0.5 truncate ${
-                  task.status === 'completed' ? 'text-emerald-600' :
-                  task.status === 'error' ? 'text-red-600' :
-                  'text-slate-500'
-                }`}>
+                <p
+                  className={`text-xs mt-0.5 truncate ${
+                    task.status === "completed"
+                      ? "text-emerald-600"
+                      : task.status === "error"
+                        ? "text-red-600"
+                        : "text-slate-500"
+                  }`}
+                >
                   {task.message}
                 </p>
               </div>
             </div>
 
             {/* Close Button */}
-            {(task.status === 'completed' || task.status === 'error') && (
+            {(task.status === "completed" || task.status === "error") && (
               <button
                 onClick={(e) => {
-                  e.stopPropagation();
-                  dismissTask(task.id);
+                  e.stopPropagation()
+                  dismissTask(task.id)
                 }}
                 className="flex-shrink-0 ml-2 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white/50 transition-colors"
               >
@@ -124,7 +144,7 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
           </div>
 
           {/* Progress Bar (for running tasks) */}
-          {(task.status === 'running' || task.status === 'pending') && (
+          {(task.status === "running" || task.status === "pending") && (
             <div className="px-4 pb-3 bg-white">
               <div className="relative pt-2">
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -147,45 +167,79 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
           {expandedTasks.has(task.id) && (
             <div className="px-4 pb-4 bg-white border-t border-slate-100">
               {/* Progress Steps for Running */}
-              {(task.status === 'running' || task.status === 'pending') && (
+              {(task.status === "running" || task.status === "pending") && (
                 <div className="pt-3 space-y-2">
                   <div className="flex items-center gap-2 text-xs">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                      task.progress >= 20 ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      {task.progress >= 20 ? <IconCheck className="w-3 h-3" /> : '1'}
+                    <div
+                      className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        task.progress >= 20
+                          ? "bg-emerald-100 text-emerald-600"
+                          : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      {task.progress >= 20 ? <IconCheck className="w-3 h-3" /> : "1"}
                     </div>
-                    <span className={task.progress >= 20 ? 'text-emerald-600' : 'text-slate-500'}>
+                    <span className={task.progress >= 20 ? "text-emerald-600" : "text-slate-500"}>
                       준비 단계
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                      task.progress >= 60 ? 'bg-emerald-100 text-emerald-600' :
-                      task.progress >= 20 ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      {task.progress >= 60 ? <IconCheck className="w-3 h-3" /> :
-                       task.progress >= 20 ? <IconLoader className="w-3 h-3 animate-spin" /> : '2'}
+                    <div
+                      className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        task.progress >= 60
+                          ? "bg-emerald-100 text-emerald-600"
+                          : task.progress >= 20
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      {task.progress >= 60 ? (
+                        <IconCheck className="w-3 h-3" />
+                      ) : task.progress >= 20 ? (
+                        <IconLoader className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "2"
+                      )}
                     </div>
-                    <span className={
-                      task.progress >= 60 ? 'text-emerald-600' :
-                      task.progress >= 20 ? 'text-blue-600 font-medium' : 'text-slate-500'
-                    }>
+                    <span
+                      className={
+                        task.progress >= 60
+                          ? "text-emerald-600"
+                          : task.progress >= 20
+                            ? "text-blue-600 font-medium"
+                            : "text-slate-500"
+                      }
+                    >
                       제안서 내용 작성 (Gemini 3 Pro)
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                      task.progress >= 90 ? 'bg-emerald-100 text-emerald-600' :
-                      task.progress >= 60 ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      {task.progress >= 90 ? <IconCheck className="w-3 h-3" /> :
-                       task.progress >= 60 ? <IconLoader className="w-3 h-3 animate-spin" /> : '3'}
+                    <div
+                      className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        task.progress >= 90
+                          ? "bg-emerald-100 text-emerald-600"
+                          : task.progress >= 60
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      {task.progress >= 90 ? (
+                        <IconCheck className="w-3 h-3" />
+                      ) : task.progress >= 60 ? (
+                        <IconLoader className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "3"
+                      )}
                     </div>
-                    <span className={
-                      task.progress >= 90 ? 'text-emerald-600' :
-                      task.progress >= 60 ? 'text-blue-600 font-medium' : 'text-slate-500'
-                    }>
+                    <span
+                      className={
+                        task.progress >= 90
+                          ? "text-emerald-600"
+                          : task.progress >= 60
+                            ? "text-blue-600 font-medium"
+                            : "text-slate-500"
+                      }
+                    >
                       커버 이미지 생성
                     </span>
                   </div>
@@ -193,7 +247,7 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
               )}
 
               {/* Completed Actions */}
-              {task.status === 'completed' && task.result && (
+              {task.status === "completed" && task.result && (
                 <div className="pt-3 space-y-3">
                   <div className="flex items-center gap-2 text-xs text-emerald-700">
                     <IconCheck className="w-4 h-4" />
@@ -231,12 +285,14 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
               )}
 
               {/* Error Info */}
-              {task.status === 'error' && (
+              {task.status === "error" && (
                 <div className="pt-3 space-y-3">
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm text-red-700 font-medium mb-1">제안서 생성에 실패했어요</p>
+                    <p className="text-sm text-red-700 font-medium mb-1">
+                      제안서 생성에 실패했어요
+                    </p>
                     <p className="text-xs text-red-700/80 leading-relaxed">
-                      {task.error || '원인을 확인하지 못했어요.'}
+                      {task.error || "원인을 확인하지 못했어요."}
                     </p>
                     <p className="text-xs text-red-700/80 mt-2">잠시 후 다시 시도해 주세요.</p>
                   </div>
@@ -251,9 +307,9 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
 
               {/* Timestamp */}
               <div className="mt-3 text-xs text-slate-400 text-right">
-                {new Date(task.createdAt).toLocaleTimeString('ko-KR')}에 시작
+                {new Date(task.createdAt).toLocaleTimeString("ko-KR")}에 시작
                 {task.completedAt && (
-                  <> · {new Date(task.completedAt).toLocaleTimeString('ko-KR')}에 완료</>
+                  <> · {new Date(task.completedAt).toLocaleTimeString("ko-KR")}에 완료</>
                 )}
               </div>
             </div>
@@ -266,12 +322,13 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
         <div className="text-center">
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800 text-white text-xs rounded-full">
             <IconBrain className="w-3 h-3" />
-            {visibleTasks.filter(t => t.status === 'running' || t.status === 'pending').length}개 작업 진행 중
+            {visibleTasks.filter((t) => t.status === "running" || t.status === "pending").length}개
+            작업 진행 중
           </span>
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default BackgroundTaskToast;
+export default BackgroundTaskToast

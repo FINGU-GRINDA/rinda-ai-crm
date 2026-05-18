@@ -1,0 +1,72 @@
+# https://lefthook.dev/configuration/
+#
+# Pre-commit  → fast: biome on staged files only (auto-fixes + re-stages).
+# Pre-push    → heavier: type-check both packages + frontend build.
+#
+# Each command uses a `glob:` filter so a docs-only commit doesn't
+# trigger a TS run, and a backend-only commit doesn't run frontend.
+
+pre-commit:
+  parallel: true
+  commands:
+    backend-biome:
+      root: "elysia-server/"
+      glob:
+        - "*.ts"
+        - "*.tsx"
+        - "*.js"
+        - "*.json"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.js"
+        - "**/*.json"
+      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    frontend-biome:
+      root: "frontend/"
+      glob:
+        - "*.ts"
+        - "*.tsx"
+        - "*.js"
+        - "*.jsx"
+        - "*.json"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.js"
+        - "**/*.jsx"
+        - "**/*.json"
+      exclude:
+        - "node_modules/**"
+        - "dist/**"
+      run: npx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+
+pre-push:
+  parallel: true
+  commands:
+    backend-typecheck:
+      root: "elysia-server/"
+      glob:
+        - "*.ts"
+        - "*.json"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.json"
+      run: bun type-check
+    frontend-build:
+      root: "frontend/"
+      glob:
+        - "*.ts"
+        - "*.tsx"
+        - "*.css"
+        - "*.html"
+        - "*.json"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.jsx"
+        - "**/*.css"
+        - "**/*.html"
+        - "**/*.json"
+      run: npm run build
+      env:
+        VITE_API_URL: "http://localhost:3001"

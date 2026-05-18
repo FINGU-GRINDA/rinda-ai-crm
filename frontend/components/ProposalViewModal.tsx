@@ -1,21 +1,15 @@
-import React, { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import { Proposal } from '../types';
-import {
-  IconX,
-  IconDownload,
-  IconCopy,
-  IconCheck,
-  IconTrash,
-  IconFileText
-} from './Icons';
+import type React from "react"
+import { useState } from "react"
+import ReactMarkdown from "react-markdown"
+import type { Proposal } from "../types"
+import { IconCheck, IconCopy, IconDownload, IconFileText, IconTrash, IconX } from "./Icons"
 
 interface ProposalViewModalProps {
-  proposal: Proposal;
-  customerName: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onDelete?: (proposalId: string) => void;
+  proposal: Proposal
+  customerName: string
+  isOpen: boolean
+  onClose: () => void
+  onDelete?: (proposalId: string) => void
 }
 
 export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({
@@ -23,41 +17,41 @@ export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({
   customerName,
   isOpen,
   onClose,
-  onDelete
+  onDelete,
 }) => {
-  const [copied, setCopied] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [copied, setCopied] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const handleCopyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(proposal.content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(proposal.content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error("Failed to copy:", err)
     }
-  };
+  }
 
   const handleDownloadAsText = () => {
-    const blob = new Blob([proposal.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${proposal.title}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+    const blob = new Blob([proposal.content], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${proposal.title}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   const handleDelete = () => {
     if (onDelete) {
-      onDelete(proposal.id);
-      onClose();
+      onDelete(proposal.id)
+      onClose()
     }
-  };
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
@@ -71,10 +65,11 @@ export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-slate-800 truncate">{proposal.title}</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                {customerName} • {new Date(proposal.createdAt).toLocaleDateString('ko-KR', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
+                {customerName} •{" "}
+                {new Date(proposal.createdAt).toLocaleDateString("ko-KR", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
               </p>
             </div>
@@ -103,22 +98,45 @@ export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({
           <div className="prose prose-slate prose-sm max-w-none">
             <ReactMarkdown
               components={{
-                h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-slate-900 mt-6 mb-4" {...props} />,
-                h2: ({node, ...props}) => <h2 className="text-xl font-semibold text-slate-800 mt-5 mb-3" {...props} />,
-                h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-slate-700 mt-4 mb-2" {...props} />,
-                p: ({node, ...props}) => <p className="text-slate-600 leading-relaxed mb-4" {...props} />,
-                ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-2 mb-4 text-slate-600" {...props} />,
-                ol: ({node, ...props}) => <ol className="list-decimal list-inside space-y-2 mb-4 text-slate-600" {...props} />,
-                li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
-                strong: ({node, ...props}) => <strong className="font-semibold text-slate-800" {...props} />,
-                em: ({node, ...props}) => <em className="italic text-slate-700" {...props} />,
-                blockquote: ({node, ...props}) => (
-                  <blockquote className="border-l-4 border-emerald-500 pl-4 py-2 my-4 bg-slate-50 text-slate-600 italic" {...props} />
+                h1: ({ node, ...props }) => (
+                  <h1 className="text-2xl font-bold text-slate-900 mt-6 mb-4" {...props} />
                 ),
-                code: ({node, ...props}) => (
-                  <code className="bg-slate-100 px-2 py-1 rounded text-sm font-mono text-emerald-700" {...props} />
+                h2: ({ node, ...props }) => (
+                  <h2 className="text-xl font-semibold text-slate-800 mt-5 mb-3" {...props} />
                 ),
-                hr: ({node, ...props}) => <hr className="my-6 border-slate-200" {...props} />
+                h3: ({ node, ...props }) => (
+                  <h3 className="text-lg font-semibold text-slate-700 mt-4 mb-2" {...props} />
+                ),
+                p: ({ node, ...props }) => (
+                  <p className="text-slate-600 leading-relaxed mb-4" {...props} />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul className="list-disc list-inside space-y-2 mb-4 text-slate-600" {...props} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol
+                    className="list-decimal list-inside space-y-2 mb-4 text-slate-600"
+                    {...props}
+                  />
+                ),
+                li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
+                strong: ({ node, ...props }) => (
+                  <strong className="font-semibold text-slate-800" {...props} />
+                ),
+                em: ({ node, ...props }) => <em className="italic text-slate-700" {...props} />,
+                blockquote: ({ node, ...props }) => (
+                  <blockquote
+                    className="border-l-4 border-emerald-500 pl-4 py-2 my-4 bg-slate-50 text-slate-600 italic"
+                    {...props}
+                  />
+                ),
+                code: ({ node, ...props }) => (
+                  <code
+                    className="bg-slate-100 px-2 py-1 rounded text-sm font-mono text-emerald-700"
+                    {...props}
+                  />
+                ),
+                hr: ({ node, ...props }) => <hr className="my-6 border-slate-200" {...props} />,
               }}
             >
               {proposal.content}
@@ -167,7 +185,9 @@ export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-red-600 font-medium mr-2">정말 삭제하시겠습니까?</span>
+                  <span className="text-sm text-red-600 font-medium mr-2">
+                    정말 삭제하시겠습니까?
+                  </span>
                   <button
                     onClick={handleDelete}
                     className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
@@ -187,5 +207,5 @@ export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,15 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ICPProfile, Prospect } from '../types';
+import type React from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
-  CollectionSettings,
-  CollectionStatus,
+  type CollectionSettings,
+  type CollectionStatus,
   getCollectionSettings,
   getCollectionStatus,
   getICPProfiles,
   runProspectCollection,
   saveCollectionSettings,
   saveICPProfiles,
-} from '../services/prospectService';
+} from "../services/prospectService"
+import type { ICPProfile, Prospect } from "../types"
 import {
   IconArrowRight,
   IconBuilding,
@@ -25,179 +26,188 @@ import {
   IconSearch,
   IconSparkles,
   IconX,
-} from './Icons';
+} from "./Icons"
 
 interface ProspectDiscoveryProps {
-  prospects: Prospect[];
-  existingCompanyNames: string[];
-  onConvertProspect: (prospectId: string) => void;
-  onDismissProspect: (prospectId: string) => void;
-  onProspectsChanged: () => Promise<void> | void;
+  prospects: Prospect[]
+  existingCompanyNames: string[]
+  onConvertProspect: (prospectId: string) => void
+  onDismissProspect: (prospectId: string) => void
+  onProspectsChanged: () => Promise<void> | void
 }
 
 // Preset suggestions tailored to Korean export companies
 const PRESET_INDUSTRIES = [
-  '뷰티/화장품', '식품/F&B', '패션/의류', '전자/IT부품',
-  '기계/장비', '자동차부품', '의료기기', '농수산물',
-  'K-콘텐츠/굿즈', '리빙/생활용품',
-];
+  "뷰티/화장품",
+  "식품/F&B",
+  "패션/의류",
+  "전자/IT부품",
+  "기계/장비",
+  "자동차부품",
+  "의료기기",
+  "농수산물",
+  "K-콘텐츠/굿즈",
+  "리빙/생활용품",
+]
 
-interface RegionPreset { name: string; flag: string }
+interface RegionPreset {
+  name: string
+  flag: string
+}
 const PRESET_REGIONS: RegionPreset[] = [
-  { name: '미국', flag: '🇺🇸' },
-  { name: '일본', flag: '🇯🇵' },
-  { name: '중국', flag: '🇨🇳' },
-  { name: '베트남', flag: '🇻🇳' },
-  { name: '인도네시아', flag: '🇮🇩' },
-  { name: '태국', flag: '🇹🇭' },
-  { name: '말레이시아', flag: '🇲🇾' },
-  { name: '싱가포르', flag: '🇸🇬' },
-  { name: '인도', flag: '🇮🇳' },
-  { name: '유럽(EU)', flag: '🇪🇺' },
-  { name: '중동(UAE)', flag: '🇦🇪' },
-  { name: '브라질', flag: '🇧🇷' },
-  { name: '멕시코', flag: '🇲🇽' },
-  { name: '호주', flag: '🇦🇺' },
-];
+  { name: "미국", flag: "🇺🇸" },
+  { name: "일본", flag: "🇯🇵" },
+  { name: "중국", flag: "🇨🇳" },
+  { name: "베트남", flag: "🇻🇳" },
+  { name: "인도네시아", flag: "🇮🇩" },
+  { name: "태국", flag: "🇹🇭" },
+  { name: "말레이시아", flag: "🇲🇾" },
+  { name: "싱가포르", flag: "🇸🇬" },
+  { name: "인도", flag: "🇮🇳" },
+  { name: "유럽(EU)", flag: "🇪🇺" },
+  { name: "중동(UAE)", flag: "🇦🇪" },
+  { name: "브라질", flag: "🇧🇷" },
+  { name: "멕시코", flag: "🇲🇽" },
+  { name: "호주", flag: "🇦🇺" },
+]
 
 const REGION_FLAGS: Record<string, string> = PRESET_REGIONS.reduce(
   (acc, r) => ({ ...acc, [r.name]: r.flag }),
   {} as Record<string, string>,
-);
+)
 
 // Heuristic: guess a flag from a free-form region/country string
 const FLAG_HINTS: Array<[RegExp, string]> = [
-  [/usa|미국|united states|america/i, '🇺🇸'],
-  [/일본|japan/i, '🇯🇵'],
-  [/중국|china|prc/i, '🇨🇳'],
-  [/베트남|vietnam/i, '🇻🇳'],
-  [/인도네시아|indonesia/i, '🇮🇩'],
-  [/태국|thai/i, '🇹🇭'],
-  [/말레이시아|malaysia/i, '🇲🇾'],
-  [/싱가포르|singapore/i, '🇸🇬'],
-  [/인도\b|india/i, '🇮🇳'],
-  [/유럽|europe|eu\b/i, '🇪🇺'],
-  [/uae|두바이|아랍|중동|dubai|emirate/i, '🇦🇪'],
-  [/브라질|brazil/i, '🇧🇷'],
-  [/멕시코|mexico/i, '🇲🇽'],
-  [/호주|australia/i, '🇦🇺'],
-  [/캐나다|canada/i, '🇨🇦'],
-  [/영국|britain|uk\b|united kingdom/i, '🇬🇧'],
-  [/독일|germany/i, '🇩🇪'],
-  [/프랑스|france/i, '🇫🇷'],
-  [/대만|taiwan/i, '🇹🇼'],
-  [/홍콩|hong kong/i, '🇭🇰'],
-  [/필리핀|philippines/i, '🇵🇭'],
-  [/사우디|saudi/i, '🇸🇦'],
-];
+  [/usa|미국|united states|america/i, "🇺🇸"],
+  [/일본|japan/i, "🇯🇵"],
+  [/중국|china|prc/i, "🇨🇳"],
+  [/베트남|vietnam/i, "🇻🇳"],
+  [/인도네시아|indonesia/i, "🇮🇩"],
+  [/태국|thai/i, "🇹🇭"],
+  [/말레이시아|malaysia/i, "🇲🇾"],
+  [/싱가포르|singapore/i, "🇸🇬"],
+  [/인도\b|india/i, "🇮🇳"],
+  [/유럽|europe|eu\b/i, "🇪🇺"],
+  [/uae|두바이|아랍|중동|dubai|emirate/i, "🇦🇪"],
+  [/브라질|brazil/i, "🇧🇷"],
+  [/멕시코|mexico/i, "🇲🇽"],
+  [/호주|australia/i, "🇦🇺"],
+  [/캐나다|canada/i, "🇨🇦"],
+  [/영국|britain|uk\b|united kingdom/i, "🇬🇧"],
+  [/독일|germany/i, "🇩🇪"],
+  [/프랑스|france/i, "🇫🇷"],
+  [/대만|taiwan/i, "🇹🇼"],
+  [/홍콩|hong kong/i, "🇭🇰"],
+  [/필리핀|philippines/i, "🇵🇭"],
+  [/사우디|saudi/i, "🇸🇦"],
+]
 
 const guessFlag = (text?: string): string => {
-  if (!text) return '🌐';
-  if (REGION_FLAGS[text]) return REGION_FLAGS[text];
+  if (!text) return "🌐"
+  if (REGION_FLAGS[text]) return REGION_FLAGS[text]
   for (const [re, flag] of FLAG_HINTS) {
-    if (re.test(text)) return flag;
+    if (re.test(text)) return flag
   }
-  return '🌐';
-};
+  return "🌐"
+}
 
 const COMPANY_SIZE_OPTIONS = [
-  { value: '', label: '제한 없음' },
-  { value: '소규모 (1-50명)', label: '소규모 (1-50명)' },
-  { value: '중견 (51-500명)', label: '중견 (51-500명)' },
-  { value: '대기업 (500명+)', label: '대기업 (500명+)' },
-];
+  { value: "", label: "제한 없음" },
+  { value: "소규모 (1-50명)", label: "소규모 (1-50명)" },
+  { value: "중견 (51-500명)", label: "중견 (51-500명)" },
+  { value: "대기업 (500명+)", label: "대기업 (500명+)" },
+]
 
 const INTERVAL_OPTIONS = [
-  { value: 3600000, label: '1시간마다' },
-  { value: 21600000, label: '6시간마다' },
-  { value: 43200000, label: '12시간마다' },
-  { value: 86400000, label: '24시간마다' },
-];
+  { value: 3600000, label: "1시간마다" },
+  { value: 21600000, label: "6시간마다" },
+  { value: 43200000, label: "12시간마다" },
+  { value: 86400000, label: "24시간마다" },
+]
 
 const SIGNAL_META = {
   high: {
-    label: '강한 신호',
-    description: '즉시 접촉 권장',
-    icon: '🔥',
-    chip: 'bg-red-100 text-red-700 border-red-200',
+    label: "강한 신호",
+    description: "즉시 접촉 권장",
+    icon: "🔥",
+    chip: "bg-red-100 text-red-700 border-red-200",
   },
   medium: {
-    label: '중간 신호',
-    description: '모니터링 가치',
-    icon: '⚡',
-    chip: 'bg-amber-100 text-amber-700 border-amber-200',
+    label: "중간 신호",
+    description: "모니터링 가치",
+    icon: "⚡",
+    chip: "bg-amber-100 text-amber-700 border-amber-200",
   },
   low: {
-    label: '약한 신호',
-    description: '장기 후보',
-    icon: '🌱',
-    chip: 'bg-slate-100 text-slate-600 border-slate-200',
+    label: "약한 신호",
+    description: "장기 후보",
+    icon: "🌱",
+    chip: "bg-slate-100 text-slate-600 border-slate-200",
   },
-} as const;
+} as const
 
 const DISCOVERY_STAGES = [
-  { label: 'ICP 분석', sub: '내 이상 바이어 기준을 정리하고 있어요' },
-  { label: '해외 시장 스캔', sub: '대상 국가/산업의 최근 신호를 살피는 중' },
-  { label: '바이어 후보 큐레이션', sub: '구매 신호 기반으로 매칭 평가' },
-  { label: '결과 저장', sub: '중복 제거 후 파이프라인에 등록' },
-];
+  { label: "ICP 분석", sub: "내 이상 바이어 기준을 정리하고 있어요" },
+  { label: "해외 시장 스캔", sub: "대상 국가/산업의 최근 신호를 살피는 중" },
+  { label: "바이어 후보 큐레이션", sub: "구매 신호 기반으로 매칭 평가" },
+  { label: "결과 저장", sub: "중복 제거 후 파이프라인에 등록" },
+]
 
 const formatRelative = (iso: string): string => {
-  const ts = new Date(iso).getTime();
-  if (Number.isNaN(ts)) return '';
-  const diffMs = Date.now() - ts;
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return '방금 전';
-  if (mins < 60) return `${mins}분 전`;
-  const hours = Math.floor(diffMs / 3600000);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(diffMs / 86400000);
-  if (days < 7) return `${days}일 전`;
-  return new Date(iso).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-};
+  const ts = new Date(iso).getTime()
+  if (Number.isNaN(ts)) return ""
+  const diffMs = Date.now() - ts
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return "방금 전"
+  if (mins < 60) return `${mins}분 전`
+  const hours = Math.floor(diffMs / 3600000)
+  if (hours < 24) return `${hours}시간 전`
+  const days = Math.floor(diffMs / 86400000)
+  if (days < 7) return `${days}일 전`
+  return new Date(iso).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
+}
 
-const generateId = () =>
-  `icp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+const generateId = () => `icp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
-type SortMode = 'recent' | 'signal' | 'name';
+type SortMode = "recent" | "signal" | "name"
 
 interface ICPFormState {
-  id: string | null;
-  name: string;
-  industries: string[];
-  keywords: string[];
-  companySize: string;
-  targetRegions: string[];
+  id: string | null
+  name: string
+  industries: string[]
+  keywords: string[]
+  companySize: string
+  targetRegions: string[]
 }
 
 const blankForm = (): ICPFormState => ({
   id: null,
-  name: '',
+  name: "",
   industries: [],
   keywords: [],
-  companySize: '',
+  companySize: "",
   targetRegions: [],
-});
+})
 
 // Field-level form errors so we can highlight the right input rather than a single global alert
-type FormErrors = Partial<Record<'name' | 'industries' | 'keywords' | 'targetRegions', string>>;
+type FormErrors = Partial<Record<"name" | "industries" | "keywords" | "targetRegions", string>>
 
 // Lightweight toast system (inline; no external dep)
-type ToastTone = 'success' | 'error' | 'info';
+type ToastTone = "success" | "error" | "info"
 interface Toast {
-  id: string;
-  tone: ToastTone;
-  message: string;
+  id: string
+  tone: ToastTone
+  message: string
 }
 
 // Confirm dialog state
 interface ConfirmState {
-  open: boolean;
-  title: string;
-  description?: string;
-  confirmLabel: string;
-  destructive: boolean;
-  onConfirm: () => void;
+  open: boolean
+  title: string
+  description?: string
+  confirmLabel: string
+  destructive: boolean
+  onConfirm: () => void
 }
 
 export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
@@ -207,165 +217,163 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
   onDismissProspect,
   onProspectsChanged,
 }) => {
-  const [icpProfiles, setIcpProfiles] = useState<ICPProfile[]>(() => getICPProfiles());
-  const [settings, setSettings] = useState<CollectionSettings>(() => getCollectionSettings());
-  const [status, setStatus] = useState<CollectionStatus | null>(null);
+  const [icpProfiles, setIcpProfiles] = useState<ICPProfile[]>(() => getICPProfiles())
+  const [settings, setSettings] = useState<CollectionSettings>(() => getCollectionSettings())
+  const [status, setStatus] = useState<CollectionStatus | null>(null)
 
-  const [isRunning, setIsRunning] = useState(false);
-  const [runError, setRunError] = useState<string | null>(null);
-  const [runSummary, setRunSummary] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
+  const [runSummary, setRunSummary] = useState<string | null>(null)
   const [lastRunStats, setLastRunStats] = useState<{
-    created: number;
-    skipped: number;
-    analyzed: number;
-  } | null>(null);
-  const [stageIndex, setStageIndex] = useState(0);
-  const stageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    created: number
+    skipped: number
+    analyzed: number
+  } | null>(null)
+  const [stageIndex, setStageIndex] = useState(0)
+  const stageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const [showProfileEditor, setShowProfileEditor] = useState(false);
-  const [form, setForm] = useState<ICPFormState>(blankForm());
-  const [keywordInput, setKeywordInput] = useState('');
-  const [industryInput, setIndustryInput] = useState('');
-  const [regionInput, setRegionInput] = useState('');
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [showProfileEditor, setShowProfileEditor] = useState(false)
+  const [form, setForm] = useState<ICPFormState>(blankForm())
+  const [keywordInput, setKeywordInput] = useState("")
+  const [industryInput, setIndustryInput] = useState("")
+  const [regionInput, setRegionInput] = useState("")
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
 
-  const [selectedProfileId, setSelectedProfileId] = useState<string>('all');
-  const [signalFilter, setSignalFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('signal');
-  const [visibleCount, setVisibleCount] = useState(20);
-  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("all")
+  const [signalFilter, setSignalFilter] = useState<"all" | "high" | "medium" | "low">("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [sortMode, setSortMode] = useState<SortMode>("signal")
+  const [visibleCount, setVisibleCount] = useState(20)
+  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null)
 
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
 
   // Toast helpers
-  const pushToast = useCallback((message: string, tone: ToastTone = 'info') => {
-    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    setToasts((prev) => [...prev, { id, message, tone }]);
+  const pushToast = useCallback((message: string, tone: ToastTone = "info") => {
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    setToasts((prev) => [...prev, { id, message, tone }])
     setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  }, []);
+      setToasts((prev) => prev.filter((t) => t.id !== id))
+    }, 4000)
+  }, [])
 
-  const dismissToast = (id: string) =>
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  const dismissToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id))
 
   // Animate discovery stage indicator while running
   useEffect(() => {
     if (isRunning) {
-      setStageIndex(0);
+      setStageIndex(0)
       stageTimerRef.current = setInterval(() => {
-        setStageIndex((s) => (s < DISCOVERY_STAGES.length - 1 ? s + 1 : s));
-      }, 3500);
+        setStageIndex((s) => (s < DISCOVERY_STAGES.length - 1 ? s + 1 : s))
+      }, 3500)
     } else {
       if (stageTimerRef.current) {
-        clearInterval(stageTimerRef.current);
-        stageTimerRef.current = null;
+        clearInterval(stageTimerRef.current)
+        stageTimerRef.current = null
       }
     }
     return () => {
       if (stageTimerRef.current) {
-        clearInterval(stageTimerRef.current);
-        stageTimerRef.current = null;
+        clearInterval(stageTimerRef.current)
+        stageTimerRef.current = null
       }
-    };
-  }, [isRunning]);
+    }
+  }, [isRunning])
 
   // Poll backend status occasionally so we reflect background scheduler runs
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
     const tick = async () => {
-      const s = await getCollectionStatus();
-      if (!cancelled) setStatus(s);
-    };
-    tick();
-    const interval = setInterval(tick, isRunning ? 2000 : 30000);
+      const s = await getCollectionStatus()
+      if (!cancelled) setStatus(s)
+    }
+    tick()
+    const interval = setInterval(tick, isRunning ? 2000 : 30000)
     return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [isRunning]);
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [isRunning])
 
   const stats = useMemo(() => {
-    const counts = { high: 0, medium: 0, low: 0 };
+    const counts = { high: 0, medium: 0, low: 0 }
     for (const p of prospects) {
-      counts[p.signalStrength] += 1;
+      counts[p.signalStrength] += 1
     }
-    const oneWeek = 7 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000
+    const now = Date.now()
     const newThisWeek = prospects.filter(
       (p) => now - new Date(p.detectedAt).getTime() < oneWeek,
-    ).length;
-    return { total: prospects.length, newThisWeek, ...counts };
-  }, [prospects]);
+    ).length
+    return { total: prospects.length, newThisWeek, ...counts }
+  }, [prospects])
 
   const filteredProspects = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase()
     const sortFn = (() => {
-      if (sortMode === 'recent') {
+      if (sortMode === "recent") {
         return (a: Prospect, b: Prospect) =>
-          new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
+          new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime()
       }
-      if (sortMode === 'name') {
-        return (a: Prospect, b: Prospect) =>
-          a.companyName.localeCompare(b.companyName, 'ko');
+      if (sortMode === "name") {
+        return (a: Prospect, b: Prospect) => a.companyName.localeCompare(b.companyName, "ko")
       }
       // signal
-      const order = { high: 0, medium: 1, low: 2 } as const;
+      const order = { high: 0, medium: 1, low: 2 } as const
       return (a: Prospect, b: Prospect) => {
-        const diff = order[a.signalStrength] - order[b.signalStrength];
-        if (diff !== 0) return diff;
-        return new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
-      };
-    })();
+        const diff = order[a.signalStrength] - order[b.signalStrength]
+        if (diff !== 0) return diff
+        return new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime()
+      }
+    })()
 
     return prospects
-      .filter((p) => selectedProfileId === 'all' || p.icpMatch === selectedProfileId)
-      .filter((p) => signalFilter === 'all' || p.signalStrength === signalFilter)
+      .filter((p) => selectedProfileId === "all" || p.icpMatch === selectedProfileId)
+      .filter((p) => signalFilter === "all" || p.signalStrength === signalFilter)
       .filter((p) => {
-        if (!q) return true;
+        if (!q) return true
         return (
           p.companyName.toLowerCase().includes(q) ||
-          (p.industry || '').toLowerCase().includes(q) ||
-          (p.notes || '').toLowerCase().includes(q)
-        );
+          (p.industry || "").toLowerCase().includes(q) ||
+          (p.notes || "").toLowerCase().includes(q)
+        )
       })
-      .sort(sortFn);
-  }, [prospects, selectedProfileId, signalFilter, searchQuery, sortMode]);
+      .sort(sortFn)
+  }, [prospects, selectedProfileId, signalFilter, searchQuery, sortMode])
 
   // Reset visible window when filters change
   useEffect(() => {
-    setVisibleCount(20);
-  }, [selectedProfileId, signalFilter, searchQuery, sortMode]);
+    setVisibleCount(20)
+  }, [])
 
   const visibleProspects = useMemo(
     () => filteredProspects.slice(0, visibleCount),
     [filteredProspects, visibleCount],
-  );
+  )
 
   const persistProfiles = useCallback((next: ICPProfile[]) => {
-    setIcpProfiles(next);
-    saveICPProfiles(next);
-  }, []);
+    setIcpProfiles(next)
+    saveICPProfiles(next)
+  }, [])
 
   const persistSettings = useCallback(
     (updates: Partial<CollectionSettings>) => {
-      const next = { ...settings, ...updates };
-      setSettings(next);
-      saveCollectionSettings(next);
+      const next = { ...settings, ...updates }
+      setSettings(next)
+      saveCollectionSettings(next)
     },
     [settings],
-  );
+  )
 
   const openEditorForNew = () => {
-    setForm(blankForm());
-    setKeywordInput('');
-    setIndustryInput('');
-    setRegionInput('');
-    setFormErrors({});
-    setShowProfileEditor(true);
-  };
+    setForm(blankForm())
+    setKeywordInput("")
+    setIndustryInput("")
+    setRegionInput("")
+    setFormErrors({})
+    setShowProfileEditor(true)
+  }
 
   const openEditorForEdit = (profile: ICPProfile) => {
     setForm({
@@ -373,63 +381,57 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
       name: profile.name,
       industries: [...profile.industries],
       keywords: [...profile.keywords],
-      companySize: profile.companySize ?? '',
+      companySize: profile.companySize ?? "",
       targetRegions: [...(profile.targetRegions ?? [])],
-    });
-    setKeywordInput('');
-    setIndustryInput('');
-    setRegionInput('');
-    setFormErrors({});
-    setShowProfileEditor(true);
-  };
+    })
+    setKeywordInput("")
+    setIndustryInput("")
+    setRegionInput("")
+    setFormErrors({})
+    setShowProfileEditor(true)
+  }
 
   const closeEditor = () => {
-    setShowProfileEditor(false);
-    setFormErrors({});
-  };
+    setShowProfileEditor(false)
+    setFormErrors({})
+  }
 
-  const addToList = (
-    key: 'industries' | 'keywords' | 'targetRegions',
-    value: string,
-  ) => {
-    const cleaned = value.trim();
-    if (!cleaned) return;
+  const addToList = (key: "industries" | "keywords" | "targetRegions", value: string) => {
+    const cleaned = value.trim()
+    if (!cleaned) return
     setForm((prev) => {
-      if (prev[key].includes(cleaned)) return prev;
-      return { ...prev, [key]: [...prev[key], cleaned] };
-    });
-    setFormErrors((prev) => ({ ...prev, [key]: undefined }));
-  };
+      if (prev[key].includes(cleaned)) return prev
+      return { ...prev, [key]: [...prev[key], cleaned] }
+    })
+    setFormErrors((prev) => ({ ...prev, [key]: undefined }))
+  }
 
-  const removeFromList = (
-    key: 'industries' | 'keywords' | 'targetRegions',
-    value: string,
-  ) => {
+  const removeFromList = (key: "industries" | "keywords" | "targetRegions", value: string) => {
     setForm((prev) => ({
       ...prev,
       [key]: prev[key].filter((v) => v !== value),
-    }));
-  };
+    }))
+  }
 
   const validateForm = (state: ICPFormState): FormErrors => {
-    const errors: FormErrors = {};
-    if (!state.name.trim()) errors.name = '프로필 이름을 입력해주세요.';
-    if (state.industries.length === 0) errors.industries = '최소 한 가지 산업을 추가해주세요.';
-    if (state.keywords.length === 0) errors.keywords = '최소 한 가지 키워드를 추가해주세요.';
+    const errors: FormErrors = {}
+    if (!state.name.trim()) errors.name = "프로필 이름을 입력해주세요."
+    if (state.industries.length === 0) errors.industries = "최소 한 가지 산업을 추가해주세요."
+    if (state.keywords.length === 0) errors.keywords = "최소 한 가지 키워드를 추가해주세요."
     if (state.targetRegions.length === 0)
-      errors.targetRegions = '수출 대상국을 최소 하나 선택해주세요.';
-    return errors;
-  };
+      errors.targetRegions = "수출 대상국을 최소 하나 선택해주세요."
+    return errors
+  }
 
   const handleSaveProfile = () => {
-    const errors = validateForm(form);
+    const errors = validateForm(form)
     if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
+      setFormErrors(errors)
+      return
     }
 
-    const now = new Date().toISOString();
-    let next: ICPProfile[];
+    const now = new Date().toISOString()
+    let next: ICPProfile[]
     if (form.id) {
       next = icpProfiles.map((p) =>
         p.id === form.id
@@ -443,8 +445,8 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
               updatedAt: now,
             }
           : p,
-      );
-      pushToast('ICP 프로필을 수정했어요', 'success');
+      )
+      pushToast("ICP 프로필을 수정했어요", "success")
     } else {
       const newProfile: ICPProfile = {
         id: generateId(),
@@ -455,69 +457,68 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
         targetRegions: form.targetRegions,
         createdAt: now,
         updatedAt: now,
-      };
-      next = [newProfile, ...icpProfiles];
-      pushToast('새 ICP 프로필이 추가됐어요. 이제 "지금 바이어 발굴 실행"을 눌러보세요!', 'success');
+      }
+      next = [newProfile, ...icpProfiles]
+      pushToast('새 ICP 프로필이 추가됐어요. 이제 "지금 바이어 발굴 실행"을 눌러보세요!', "success")
     }
-    persistProfiles(next);
-    closeEditor();
-  };
+    persistProfiles(next)
+    closeEditor()
+  }
 
   const handleDeleteProfile = (profile: ICPProfile) => {
     setConfirmState({
       open: true,
-      title: 'ICP 프로필을 삭제할까요?',
+      title: "ICP 프로필을 삭제할까요?",
       description: `"${profile.name}" 프로필을 삭제합니다. 이미 수집된 잠재 바이어는 그대로 유지됩니다.`,
-      confirmLabel: '삭제',
+      confirmLabel: "삭제",
       destructive: true,
       onConfirm: () => {
-        persistProfiles(icpProfiles.filter((p) => p.id !== profile.id));
-        if (selectedProfileId === profile.id) setSelectedProfileId('all');
-        setConfirmState(null);
-        pushToast('ICP 프로필을 삭제했어요', 'info');
+        persistProfiles(icpProfiles.filter((p) => p.id !== profile.id))
+        if (selectedProfileId === profile.id) setSelectedProfileId("all")
+        setConfirmState(null)
+        pushToast("ICP 프로필을 삭제했어요", "info")
       },
-    });
-  };
+    })
+  }
 
   const handleRunDiscovery = async () => {
     if (icpProfiles.length === 0) {
-      setRunError('먼저 ICP 프로필을 추가해주세요.');
-      pushToast('먼저 ICP 프로필을 추가해주세요', 'error');
-      return;
+      setRunError("먼저 ICP 프로필을 추가해주세요.")
+      pushToast("먼저 ICP 프로필을 추가해주세요", "error")
+      return
     }
-    setIsRunning(true);
-    setRunError(null);
-    setRunSummary(null);
+    setIsRunning(true)
+    setRunError(null)
+    setRunSummary(null)
     try {
-      const result = await runProspectCollection(existingCompanyNames);
+      const result = await runProspectCollection(existingCompanyNames)
       setLastRunStats({
         created: result.newProspects.length,
         skipped: result.skipped,
         analyzed: result.totalArticles,
-      });
-      setRunSummary(result.summary || null);
-      await onProspectsChanged();
+      })
+      setRunSummary(result.summary || null)
+      await onProspectsChanged()
       // Refresh latest status after run
-      const fresh = await getCollectionStatus();
-      setStatus(fresh);
+      const fresh = await getCollectionStatus()
+      setStatus(fresh)
       if (result.newProspects.length > 0) {
-        pushToast(`${result.newProspects.length}개의 새 바이어를 발견했어요`, 'success');
+        pushToast(`${result.newProspects.length}개의 새 바이어를 발견했어요`, "success")
       } else if (result.totalArticles === 0) {
-        pushToast('이번 라운드에서 새 후보가 발견되지 않았어요', 'info');
+        pushToast("이번 라운드에서 새 후보가 발견되지 않았어요", "info")
       } else {
-        pushToast('AI 제안 후보가 모두 이미 파이프라인에 있었어요', 'info');
+        pushToast("AI 제안 후보가 모두 이미 파이프라인에 있었어요", "info")
       }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : '잠재 고객 수집에 실패했습니다.';
-      setRunError(message);
-      pushToast(message, 'error');
+      const message = err instanceof Error ? err.message : "잠재 고객 수집에 실패했습니다."
+      setRunError(message)
+      pushToast(message, "error")
     } finally {
-      setIsRunning(false);
+      setIsRunning(false)
     }
-  };
+  }
 
-  const hasProfiles = icpProfiles.length > 0;
+  const hasProfiles = icpProfiles.length > 0
 
   return (
     <div className="h-full flex flex-col relative">
@@ -542,7 +543,8 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
             <p className="mt-2 max-w-2xl text-sm text-blue-50 md:text-base">
               우리 ICP에 맞는 해외 바이어를 AI가 매일 찾아드립니다.
               <br />
-              수출 대상국·산업·키워드만 정의하면, 우리가 컨택할 가치가 있는 기업을 자동으로 큐레이션합니다.
+              수출 대상국·산업·키워드만 정의하면, 우리가 컨택할 가치가 있는 기업을 자동으로
+              큐레이션합니다.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3 md:flex md:gap-4">
@@ -560,8 +562,7 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-                <IconLightbulb className="h-5 w-5 text-amber-500" />
-                내 ICP 프로필
+                <IconLightbulb className="h-5 w-5 text-amber-500" />내 ICP 프로필
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
                 AI가 이 기준에 따라 해외 잠재 바이어를 찾습니다.
@@ -634,32 +635,28 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
               <div className="space-y-1.5">
                 {DISCOVERY_STAGES.map((stage, idx) => {
                   const state =
-                    idx < stageIndex
-                      ? 'done'
-                      : idx === stageIndex
-                        ? 'active'
-                        : 'pending';
+                    idx < stageIndex ? "done" : idx === stageIndex ? "active" : "pending"
                   return (
                     <div key={stage.label} className="flex items-start gap-2 text-xs">
                       <span
                         className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
-                          state === 'done'
-                            ? 'bg-emerald-500 text-white'
-                            : state === 'active'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-slate-200 text-slate-500'
+                          state === "done"
+                            ? "bg-emerald-500 text-white"
+                            : state === "active"
+                              ? "bg-indigo-600 text-white"
+                              : "bg-slate-200 text-slate-500"
                         }`}
                       >
-                        {state === 'done' ? '✓' : idx + 1}
+                        {state === "done" ? "✓" : idx + 1}
                       </span>
                       <div className="min-w-0">
                         <div
                           className={`font-medium ${
-                            state === 'pending' ? 'text-slate-500' : 'text-slate-800'
+                            state === "pending" ? "text-slate-500" : "text-slate-800"
                           }`}
                         >
                           {stage.label}
-                          {state === 'active' && (
+                          {state === "active" && (
                             <span className="ml-1 inline-flex items-center gap-0.5">
                               <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-indigo-500 [animation-delay:0ms]" />
                               <span className="inline-block h-1 w-1 animate-bounce rounded-full bg-indigo-500 [animation-delay:150ms]" />
@@ -670,7 +667,7 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                         <div className="text-[11px] text-slate-500">{stage.sub}</div>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             </div>
@@ -697,9 +694,9 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                 최근 발굴 완료
               </div>
               <div className="mt-1">
-                {lastRunStats.analyzed}개 후보 분석 ·{' '}
+                {lastRunStats.analyzed}개 후보 분석 ·{" "}
                 <span className="font-semibold">신규 {lastRunStats.created}개</span>
-                {lastRunStats.skipped > 0 ? ` · 중복 ${lastRunStats.skipped}개 제외` : ''}
+                {lastRunStats.skipped > 0 ? ` · 중복 ${lastRunStats.skipped}개 제외` : ""}
               </div>
               {runSummary && <div className="mt-1.5 text-emerald-700">{runSummary}</div>}
             </div>
@@ -723,14 +720,10 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
               </label>
             </div>
             <div className="mt-3">
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                주기
-              </label>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">주기</label>
               <select
                 value={settings.interval}
-                onChange={(e) =>
-                  persistSettings({ interval: parseInt(e.target.value, 10) })
-                }
+                onChange={(e) => persistSettings({ interval: parseInt(e.target.value, 10) })}
                 disabled={!settings.autoRun}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
               >
@@ -762,13 +755,13 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-slate-500">ICP</span>
             <FilterChip
-              active={selectedProfileId === 'all'}
-              onClick={() => setSelectedProfileId('all')}
+              active={selectedProfileId === "all"}
+              onClick={() => setSelectedProfileId("all")}
             >
               전체 ({prospects.length})
             </FilterChip>
             {icpProfiles.map((p) => {
-              const count = prospects.filter((pr) => pr.icpMatch === p.id).length;
+              const count = prospects.filter((pr) => pr.icpMatch === p.id).length
               return (
                 <FilterChip
                   key={p.id}
@@ -777,17 +770,13 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                 >
                   {p.name} ({count})
                 </FilterChip>
-              );
+              )
             })}
             <div className="mx-1 h-5 w-px bg-slate-200" />
             <span className="text-xs font-medium text-slate-500">신호</span>
-            {(['all', 'high', 'medium', 'low'] as const).map((s) => (
-              <FilterChip
-                key={s}
-                active={signalFilter === s}
-                onClick={() => setSignalFilter(s)}
-              >
-                {s === 'all' ? '모두' : SIGNAL_META[s].label}
+            {(["all", "high", "medium", "low"] as const).map((s) => (
+              <FilterChip key={s} active={signalFilter === s} onClick={() => setSignalFilter(s)}>
+                {s === "all" ? "모두" : SIGNAL_META[s].label}
               </FilterChip>
             ))}
           </div>
@@ -803,7 +792,7 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
               />
               {searchQuery && (
                 <button
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => setSearchQuery("")}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                   aria-label="검색어 지우기"
                 >
@@ -841,9 +830,9 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
             </p>
             <button
               onClick={() => {
-                setSelectedProfileId('all');
-                setSignalFilter('all');
-                setSearchQuery('');
+                setSelectedProfileId("all")
+                setSignalFilter("all")
+                setSearchQuery("")
               }}
               className="mt-3 text-xs font-medium text-blue-600 hover:underline"
             >
@@ -857,15 +846,13 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                 <ProspectRow
                   key={prospect.id}
                   prospect={prospect}
-                  profileName={
-                    icpProfiles.find((p) => p.id === prospect.icpMatch)?.name
-                  }
+                  profileName={icpProfiles.find((p) => p.id === prospect.icpMatch)?.name}
                   onClick={() => setSelectedProspect(prospect)}
                   onConvert={() => {
-                    onConvertProspect(prospect.id);
+                    onConvertProspect(prospect.id)
                   }}
                   onDismiss={() => {
-                    onDismissProspect(prospect.id);
+                    onDismissProspect(prospect.id)
                   }}
                 />
               ))}
@@ -891,7 +878,7 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  {form.id ? 'ICP 프로필 수정' : '새 ICP 프로필 만들기'}
+                  {form.id ? "ICP 프로필 수정" : "새 ICP 프로필 만들기"}
                 </h3>
                 <p className="text-xs text-slate-500">
                   AI가 이 기준에 부합하는 해외 바이어를 찾습니다.
@@ -915,21 +902,18 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                   type="text"
                   value={form.name}
                   onChange={(e) => {
-                    setForm({ ...form, name: e.target.value });
-                    if (formErrors.name)
-                      setFormErrors((p) => ({ ...p, name: undefined }));
+                    setForm({ ...form, name: e.target.value })
+                    if (formErrors.name) setFormErrors((p) => ({ ...p, name: undefined }))
                   }}
                   placeholder="예: 베트남 식품 바이어, 미국 K-뷰티 리테일러"
                   className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 ${
                     formErrors.name
-                      ? 'border-red-300 focus:ring-red-500'
-                      : 'border-slate-300 focus:ring-blue-500'
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-300 focus:ring-blue-500"
                   }`}
                   aria-invalid={!!formErrors.name}
                 />
-                {formErrors.name && (
-                  <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
-                )}
+                {formErrors.name && <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>}
               </div>
 
               <TagsEditor
@@ -939,16 +923,16 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                 input={regionInput}
                 onChangeInput={setRegionInput}
                 onAdd={(v) => {
-                  addToList('targetRegions', v);
-                  setRegionInput('');
+                  addToList("targetRegions", v)
+                  setRegionInput("")
                 }}
-                onRemove={(v) => removeFromList('targetRegions', v)}
+                onRemove={(v) => removeFromList("targetRegions", v)}
                 presets={PRESET_REGIONS.map((r) => `${r.flag} ${r.name}`)}
-                renderTagPrefix={(v) => guessFlag(v.replace(/^\W+\s*/, ''))}
+                renderTagPrefix={(v) => guessFlag(v.replace(/^\W+\s*/, ""))}
                 onAddPreset={(preset) => {
                   // Strip flag prefix when adding from preset list
-                  const cleaned = preset.replace(/^\W+\s*/, '');
-                  addToList('targetRegions', cleaned);
+                  const cleaned = preset.replace(/^\W+\s*/, "")
+                  addToList("targetRegions", cleaned)
                 }}
                 tone="indigo"
                 error={formErrors.targetRegions}
@@ -962,12 +946,12 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                 input={industryInput}
                 onChangeInput={setIndustryInput}
                 onAdd={(v) => {
-                  addToList('industries', v);
-                  setIndustryInput('');
+                  addToList("industries", v)
+                  setIndustryInput("")
                 }}
-                onRemove={(v) => removeFromList('industries', v)}
+                onRemove={(v) => removeFromList("industries", v)}
                 presets={PRESET_INDUSTRIES}
-                onAddPreset={(p) => addToList('industries', p)}
+                onAddPreset={(p) => addToList("industries", p)}
                 tone="blue"
                 error={formErrors.industries}
                 placeholder="산업 입력 후 Enter (예: 뷰티/화장품)"
@@ -980,10 +964,10 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                 input={keywordInput}
                 onChangeInput={setKeywordInput}
                 onAdd={(v) => {
-                  v.split(',').forEach((token) => addToList('keywords', token));
-                  setKeywordInput('');
+                  v.split(",").forEach((token) => addToList("keywords", token))
+                  setKeywordInput("")
                 }}
-                onRemove={(v) => removeFromList('keywords', v)}
+                onRemove={(v) => removeFromList("keywords", v)}
                 tone="violet"
                 error={formErrors.keywords}
                 placeholder="키워드 입력 후 Enter (예: 마스크팩, 비건, OEM)"
@@ -1019,7 +1003,7 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 <IconCheck className="h-4 w-4" />
-                {form.id ? '변경 사항 저장' : '프로필 만들기'}
+                {form.id ? "변경 사항 저장" : "프로필 만들기"}
               </button>
             </div>
           </div>
@@ -1030,46 +1014,41 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
       {selectedProspect && (
         <ProspectDetailDrawer
           prospect={selectedProspect}
-          profileName={
-            icpProfiles.find((p) => p.id === selectedProspect.icpMatch)?.name
-          }
+          profileName={icpProfiles.find((p) => p.id === selectedProspect.icpMatch)?.name}
           onClose={() => setSelectedProspect(null)}
           onConvert={() => {
-            onConvertProspect(selectedProspect.id);
-            setSelectedProspect(null);
+            onConvertProspect(selectedProspect.id)
+            setSelectedProspect(null)
           }}
           onDismiss={() => {
-            onDismissProspect(selectedProspect.id);
-            setSelectedProspect(null);
+            onDismissProspect(selectedProspect.id)
+            setSelectedProspect(null)
           }}
         />
       )}
 
       {/* Confirm Dialog */}
       {confirmState?.open && (
-        <ConfirmDialog
-          state={confirmState}
-          onCancel={() => setConfirmState(null)}
-        />
+        <ConfirmDialog state={confirmState} onCancel={() => setConfirmState(null)} />
       )}
 
       {/* Toasts */}
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
-  );
-};
+  )
+}
 
 // -------------------- Sub-components --------------------
 
 const StatCard: React.FC<{
-  label: string;
-  value: number;
-  highlight?: boolean;
-  accent?: string;
+  label: string
+  value: number
+  highlight?: boolean
+  accent?: string
 }> = ({ label, value, highlight, accent }) => (
   <div
     className={`min-w-[88px] rounded-lg px-4 py-3 backdrop-blur ${
-      highlight ? 'bg-white/20 ring-1 ring-white/30' : 'bg-white/10'
+      highlight ? "bg-white/20 ring-1 ring-white/30" : "bg-white/10"
     }`}
   >
     <div className="text-xs text-blue-50/90">{label}</div>
@@ -1078,7 +1057,7 @@ const StatCard: React.FC<{
       {accent && <span className="text-sm">{accent}</span>}
     </div>
   </div>
-);
+)
 
 const EmptyICP: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
   <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center">
@@ -1096,25 +1075,23 @@ const EmptyICP: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
       <IconPlus className="h-4 w-4" />첫 ICP 프로필 만들기
     </button>
   </div>
-);
+)
 
 const EmptyProspects: React.FC<{
-  hasProfiles: boolean;
-  onAdd: () => void;
-  onRun: () => void;
-  isRunning: boolean;
+  hasProfiles: boolean
+  onAdd: () => void
+  onRun: () => void
+  isRunning: boolean
 }> = ({ hasProfiles, onAdd, onRun, isRunning }) => (
   <div className="flex h-full flex-col items-center justify-center px-6 py-16 text-center">
-    <div className="text-5xl">{hasProfiles ? '🚀' : '🧭'}</div>
+    <div className="text-5xl">{hasProfiles ? "🚀" : "🧭"}</div>
     <h3 className="mt-3 text-lg font-semibold text-slate-800">
-      {hasProfiles
-        ? '아직 발굴된 바이어가 없습니다'
-        : 'ICP 설정으로 발굴을 시작하세요'}
+      {hasProfiles ? "아직 발굴된 바이어가 없습니다" : "ICP 설정으로 발굴을 시작하세요"}
     </h3>
     <p className="mt-1 max-w-md text-sm text-slate-500">
       {hasProfiles
         ? '오른쪽 상단 "지금 바이어 발굴 실행" 버튼을 누르면 AI가 해외 잠재 바이어를 찾아드립니다.'
-        : '수출 대상국과 산업·키워드만 정의하면 우리 제품에 관심 가질 해외 기업을 자동으로 큐레이션합니다.'}
+        : "수출 대상국과 산업·키워드만 정의하면 우리 제품에 관심 가질 해외 기업을 자동으로 큐레이션합니다."}
     </p>
     {hasProfiles ? (
       <button
@@ -1138,28 +1115,23 @@ const EmptyProspects: React.FC<{
       </button>
     )}
   </div>
-);
+)
 
 const ICPCard: React.FC<{
-  profile: ICPProfile;
-  matchedCount: number;
-  onEdit: () => void;
-  onDelete: () => void;
-  onSelect: () => void;
+  profile: ICPProfile
+  matchedCount: number
+  onEdit: () => void
+  onDelete: () => void
+  onSelect: () => void
 }> = ({ profile, matchedCount, onEdit, onDelete, onSelect }) => (
   <div className="group rounded-lg border border-slate-200 bg-slate-50/60 p-4 hover:border-blue-300 hover:bg-white">
     <div className="flex items-start justify-between gap-2">
-      <button
-        onClick={onSelect}
-        className="min-w-0 flex-1 text-left"
-        title="이 ICP로 결과 필터링"
-      >
+      <button onClick={onSelect} className="min-w-0 flex-1 text-left" title="이 ICP로 결과 필터링">
         <h4 className="truncate text-sm font-semibold text-slate-900 group-hover:text-blue-700">
           {profile.name}
         </h4>
         <div className="mt-0.5 text-xs text-slate-500">
-          매칭된 바이어{' '}
-          <span className="font-semibold text-blue-600">{matchedCount}</span>개
+          매칭된 바이어 <span className="font-semibold text-blue-600">{matchedCount}</span>개
         </div>
       </button>
       <div className="flex shrink-0 gap-1">
@@ -1188,19 +1160,17 @@ const ICPCard: React.FC<{
           <div className="min-w-0 flex-1">
             <span className="text-slate-400">대상국: </span>
             <span className="text-slate-700">
-              {profile.targetRegions.map((r) => `${guessFlag(r)} ${r}`).join(' · ')}
+              {profile.targetRegions.map((r) => `${guessFlag(r)} ${r}`).join(" · ")}
             </span>
           </div>
         </div>
       )}
-      <CardRow icon="🏷" label="산업" value={profile.industries.join(', ')} />
-      <CardRow icon="🔑" label="키워드" value={profile.keywords.join(', ')} />
-      {profile.companySize && (
-        <CardRow icon="🏢" label="규모" value={profile.companySize} />
-      )}
+      <CardRow icon="🏷" label="산업" value={profile.industries.join(", ")} />
+      <CardRow icon="🔑" label="키워드" value={profile.keywords.join(", ")} />
+      {profile.companySize && <CardRow icon="🏢" label="규모" value={profile.companySize} />}
     </div>
   </div>
-);
+)
 
 const CardRow: React.FC<{ icon: string; label: string; value: string }> = ({
   icon,
@@ -1214,33 +1184,33 @@ const CardRow: React.FC<{ icon: string; label: string; value: string }> = ({
       <span className="text-slate-700">{value}</span>
     </div>
   </div>
-);
+)
 
 const FilterChip: React.FC<{
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
 }> = ({ active, onClick, children }) => (
   <button
     onClick={onClick}
     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
       active
-        ? 'border-blue-600 bg-blue-600 text-white'
-        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+        ? "border-blue-600 bg-blue-600 text-white"
+        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
     }`}
   >
     {children}
   </button>
-);
+)
 
 const ProspectRow: React.FC<{
-  prospect: Prospect;
-  profileName?: string;
-  onClick: () => void;
-  onConvert: () => void;
-  onDismiss: () => void;
+  prospect: Prospect
+  profileName?: string
+  onClick: () => void
+  onConvert: () => void
+  onDismiss: () => void
 }> = ({ prospect, profileName, onClick, onConvert, onDismiss }) => {
-  const meta = SIGNAL_META[prospect.signalStrength];
+  const meta = SIGNAL_META[prospect.signalStrength]
   return (
     <li
       onClick={onClick}
@@ -1273,7 +1243,7 @@ const ProspectRow: React.FC<{
                 )}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                {prospect.industry && prospect.industry !== '미분류' && (
+                {prospect.industry && prospect.industry !== "미분류" && (
                   <span className="inline-flex items-center gap-1">
                     <IconBuilding className="h-3 w-3" /> {prospect.industry}
                   </span>
@@ -1285,7 +1255,7 @@ const ProspectRow: React.FC<{
                 {prospect.website && (
                   <a
                     href={
-                      prospect.website.startsWith('http')
+                      prospect.website.startsWith("http")
                         ? prospect.website
                         : `https://${prospect.website}`
                     }
@@ -1295,7 +1265,7 @@ const ProspectRow: React.FC<{
                     className="inline-flex items-center gap-1 text-blue-600 hover:underline"
                   >
                     <IconExternalLink className="h-3 w-3" />
-                    {prospect.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                    {prospect.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                   </a>
                 )}
               </div>
@@ -1330,8 +1300,8 @@ const ProspectRow: React.FC<{
         <div className="flex shrink-0 gap-2 md:flex-col md:items-stretch">
           <button
             onClick={(e) => {
-              e.stopPropagation();
-              onConvert();
+              e.stopPropagation()
+              onConvert()
             }}
             className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
           >
@@ -1340,8 +1310,8 @@ const ProspectRow: React.FC<{
           </button>
           <button
             onClick={(e) => {
-              e.stopPropagation();
-              onDismiss();
+              e.stopPropagation()
+              onDismiss()
             }}
             className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
           >
@@ -1351,26 +1321,26 @@ const ProspectRow: React.FC<{
         </div>
       </div>
     </li>
-  );
-};
+  )
+}
 
 const ProspectDetailDrawer: React.FC<{
-  prospect: Prospect;
-  profileName?: string;
-  onClose: () => void;
-  onConvert: () => void;
-  onDismiss: () => void;
+  prospect: Prospect
+  profileName?: string
+  onClose: () => void
+  onConvert: () => void
+  onDismiss: () => void
 }> = ({ prospect, profileName, onClose, onConvert, onDismiss }) => {
-  const meta = SIGNAL_META[prospect.signalStrength];
+  const meta = SIGNAL_META[prospect.signalStrength]
 
   // Close on ESC
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [onClose])
 
   return (
     <div className="fixed inset-0 z-40">
@@ -1388,9 +1358,7 @@ const ProspectDetailDrawer: React.FC<{
               >
                 {meta.icon}
               </span>
-              <h3 className="truncate text-lg font-bold text-slate-900">
-                {prospect.companyName}
-              </h3>
+              <h3 className="truncate text-lg font-bold text-slate-900">{prospect.companyName}</h3>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span
@@ -1416,7 +1384,7 @@ const ProspectDetailDrawer: React.FC<{
         </div>
 
         <div className="space-y-5 px-5 py-5">
-          {prospect.industry && prospect.industry !== '미분류' && (
+          {prospect.industry && prospect.industry !== "미분류" && (
             <DetailField label="산업" value={prospect.industry} icon="🏷" />
           )}
           {prospect.website && (
@@ -1426,7 +1394,7 @@ const ProspectDetailDrawer: React.FC<{
               value={
                 <a
                   href={
-                    prospect.website.startsWith('http')
+                    prospect.website.startsWith("http")
                       ? prospect.website
                       : `https://${prospect.website}`
                   }
@@ -1434,7 +1402,7 @@ const ProspectDetailDrawer: React.FC<{
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-blue-600 hover:underline"
                 >
-                  {prospect.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                  {prospect.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                   <IconExternalLink className="h-3 w-3" />
                 </a>
               }
@@ -1445,13 +1413,11 @@ const ProspectDetailDrawer: React.FC<{
             icon="⏱"
             value={`${formatRelative(prospect.detectedAt)} · ${new Date(
               prospect.detectedAt,
-            ).toLocaleString('ko-KR')}`}
+            ).toLocaleString("ko-KR")}`}
           />
           {prospect.notes && (
             <div>
-              <div className="mb-1 text-xs font-semibold text-slate-500">
-                💡 AI 분석
-              </div>
+              <div className="mb-1 text-xs font-semibold text-slate-500">💡 AI 분석</div>
               <p className="rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
                 {prospect.notes}
               </p>
@@ -1459,9 +1425,7 @@ const ProspectDetailDrawer: React.FC<{
           )}
           {prospect.sourceArticle?.title && (
             <div>
-              <div className="mb-1 text-xs font-semibold text-slate-500">
-                📰 발견 출처
-              </div>
+              <div className="mb-1 text-xs font-semibold text-slate-500">📰 발견 출처</div>
               <div className="rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-sm text-slate-800">{prospect.sourceArticle.title}</p>
                 {prospect.sourceArticle.uri && (
@@ -1508,13 +1472,13 @@ const ProspectDetailDrawer: React.FC<{
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const DetailField: React.FC<{
-  label: string;
-  icon?: string;
-  value: React.ReactNode;
+  label: string
+  icon?: string
+  value: React.ReactNode
 }> = ({ label, icon, value }) => (
   <div>
     <div className="text-xs font-semibold text-slate-500">
@@ -1523,28 +1487,26 @@ const DetailField: React.FC<{
     </div>
     <div className="mt-0.5 text-sm text-slate-800">{value}</div>
   </div>
-);
+)
 
 const ConfirmDialog: React.FC<{
-  state: ConfirmState;
-  onCancel: () => void;
+  state: ConfirmState
+  onCancel: () => void
 }> = ({ state, onCancel }) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
-      if (e.key === 'Enter') state.onConfirm();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel, state]);
+      if (e.key === "Escape") onCancel()
+      if (e.key === "Enter") state.onConfirm()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [onCancel, state])
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
         <h3 className="text-base font-semibold text-slate-900">{state.title}</h3>
-        {state.description && (
-          <p className="mt-1.5 text-sm text-slate-600">{state.description}</p>
-        )}
+        {state.description && <p className="mt-1.5 text-sm text-slate-600">{state.description}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onCancel}
@@ -1555,9 +1517,7 @@ const ConfirmDialog: React.FC<{
           <button
             onClick={state.onConfirm}
             className={`rounded-lg px-4 py-1.5 text-sm font-semibold text-white ${
-              state.destructive
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-blue-600 hover:bg-blue-700'
+              state.destructive ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {state.confirmLabel}
@@ -1565,12 +1525,12 @@ const ConfirmDialog: React.FC<{
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const ToastStack: React.FC<{
-  toasts: Toast[];
-  onDismiss: (id: string) => void;
+  toasts: Toast[]
+  onDismiss: (id: string) => void
 }> = ({ toasts, onDismiss }) => (
   <div className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-full max-w-sm flex-col gap-2">
     {toasts.map((t) => (
@@ -1578,15 +1538,15 @@ const ToastStack: React.FC<{
         key={t.id}
         role="status"
         className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3 py-2 text-sm shadow-lg backdrop-blur ${
-          t.tone === 'success'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-            : t.tone === 'error'
-              ? 'border-red-200 bg-red-50 text-red-800'
-              : 'border-slate-200 bg-white text-slate-700'
+          t.tone === "success"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+            : t.tone === "error"
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-slate-200 bg-white text-slate-700"
         }`}
       >
         <span className="text-base leading-5">
-          {t.tone === 'success' ? '✅' : t.tone === 'error' ? '⚠️' : 'ℹ️'}
+          {t.tone === "success" ? "✅" : t.tone === "error" ? "⚠️" : "ℹ️"}
         </span>
         <p className="flex-1 leading-relaxed">{t.message}</p>
         <button
@@ -1599,22 +1559,22 @@ const ToastStack: React.FC<{
       </div>
     ))}
   </div>
-);
+)
 
 const TagsEditor: React.FC<{
-  label: string;
-  helperText?: string;
-  value: string[];
-  input: string;
-  onChangeInput: (v: string) => void;
-  onAdd: (v: string) => void;
-  onAddPreset?: (v: string) => void;
-  onRemove: (v: string) => void;
-  presets?: string[];
-  tone: 'blue' | 'indigo' | 'violet';
-  placeholder?: string;
-  error?: string;
-  renderTagPrefix?: (tag: string) => string;
+  label: string
+  helperText?: string
+  value: string[]
+  input: string
+  onChangeInput: (v: string) => void
+  onAdd: (v: string) => void
+  onAddPreset?: (v: string) => void
+  onRemove: (v: string) => void
+  presets?: string[]
+  tone: "blue" | "indigo" | "violet"
+  placeholder?: string
+  error?: string
+  renderTagPrefix?: (tag: string) => string
 }> = ({
   label,
   helperText,
@@ -1631,10 +1591,10 @@ const TagsEditor: React.FC<{
   renderTagPrefix,
 }) => {
   const toneClasses: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-700 border-blue-200',
-    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    violet: 'bg-violet-50 text-violet-700 border-violet-200',
-  };
+    blue: "bg-blue-50 text-blue-700 border-blue-200",
+    indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    violet: "bg-violet-50 text-violet-700 border-violet-200",
+  }
   return (
     <div>
       <label className="mb-1.5 block text-sm font-medium text-slate-700">{label}</label>
@@ -1645,16 +1605,14 @@ const TagsEditor: React.FC<{
           value={input}
           onChange={(e) => onChangeInput(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              onAdd(input);
+            if (e.key === "Enter") {
+              e.preventDefault()
+              onAdd(input)
             }
           }}
           placeholder={placeholder}
           className={`flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 ${
-            error
-              ? 'border-red-300 focus:ring-red-500'
-              : 'border-slate-300 focus:ring-blue-500'
+            error ? "border-red-300 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
           }`}
           aria-invalid={!!error}
         />
@@ -1693,8 +1651,8 @@ const TagsEditor: React.FC<{
           <span className="text-[11px] text-slate-400">추천:</span>
           {presets
             .filter((p) => {
-              const cleaned = p.replace(/^\W+\s*/, '');
-              return !value.includes(cleaned);
+              const cleaned = p.replace(/^\W+\s*/, "")
+              return !value.includes(cleaned)
             })
             .slice(0, 10)
             .map((preset) => (
@@ -1710,5 +1668,5 @@ const TagsEditor: React.FC<{
         </div>
       )}
     </div>
-  );
-};
+  )
+}

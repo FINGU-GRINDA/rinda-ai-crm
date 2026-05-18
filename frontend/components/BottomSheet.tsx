@@ -1,14 +1,15 @@
-import React, { useEffect, useCallback } from 'react';
-import { X } from 'lucide-react';
+import { X } from "lucide-react"
+import type React from "react"
+import { useCallback, useEffect } from "react"
 
 interface BottomSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title?: string;
-  children: React.ReactNode;
-  height?: 'auto' | 'half' | 'full';
-  showCloseButton?: boolean;
-  showDragHandle?: boolean;
+  isOpen: boolean
+  onClose: () => void
+  title?: string
+  children: React.ReactNode
+  height?: "auto" | "half" | "full"
+  showCloseButton?: boolean
+  showDragHandle?: boolean
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
@@ -16,39 +17,42 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   onClose,
   title,
   children,
-  height = 'auto',
+  height = "auto",
   showCloseButton = true,
   showDragHandle = true,
 }) => {
   // Handle escape key
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  }, [onClose]);
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    },
+    [onClose],
+  )
 
   // Lock body scroll when open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = "hidden"
+      document.addEventListener("keydown", handleEscape)
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = ""
     }
 
     return () => {
-      document.body.style.overflow = '';
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen, handleEscape]);
+      document.body.style.overflow = ""
+      document.removeEventListener("keydown", handleEscape)
+    }
+  }, [isOpen, handleEscape])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const heightClasses = {
-    auto: 'max-h-[90vh]',
-    half: 'h-[50vh]',
-    full: 'h-[95vh]',
-  };
+    auto: "max-h-[90vh]",
+    half: "h-[50vh]",
+    full: "h-[95vh]",
+  }
 
   return (
     <div className="fixed inset-0 z-50 md:hidden">
@@ -66,7 +70,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
                     ${heightClasses[height]}`}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'bottom-sheet-title' : undefined}
+        aria-labelledby={title ? "bottom-sheet-title" : undefined}
       >
         {/* Drag Handle */}
         {showDragHandle && (
@@ -79,10 +83,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between px-4 pb-3 border-b border-slate-200 flex-shrink-0">
             {title && (
-              <h2
-                id="bottom-sheet-title"
-                className="text-lg font-semibold text-slate-900"
-              >
+              <h2 id="bottom-sheet-title" className="text-lg font-semibold text-slate-900">
                 {title}
               </h2>
             )}
@@ -99,17 +100,15 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-safe">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-safe">{children}</div>
       </div>
     </div>
-  );
-};
+  )
+}
 
 // Desktop Modal wrapper - renders children as-is for desktop
 interface ResponsiveModalProps extends BottomSheetProps {
-  desktopContent?: React.ReactNode;
+  desktopContent?: React.ReactNode
 }
 
 export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
@@ -117,31 +116,24 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
   onClose,
   title,
   children,
-  height = 'auto',
+  height = "auto",
   desktopContent,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <>
       {/* Mobile: Bottom Sheet */}
       <div className="md:hidden">
-        <BottomSheet
-          isOpen={isOpen}
-          onClose={onClose}
-          title={title}
-          height={height}
-        >
+        <BottomSheet isOpen={isOpen} onClose={onClose} title={title} height={height}>
           {children}
         </BottomSheet>
       </div>
 
       {/* Desktop: Regular Modal */}
-      <div className="hidden md:block">
-        {desktopContent || children}
-      </div>
+      <div className="hidden md:block">{desktopContent || children}</div>
     </>
-  );
-};
+  )
+}
 
-export default BottomSheet;
+export default BottomSheet
