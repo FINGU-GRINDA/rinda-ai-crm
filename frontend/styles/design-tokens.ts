@@ -97,9 +97,10 @@ export const toneStyles: Record<
 // ============================================================
 // 고객 상태 (CustomerStatus) 통일 매핑
 // ============================================================
-export type CustomerStatusKey = "new" | "contact" | "negotiation" | "won" | "lost"
+export type CustomerStatusKey = "prospect" | "new" | "contact" | "negotiation" | "won" | "lost"
 
 export const statusBadge: Record<CustomerStatusKey, { label: string; tone: Tone }> = {
+  prospect: { label: "잠재", tone: "accent" },
   new: { label: "신규", tone: "neutral" },
   contact: { label: "컨택 중", tone: "info" },
   negotiation: { label: "협상 중", tone: "warning" },
