@@ -10,7 +10,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Install dependencies
 # -----------------------------------------------------------------------------
-FROM oven/bun:1.1-alpine AS deps
+FROM oven/bun:1.3-alpine AS deps
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN bun install --frozen-lockfile
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime
 # -----------------------------------------------------------------------------
-FROM oven/bun:1.1-alpine AS runtime
+FROM oven/bun:1.3-alpine AS runtime
 
 # tini -> proper PID 1 signal handling
 # curl -> used by HEALTHCHECK
