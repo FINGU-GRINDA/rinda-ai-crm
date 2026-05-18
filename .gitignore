@@ -61,4 +61,9 @@ tmpclaude-*
 # (settings.json is committed; settings.local.json is per-developer)
 .claude/settings.local.json
 .claude/.cache/
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
 
