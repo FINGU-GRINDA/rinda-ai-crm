@@ -82,7 +82,9 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
       loadFollowUps()
 
       if (onFollowUpScheduled) {
-        newFollowUps.forEach((f) => onFollowUpScheduled(f))
+        newFollowUps.forEach((f) => {
+          onFollowUpScheduled(f)
+        })
       }
     } catch (error) {
       console.error("Auto-scheduling failed:", error)

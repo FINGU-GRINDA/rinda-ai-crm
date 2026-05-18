@@ -26,7 +26,9 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
 
     // Cleanup all timers when effect unmounts or dependencies change
     return () => {
-      timers.forEach((timer) => clearTimeout(timer))
+      timers.forEach((timer) => {
+        clearTimeout(timer)
+      })
     }
   }, [tasks])
 

@@ -42,7 +42,7 @@
       "suspicious": {
         "noExplicitAny": "warn",
         "noArrayIndexKey": "off",
-        "useIterableCallbackReturn": "warn"
+        "useIterableCallbackReturn": "error"
       },
       "correctness": {
         "noUnusedVariables": "warn",

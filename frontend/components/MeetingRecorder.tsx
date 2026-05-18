@@ -99,7 +99,9 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
         setAudioBlob(blob)
         setAudioUrl(URL.createObjectURL(blob))
         setRecordingStatus("complete")
-        stream.getTracks().forEach((track) => track.stop())
+        stream.getTracks().forEach((track) => {
+          track.stop()
+        })
       }
 
       mediaRecorder.start(1000)

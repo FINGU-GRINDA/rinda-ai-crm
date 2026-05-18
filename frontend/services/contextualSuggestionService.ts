@@ -199,7 +199,9 @@ export const generateAllSuggestions = async (
       allSuggestions.push(...suggestions)
 
       // Save each suggestion
-      suggestions.forEach((s) => saveSuggestion(s))
+      suggestions.forEach((s) => {
+        saveSuggestion(s)
+      })
     } catch (error) {
       console.error(`Failed to generate suggestions for ${customer.name}:`, error)
     }
