@@ -60,6 +60,13 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
     return filterFollowUps(pending, filters, customers)
   }, [scheduledFollowUps, filters, customers])
 
+  const loadFollowUps = () => {
+    const all = getScheduledFollowUps()
+    setScheduledFollowUps(all)
+    setDueFollowUps(getDueFollowUps())
+    setUpcomingFollowUps(getUpcomingFollowUps(7))
+  }
+
   useEffect(() => {
     loadFollowUps()
 
@@ -67,13 +74,6 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
     const interval = setInterval(loadFollowUps, 60000)
     return () => clearInterval(interval)
   }, [loadFollowUps])
-
-  const loadFollowUps = () => {
-    const all = getScheduledFollowUps()
-    setScheduledFollowUps(all)
-    setDueFollowUps(getDueFollowUps())
-    setUpcomingFollowUps(getUpcomingFollowUps(7))
-  }
 
   const handleAutoSchedule = async () => {
     setAutoScheduling(true)

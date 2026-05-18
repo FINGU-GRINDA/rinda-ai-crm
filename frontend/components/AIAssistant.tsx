@@ -21,17 +21,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (isOpen) {
-      loadConversation()
-      inputRef.current?.focus()
-    }
-  }, [isOpen, loadConversation])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [scrollToBottom])
-
   const loadConversation = () => {
     const history = getConversationHistory()
     if (history.length === 0) {
@@ -52,6 +41,17 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      loadConversation()
+      inputRef.current?.focus()
+    }
+  }, [isOpen, loadConversation])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [scrollToBottom])
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return

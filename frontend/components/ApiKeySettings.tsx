@@ -25,6 +25,10 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
   const [errorMessage, setErrorMessage] = useState("")
   const [currentMaskedKey, setCurrentMaskedKey] = useState<string | null>(null)
 
+  const validateApiKey = async () => {
+    setErrorMessage("API Key 관리가 서버로 이동되었습니다. 서버 환경설정을 확인해주세요.")
+  }
+
   useEffect(() => {
     if (isOpen) {
       // 상태 초기화
@@ -47,10 +51,6 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
 
     return () => clearTimeout(timer)
   }, [apiKey, validateApiKey])
-
-  const validateApiKey = async () => {
-    setErrorMessage("API Key 관리가 서버로 이동되었습니다. 서버 환경설정을 확인해주세요.")
-  }
 
   const handleSave = async () => {
     if (validationStatus === "valid") {

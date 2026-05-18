@@ -65,25 +65,7 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
     [customer, isLostDeal],
   )
 
-  useEffect(() => {
-    if (customer) {
-      // Check if strategy is already stored (from enrichment)
-      if (customer.followUpStrategy) {
-        loadStoredStrategy(customer.followUpStrategy)
-      } else {
-        // Fallback: generate on-demand for customers without stored strategy
-        generateNewStrategy()
-      }
-    }
-  }, [
-    customer.id,
-    customer.followUpStrategy,
-    loadStoredStrategy, // Fallback: generate on-demand for customers without stored strategy
-    generateNewStrategy,
-    customer,
-  ])
-
-  const generateNewStrategy = async () => {
+  const generateNewStrategy = useCallback(async () => {
     setIsGenerating(true)
     setError(null)
 
@@ -121,7 +103,25 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
     } finally {
       setIsGenerating(false)
     }
-  }
+  }, [customer, isLostDeal])
+
+  useEffect(() => {
+    if (customer) {
+      // Check if strategy is already stored (from enrichment)
+      if (customer.followUpStrategy) {
+        loadStoredStrategy(customer.followUpStrategy)
+      } else {
+        // Fallback: generate on-demand for customers without stored strategy
+        generateNewStrategy()
+      }
+    }
+  }, [
+    customer.id,
+    customer.followUpStrategy,
+    loadStoredStrategy, // Fallback: generate on-demand for customers without stored strategy
+    generateNewStrategy,
+    customer,
+  ])
 
   // Keep generateStrategy for the "regenerate" button
   const generateStrategy = generateNewStrategy
