@@ -53,6 +53,16 @@ pre-push:
         - "**/*.tsx"
         - "**/*.json"
       run: bun type-check
+    frontend-typecheck:
+      root: "frontend/"
+      glob:
+        - "*.ts"
+        - "*.tsx"
+        - "*.json"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.json"
+      run: npx tsc --noEmit
     frontend-build:
       root: "frontend/"
       glob:

@@ -107,7 +107,7 @@ export function transformApiProspect(apiProspect: ApiProspect): Prospect {
     sourceArticle: {
       title: apiProspect.sourceArticle.title || "",
       uri: apiProspect.sourceArticle.uri || "",
-      publishedAt: apiProspect.sourceArticle.publishedAt,
+      publishedAt: apiProspect.sourceArticle.publishedAt ?? undefined,
     },
     signalStrength: apiProspect.signalStrength,
     detectedAt: apiProspect.detectedAt,

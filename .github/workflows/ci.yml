@@ -64,6 +64,9 @@ jobs:
       - name: Format check (Biome)
         run: npm run format:check
 
+      - name: Type-check (tsc)
+        run: npx tsc --noEmit
+
       - name: Build
         run: npm run build
         env:
