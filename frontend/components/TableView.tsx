@@ -1,15 +1,15 @@
-import React from 'react';
-import { Customer } from '../types';
-import { DataTable, TableColumn } from './DataTable';
-import { IconBrain, IconFileText } from './Icons';
-import { StatusBadge } from './ui/StatusBadge';
+import type React from "react"
+import type { Customer } from "../types"
+import { DataTable, type TableColumn } from "./DataTable"
+import { IconBrain, IconFileText } from "./Icons"
+import { StatusBadge } from "./ui/StatusBadge"
 
 interface TableViewProps {
-  customers: Customer[];
-  selectedCustomerId: string | null;
-  onSelectCustomer: (customerId: string) => void;
-  selectedRows: Set<string>;
-  onSelectionChange: (selectedIds: Set<string>) => void;
+  customers: Customer[]
+  selectedCustomerId: string | null
+  onSelectCustomer: (customerId: string) => void
+  selectedRows: Set<string>
+  onSelectionChange: (selectedIds: Set<string>) => void
 }
 
 export const TableView: React.FC<TableViewProps> = ({
@@ -21,8 +21,8 @@ export const TableView: React.FC<TableViewProps> = ({
 }) => {
   const columns: TableColumn<Customer>[] = [
     {
-      id: 'name',
-      label: '고객명',
+      id: "name",
+      label: "고객명",
       width: 200,
       sortable: true,
       render: (customer) => (
@@ -35,26 +35,22 @@ export const TableView: React.FC<TableViewProps> = ({
       ),
     },
     {
-      id: 'status',
-      label: '상태',
+      id: "status",
+      label: "상태",
       width: 120,
       sortable: true,
-      render: (customer) => (
-        <StatusBadge kind="status" value={customer.status} />
-      ),
+      render: (customer) => <StatusBadge kind="status" value={customer.status} />,
     },
     {
-      id: 'industry',
-      label: '산업',
+      id: "industry",
+      label: "산업",
       width: 150,
       sortable: true,
-      render: (customer) => (
-        <span className="text-neutral-600">{customer.industry}</span>
-      ),
+      render: (customer) => <span className="text-neutral-600">{customer.industry}</span>,
     },
     {
-      id: 'website',
-      label: '웹사이트',
+      id: "website",
+      label: "웹사이트",
       width: 180,
       render: (customer) => (
         <a
@@ -69,8 +65,8 @@ export const TableView: React.FC<TableViewProps> = ({
       ),
     },
     {
-      id: 'proposals',
-      label: '제안서',
+      id: "proposals",
+      label: "제안서",
       width: 80,
       sortable: true,
       render: (customer) => (
@@ -87,16 +83,16 @@ export const TableView: React.FC<TableViewProps> = ({
       ),
     },
     {
-      id: 'notes',
-      label: '메모',
+      id: "notes",
+      label: "메모",
       width: 250,
       render: (customer) => (
         <span className="text-neutral-600 truncate block max-w-[250px]">
-          {customer.notes || '-'}
+          {customer.notes || "-"}
         </span>
       ),
     },
-  ];
+  ]
 
   return (
     <div className="h-full w-full">
@@ -110,5 +106,5 @@ export const TableView: React.FC<TableViewProps> = ({
         emptyMessage="아직 등록된 고객이 없습니다"
       />
     </div>
-  );
-};
+  )
+}

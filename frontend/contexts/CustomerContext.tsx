@@ -3,65 +3,71 @@
  * 전역 고객 데이터 상태 관리
  */
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useCustomers } from '../hooks/useCustomers';
-import { Customer, CustomerStatus, Proposal, FollowUpAction, EnrichedData } from '../types';
+import { createContext, type ReactNode, useContext } from "react"
+import { useCustomers } from "../hooks/useCustomers"
+import type { Customer, CustomerStatus, EnrichedData, FollowUpAction, Proposal } from "../types"
 
 interface CustomerContextType {
   // Data
-  customers: Customer[];
-  loading: boolean;
-  error: string | null;
+  customers: Customer[]
+  loading: boolean
+  error: string | null
 
   // CRUD Operations
-  fetchCustomers: () => Promise<void>;
-  addCustomer: (customer: Omit<Customer, 'id' | 'proposals'>) => Promise<Customer | null>;
-  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<Customer | null>;
-  deleteCustomer: (id: string) => Promise<boolean>;
+  fetchCustomers: () => Promise<void>
+  addCustomer: (customer: Omit<Customer, "id" | "proposals">) => Promise<Customer | null>
+  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<Customer | null>
+  deleteCustomer: (id: string) => Promise<boolean>
 
   // Status
-  updateCustomerStatus: (id: string, status: CustomerStatus, lostReason?: string) => Promise<Customer | null>;
+  updateCustomerStatus: (
+    id: string,
+    status: CustomerStatus,
+    lostReason?: string,
+  ) => Promise<Customer | null>
 
   // Enrichment
-  saveEnrichment: (customerId: string, enrichment: EnrichedData) => Promise<Customer | null>;
+  saveEnrichment: (customerId: string, enrichment: EnrichedData) => Promise<Customer | null>
 
   // Proposals
-  addProposal: (customerId: string, proposal: Omit<Proposal, 'id' | 'createdAt'>) => Promise<Proposal | null>;
+  addProposal: (
+    customerId: string,
+    proposal: Omit<Proposal, "id" | "createdAt">,
+  ) => Promise<Proposal | null>
 
   // Follow-ups
-  addFollowUp: (customerId: string, followUp: Omit<FollowUpAction, 'id' | 'createdAt'>) => Promise<FollowUpAction | null>;
+  addFollowUp: (
+    customerId: string,
+    followUp: Omit<FollowUpAction, "id" | "createdAt">,
+  ) => Promise<FollowUpAction | null>
 
   // Stats
-  stats: any;
-  fetchStats: () => Promise<void>;
+  stats: any
+  fetchStats: () => Promise<void>
 
   // Utilities
-  getCustomerById: (id: string) => Customer | undefined;
-  refreshCustomer: (id: string) => Promise<Customer | null>;
+  getCustomerById: (id: string) => Customer | undefined
+  refreshCustomer: (id: string) => Promise<Customer | null>
 }
 
-const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
+const CustomerContext = createContext<CustomerContextType | undefined>(undefined)
 
 interface CustomerProviderProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 export function CustomerProvider({ children }: CustomerProviderProps) {
-  const customersHook = useCustomers();
+  const customersHook = useCustomers()
 
-  return (
-    <CustomerContext.Provider value={customersHook}>
-      {children}
-    </CustomerContext.Provider>
-  );
+  return <CustomerContext.Provider value={customersHook}>{children}</CustomerContext.Provider>
 }
 
 export function useCustomerContext(): CustomerContextType {
-  const context = useContext(CustomerContext);
+  const context = useContext(CustomerContext)
   if (context === undefined) {
-    throw new Error('useCustomerContext must be used within a CustomerProvider');
+    throw new Error("useCustomerContext must be used within a CustomerProvider")
   }
-  return context;
+  return context
 }
 
-export default CustomerContext;
+export default CustomerContext

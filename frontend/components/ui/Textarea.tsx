@@ -1,10 +1,10 @@
-import React from 'react';
+import React from "react"
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string;
-  hint?: string;
-  error?: string;
-  autosaveHint?: string;
+  label?: string
+  hint?: string
+  error?: string
+  autosaveHint?: string
 }
 
 export const Textarea: React.FC<TextareaProps> = ({
@@ -12,13 +12,13 @@ export const Textarea: React.FC<TextareaProps> = ({
   hint,
   error,
   autosaveHint,
-  className = '',
+  className = "",
   id,
   ...rest
 }) => {
-  const textareaId = id || React.useId();
-  const hintId = hint || error ? `${textareaId}-desc` : undefined;
-  const hasError = Boolean(error);
+  const textareaId = id || React.useId()
+  const hintId = hint || error ? `${textareaId}-desc` : undefined
+  const hasError = Boolean(error)
 
   return (
     <div className="w-full">
@@ -40,9 +40,11 @@ export const Textarea: React.FC<TextareaProps> = ({
         aria-describedby={hintId}
         className={`
           w-full px-3 py-2.5 rounded-lg border text-sm transition-all outline-none resize-none
-          ${hasError
-            ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100'
-            : 'border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100'}
+          ${
+            hasError
+              ? "border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100"
+              : "border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          }
           disabled:bg-slate-100 disabled:cursor-not-allowed
           placeholder:text-slate-400
           ${className}
@@ -50,10 +52,10 @@ export const Textarea: React.FC<TextareaProps> = ({
         {...rest}
       />
       {(hint || error) && (
-        <p id={hintId} className={`mt-1 text-xs ${hasError ? 'text-red-600' : 'text-slate-500'}`}>
+        <p id={hintId} className={`mt-1 text-xs ${hasError ? "text-red-600" : "text-slate-500"}`}>
           {error || hint}
         </p>
       )}
     </div>
-  );
-};
+  )
+}

@@ -1,40 +1,41 @@
-import React, { useState } from 'react';
-import { IconLoader, IconCheck, IconX } from './Icons';
+import type React from "react"
+import { useState } from "react"
+import { IconCheck, IconLoader, IconX } from "./Icons"
 
 interface ButtonProps {
   // Variants
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'danger';
+  variant?: "primary" | "secondary" | "tertiary" | "danger"
 
   // Sizes
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl"
 
   // States
-  loading?: boolean;
-  loadingText?: string;
-  disabled?: boolean;
-  success?: boolean;
-  error?: boolean;
+  loading?: boolean
+  loadingText?: string
+  disabled?: boolean
+  success?: boolean
+  error?: boolean
 
   // Visual
-  icon?: React.ReactNode;
-  fullWidth?: boolean;
+  icon?: React.ReactNode
+  fullWidth?: boolean
 
   // Events
-  onClick?: () => void | Promise<void>;
+  onClick?: () => void | Promise<void>
 
   // HTML attributes
-  type?: 'button' | 'submit' | 'reset';
+  type?: "button" | "submit" | "reset"
 
   // Accessibility
-  'aria-label'?: string;
-  className?: string;
+  "aria-label"?: string
+  className?: string
 
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export const Button: React.FC<ButtonProps> = ({
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   loading = false,
   loadingText,
   disabled = false,
@@ -43,34 +44,34 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   fullWidth = false,
   onClick,
-  type = 'button',
-  className = '',
+  type = "button",
+  className = "",
   children,
   ...rest
 }) => {
-  const [internalSuccess, setInternalSuccess] = useState(false);
-  const [internalError, setInternalError] = useState(false);
+  const [internalSuccess, setInternalSuccess] = useState(false)
+  const [internalError, setInternalError] = useState(false)
 
   const handleClick = async () => {
-    if (loading || disabled) return;
+    if (loading || disabled) return
 
     try {
-      setInternalError(false);
-      await onClick?.();
+      setInternalError(false)
+      await onClick?.()
 
       // Success animation
-      setInternalSuccess(true);
-      setTimeout(() => setInternalSuccess(false), 2000);
+      setInternalSuccess(true)
+      setTimeout(() => setInternalSuccess(false), 2000)
     } catch (err) {
       // Error animation
-      setInternalError(true);
-      setTimeout(() => setInternalError(false), 600);
-      throw err; // Re-throw to allow parent to handle
+      setInternalError(true)
+      setTimeout(() => setInternalError(false), 600)
+      throw err // Re-throw to allow parent to handle
     }
-  };
+  }
 
-  const isSuccess = success || internalSuccess;
-  const isError = error || internalError;
+  const isSuccess = success || internalSuccess
+  const isError = error || internalError
 
   // Variant styles - Clean, solid colors without gradients
   const variantStyles = {
@@ -107,16 +108,16 @@ export const Button: React.FC<ButtonProps> = ({
       shadow-sm hover:shadow
       border-0
       focus:ring-red-500
-    `
-  };
+    `,
+  }
 
   // Size styles - optimized for touch targets (44px minimum)
   const sizeStyles = {
-    sm: 'py-2 px-3 text-xs min-h-[36px]',
-    md: 'py-3 px-4 text-sm min-h-[44px]',
-    lg: 'py-3.5 px-6 text-base min-h-[48px]',
-    xl: 'py-4 px-8 text-lg min-h-[52px]'
-  };
+    sm: "py-2 px-3 text-xs min-h-[36px]",
+    md: "py-3 px-4 text-sm min-h-[44px]",
+    lg: "py-3.5 px-6 text-base min-h-[48px]",
+    xl: "py-4 px-8 text-lg min-h-[52px]",
+  }
 
   return (
     <button
@@ -129,14 +130,16 @@ export const Button: React.FC<ButtonProps> = ({
         focus:outline-none focus:ring-2 focus:ring-offset-2
         ${variantStyles[variant]}
         ${sizeStyles[size]}
-        ${fullWidth ? 'w-full' : ''}
-        ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
-        ${loading ? 'cursor-wait' : ''}
-        ${!disabled && !loading ? 'hover:scale-105 active:scale-95' : ''}
-        ${isSuccess ? '!bg-emerald-600 animate-pulse-success' : ''}
-        ${isError ? 'animate-shake !border-red-500' : ''}
+        ${fullWidth ? "w-full" : ""}
+        ${disabled ? "opacity-40 cursor-not-allowed" : ""}
+        ${loading ? "cursor-wait" : ""}
+        ${!disabled && !loading ? "hover:scale-105 active:scale-95" : ""}
+        ${isSuccess ? "!bg-emerald-600 animate-pulse-success" : ""}
+        ${isError ? "animate-shake !border-red-500" : ""}
         ${className}
-      `.trim().replace(/\s+/g, ' ')}
+      `
+        .trim()
+        .replace(/\s+/g, " ")}
       {...rest}
     >
       {/* Loading state */}
@@ -171,5 +174,5 @@ export const Button: React.FC<ButtonProps> = ({
         </>
       )}
     </button>
-  );
-};
+  )
+}

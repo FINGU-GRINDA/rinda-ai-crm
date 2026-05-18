@@ -1,108 +1,113 @@
-import React, { useState, useMemo } from 'react';
-import { MeetingSummary, Customer } from '../types';
+import type React from "react"
+import { useMemo, useState } from "react"
+import { apiClient } from "../src/services/apiClient"
+import type { Customer, MeetingSummary } from "../types"
 import {
-  IconCalendar,
-  IconClock,
   IconBuilding,
-  IconPlus,
-  IconSearch,
+  IconCalendar,
+  IconCheck,
+  IconClock,
   IconEdit,
-  IconTrash,
-  IconRefresh,
   IconFileText,
-  IconCheck
-} from './Icons';
-import { MeetingFormModal } from './MeetingFormModal';
-import { apiClient } from '../src/services/apiClient';
+  IconPlus,
+  IconRefresh,
+  IconSearch,
+  IconTrash,
+} from "./Icons"
+import { MeetingFormModal } from "./MeetingFormModal"
 
 interface MeetingsBoardProps {
-  meetings: MeetingSummary[];
-  customers: Customer[];
-  loading: boolean;
-  onRefresh: () => void;
+  meetings: MeetingSummary[]
+  customers: Customer[]
+  loading: boolean
+  onRefresh: () => void
 }
 
 export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
   meetings,
   customers,
   loading,
-  onRefresh
+  onRefresh,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
-  const [showFormModal, setShowFormModal] = useState(false);
-  const [editingMeeting, setEditingMeeting] = useState<MeetingSummary | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("all")
+  const [showFormModal, setShowFormModal] = useState(false)
+  const [editingMeeting, setEditingMeeting] = useState<MeetingSummary | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // Filter meetings
   const filteredMeetings = useMemo(() => {
-    return meetings.filter(meeting => {
-      const customer = customers.find(c => c.id === meeting.customerId);
-      const customerName = customer?.name || '';
+    return meetings
+      .filter((meeting) => {
+        const customer = customers.find((c) => c.id === meeting.customerId)
+        const customerName = customer?.name || ""
 
-      const matchesSearch = searchQuery === '' ||
-        meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (meeting.summary && meeting.summary.toLowerCase().includes(searchQuery.toLowerCase()));
+        const matchesSearch =
+          searchQuery === "" ||
+          meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          meeting.summary?.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const matchesCustomer = selectedCustomerId === 'all' || meeting.customerId === selectedCustomerId;
+        const matchesCustomer =
+          selectedCustomerId === "all" || meeting.customerId === selectedCustomerId
 
-      return matchesSearch && matchesCustomer;
-    }).sort((a, b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
-  }, [meetings, customers, searchQuery, selectedCustomerId]);
+        return matchesSearch && matchesCustomer
+      })
+      .sort((a, b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime())
+  }, [meetings, customers, searchQuery, selectedCustomerId])
 
   // Get customer name by ID
   const getCustomerName = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    return customer?.name || '알 수 없는 고객';
-  };
+    const customer = customers.find((c) => c.id === customerId)
+    return customer?.name || "알 수 없는 고객"
+  }
 
   // Format date
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      weekday: 'short'
-    });
-  };
+    const date = new Date(dateStr)
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      weekday: "short",
+    })
+  }
 
   // Format time
   const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('ko-KR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+    const date = new Date(dateStr)
+    return date.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
   // Format duration
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return null;
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    if (!seconds) return null
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
     if (hours > 0) {
-      return `${hours}시간 ${minutes}분`;
+      return `${hours}시간 ${minutes}분`
     }
-    return `${minutes}분`;
-  };
+    return `${minutes}분`
+  }
 
   // Handle delete
   const handleDelete = async (meetingId: string) => {
-    if (!confirm('이 미팅 기록을 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+    if (!confirm("이 미팅 기록을 삭제할까요? 이 작업은 되돌릴 수 없습니다.")) return
 
-    setDeletingId(meetingId);
+    setDeletingId(meetingId)
     try {
-      await apiClient.deleteMeeting(meetingId);
-      onRefresh();
+      await apiClient.deleteMeeting(meetingId)
+      onRefresh()
     } catch (error) {
-      console.error('Failed to delete meeting:', error);
-      alert('미팅을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      console.error("Failed to delete meeting:", error)
+      alert("미팅을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.")
     } finally {
-      setDeletingId(null);
+      setDeletingId(null)
     }
-  };
+  }
 
   // Handle form submit
   const handleFormSubmit = async (data: Partial<MeetingSummary>) => {
@@ -116,12 +121,12 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
           keyDiscussions: data.keyDiscussions ? JSON.stringify(data.keyDiscussions) : undefined,
           actionItems: data.actionItems ? JSON.stringify(data.actionItems) : undefined,
           nextSteps: data.nextSteps ? JSON.stringify(data.nextSteps) : undefined,
-        });
+        })
       } else {
         // Create new meeting
         if (!data.customerId || !data.title) {
-          alert('고객과 미팅 제목은 반드시 입력해 주세요.');
-          return;
+          alert("고객과 미팅 제목은 반드시 입력해 주세요.")
+          return
         }
         await apiClient.createMeeting({
           customerId: data.customerId,
@@ -131,30 +136,28 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
           keyDiscussions: data.keyDiscussions,
           actionItems: data.actionItems,
           nextSteps: data.nextSteps,
-        });
+        })
       }
-      setShowFormModal(false);
-      setEditingMeeting(null);
-      onRefresh();
+      setShowFormModal(false)
+      setEditingMeeting(null)
+      onRefresh()
     } catch (error) {
-      console.error('Failed to save meeting:', error);
-      alert('미팅을 저장하지 못했어요. 입력 내용을 확인하고 다시 시도해 주세요.');
+      console.error("Failed to save meeting:", error)
+      alert("미팅을 저장하지 못했어요. 입력 내용을 확인하고 다시 시도해 주세요.")
     }
-  };
+  }
 
   // Meeting Card Component
   const MeetingCard: React.FC<{ meeting: MeetingSummary }> = ({ meeting }) => {
-    const customerName = getCustomerName(meeting.customerId);
-    const duration = formatDuration(meeting.duration);
+    const customerName = getCustomerName(meeting.customerId)
+    const duration = formatDuration(meeting.duration)
 
     return (
       <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 hover:shadow-md hover:border-blue-400 transition-all">
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-slate-800 text-sm truncate">
-              {meeting.title}
-            </h4>
+            <h4 className="font-semibold text-slate-800 text-sm truncate">{meeting.title}</h4>
             <div className="flex items-center gap-2 mt-1">
               <IconBuilding className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-xs text-slate-600 truncate">{customerName}</span>
@@ -163,8 +166,8 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
           <div className="flex gap-1 ml-2">
             <button
               onClick={() => {
-                setEditingMeeting(meeting);
-                setShowFormModal(true);
+                setEditingMeeting(meeting)
+                setShowFormModal(true)
               }}
               className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
               title="수정"
@@ -192,17 +195,13 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
             <IconClock className="w-3.5 h-3.5 text-slate-400" />
             <span>{formatTime(meeting.meetingDate)}</span>
           </div>
-          {duration && (
-            <span className="text-slate-500">({duration})</span>
-          )}
+          {duration && <span className="text-slate-500">({duration})</span>}
         </div>
 
         {/* Summary */}
         {meeting.summary && (
           <div className="mb-3 p-2 bg-slate-50 rounded border border-slate-100">
-            <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-              {meeting.summary}
-            </p>
+            <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{meeting.summary}</p>
           </div>
         )}
 
@@ -222,8 +221,8 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
           )}
         </div>
       </div>
-    );
-  };
+    )
+  }
 
   // Empty state
   if (!loading && meetings.length === 0) {
@@ -232,9 +231,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
           <IconCalendar className="w-8 h-8 text-slate-400" />
         </div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">
-          아직 기록된 미팅이 없습니다
-        </h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">아직 기록된 미팅이 없습니다</h3>
         <p className="text-sm text-slate-500 mb-4 max-w-md">
           미팅을 직접 추가하거나, Slack 미팅 노트 채널을 연결하면 자동으로 기록돼요.
         </p>
@@ -246,7 +243,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
           미팅 추가
         </button>
       </div>
-    );
+    )
   }
 
   return (
@@ -259,9 +256,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
               <IconCalendar className="w-6 h-6 text-blue-600" />
               미팅 관리 ({meetings.length})
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              고객과의 미팅 기록을 관리합니다
-            </p>
+            <p className="text-sm text-slate-500 mt-1">고객과의 미팅 기록을 관리합니다</p>
           </div>
           <div className="flex gap-2">
             <button
@@ -269,12 +264,12 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
               disabled={loading}
               className="flex items-center gap-2 px-3 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
             >
-              <IconRefresh className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <IconRefresh className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
             <button
               onClick={() => {
-                setEditingMeeting(null);
-                setShowFormModal(true);
+                setEditingMeeting(null)
+                setShowFormModal(true)
               }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -302,7 +297,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
             className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
           >
             <option value="all">모든 고객</option>
-            {customers.map(customer => (
+            {customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
                 {customer.name}
               </option>
@@ -324,7 +319,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
-            {filteredMeetings.map(meeting => (
+            {filteredMeetings.map((meeting) => (
               <MeetingCard key={meeting.id} meeting={meeting} />
             ))}
           </div>
@@ -337,12 +332,12 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
           meeting={editingMeeting}
           customers={customers}
           onClose={() => {
-            setShowFormModal(false);
-            setEditingMeeting(null);
+            setShowFormModal(false)
+            setEditingMeeting(null)
           }}
           onSubmit={handleFormSubmit}
         />
       )}
     </div>
-  );
-};
+  )
+}

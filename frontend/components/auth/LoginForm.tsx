@@ -1,32 +1,33 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
-import { IconLoader, IconX } from '../Icons'
+import type React from "react"
+import { useEffect, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { useAuth } from "../../contexts/AuthContext"
+import { IconLoader, IconX } from "../Icons"
 
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { login, register, loginWithGoogle } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
-  const [error, setError] = useState('')
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
 
   // Handle OAuth error query params from callback redirects
   useEffect(() => {
-    const urlError = searchParams.get('error')
+    const urlError = searchParams.get("error")
     if (urlError) {
       const errorMessages: Record<string, string> = {
-        'oauth_failed': 'Google authentication was cancelled or failed',
-        'missing_code': 'Authentication failed - missing authorization code',
-        'auth_failed': 'Authentication failed - please try again',
-        'callback_error': 'An error occurred during authentication',
-        'state_mismatch': 'Security validation failed - please try again',
-        'verification_failed': 'Could not verify authentication'
+        oauth_failed: "Google authentication was cancelled or failed",
+        missing_code: "Authentication failed - missing authorization code",
+        auth_failed: "Authentication failed - please try again",
+        callback_error: "An error occurred during authentication",
+        state_mismatch: "Security validation failed - please try again",
+        verification_failed: "Could not verify authentication",
       }
-      setError(errorMessages[urlError] || 'Authentication failed')
+      setError(errorMessages[urlError] || "Authentication failed")
       // Clean up URL by removing error param
       setSearchParams({}, { replace: true })
     }
@@ -34,32 +35,32 @@ export const LoginForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setError("")
     setLoading(true)
 
     try {
       if (isSignUp) {
         if (!name.trim()) {
-          setError('Please enter your name')
+          setError("Please enter your name")
           setLoading(false)
           return
         }
         const result = await register(email, password, name)
 
         if (!result.success) {
-          setError(result.error || 'Registration failed')
+          setError(result.error || "Registration failed")
         } else {
           // Redirect to dashboard on successful registration
-          navigate('/dashboard', { replace: true })
+          navigate("/dashboard", { replace: true })
         }
       } else {
         const result = await login(email, password)
 
         if (!result.success) {
-          setError(result.error || 'Login failed')
+          setError(result.error || "Login failed")
         } else {
           // Redirect to dashboard on successful login
-          navigate('/dashboard', { replace: true })
+          navigate("/dashboard", { replace: true })
         }
       }
     } finally {
@@ -69,11 +70,11 @@ export const LoginForm: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     setLoading(true)
-    setError('')
+    setError("")
     try {
       await loginWithGoogle()
-    } catch (err) {
-      setError('Google sign-in failed')
+    } catch (_err) {
+      setError("Google sign-in failed")
       setLoading(false)
     }
   }
@@ -83,12 +84,8 @@ export const LoginForm: React.FC = () => {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-xl border border-slate-200">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-blue-600">
-            RINDA CRM
-          </h1>
-          <p className="mt-2 text-gray-600">
-            {isSignUp ? 'Create your account' : 'Welcome back'}
-          </p>
+          <h1 className="text-4xl font-bold text-blue-600">RINDA CRM</h1>
+          <p className="mt-2 text-gray-600">{isSignUp ? "Create your account" : "Welcome back"}</p>
         </div>
 
         {/* Error Message */}
@@ -153,7 +150,7 @@ export const LoginForm: React.FC = () => {
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
           >
             {loading && <IconLoader className="w-4 h-4 animate-spin" />}
-            {isSignUp ? 'Create Account' : 'Sign In'}
+            {isSignUp ? "Create Account" : "Sign In"}
           </button>
         </form>
 
@@ -198,20 +195,20 @@ export const LoginForm: React.FC = () => {
         {/* Toggle Sign Up / Sign In */}
         <div className="text-center text-sm">
           <span className="text-gray-600">
-            {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+            {isSignUp ? "Already have an account? " : "Don't have an account? "}
           </span>
           <button
             type="button"
             onClick={() => {
               setIsSignUp(!isSignUp)
-              setError('')
-              setEmail('')
-              setPassword('')
-              setName('')
+              setError("")
+              setEmail("")
+              setPassword("")
+              setName("")
             }}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            {isSignUp ? 'Sign In' : 'Sign Up'}
+            {isSignUp ? "Sign In" : "Sign Up"}
           </button>
         </div>
       </div>

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { CalendarSettings } from '../../../types';
-import { IconCheck, IconCalendar } from '../../Icons';
+import type React from "react"
+import { useState } from "react"
+import type { CalendarSettings } from "../../../types"
+import { IconCalendar, IconCheck } from "../../Icons"
 
-const CALENDAR_SETTINGS_KEY = 'rinda_calendar_settings';
+const CALENDAR_SETTINGS_KEY = "rinda_calendar_settings"
 
 const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   provider: null,
@@ -11,74 +12,78 @@ const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   syncInterval: 300000, // 5분
   lastSyncAt: undefined,
   meetingPrepEnabled: true,
-};
+}
 
 const getCalendarSettings = (): CalendarSettings => {
   try {
-    const stored = localStorage.getItem(CALENDAR_SETTINGS_KEY);
+    const stored = localStorage.getItem(CALENDAR_SETTINGS_KEY)
     if (stored) {
-      return { ...DEFAULT_CALENDAR_SETTINGS, ...JSON.parse(stored) };
+      return { ...DEFAULT_CALENDAR_SETTINGS, ...JSON.parse(stored) }
     }
   } catch (error) {
-    console.error('Failed to load calendar settings:', error);
+    console.error("Failed to load calendar settings:", error)
   }
-  return DEFAULT_CALENDAR_SETTINGS;
-};
+  return DEFAULT_CALENDAR_SETTINGS
+}
 
 const saveCalendarSettings = (settings: CalendarSettings): void => {
   try {
-    localStorage.setItem(CALENDAR_SETTINGS_KEY, JSON.stringify(settings));
+    localStorage.setItem(CALENDAR_SETTINGS_KEY, JSON.stringify(settings))
   } catch (error) {
-    console.error('Failed to save calendar settings:', error);
+    console.error("Failed to save calendar settings:", error)
   }
-};
-
-interface CalendarIntegrationTabProps {
-  onSettingsChange?: () => void;
 }
 
-export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ onSettingsChange }) => {
-  const [settings, setSettings] = useState<CalendarSettings>(() => getCalendarSettings());
-  const [isConnecting, setIsConnecting] = useState(false);
+interface CalendarIntegrationTabProps {
+  onSettingsChange?: () => void
+}
 
-  const handleConnect = async (provider: 'google' | 'outlook') => {
-    setIsConnecting(true);
+export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({
+  onSettingsChange,
+}) => {
+  const [settings, setSettings] = useState<CalendarSettings>(() => getCalendarSettings())
+  const [isConnecting, setIsConnecting] = useState(false)
+
+  const handleConnect = async (provider: "google" | "outlook") => {
+    setIsConnecting(true)
 
     // 시뮬레이션: 실제로는 OAuth 플로우가 필요
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500))
 
     const newSettings: CalendarSettings = {
       ...settings,
       provider,
       isConnected: true,
       lastSyncAt: Date.now(),
-    };
-    setSettings(newSettings);
-    saveCalendarSettings(newSettings);
-    onSettingsChange?.();
-    setIsConnecting(false);
-  };
+    }
+    setSettings(newSettings)
+    saveCalendarSettings(newSettings)
+    onSettingsChange?.()
+    setIsConnecting(false)
+  }
 
   const handleDisconnect = () => {
     const newSettings: CalendarSettings = {
       ...DEFAULT_CALENDAR_SETTINGS,
-    };
-    setSettings(newSettings);
-    saveCalendarSettings(newSettings);
-    onSettingsChange?.();
-  };
+    }
+    setSettings(newSettings)
+    saveCalendarSettings(newSettings)
+    onSettingsChange?.()
+  }
 
   const handleSettingsChange = (updates: Partial<CalendarSettings>) => {
-    const newSettings = { ...settings, ...updates };
-    setSettings(newSettings);
-    saveCalendarSettings(newSettings);
-  };
+    const newSettings = { ...settings, ...updates }
+    setSettings(newSettings)
+    saveCalendarSettings(newSettings)
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-slate-900 mb-1">캘린더 연동</h3>
-        <p className="text-sm text-slate-500">캘린더를 연동하여 미팅 일정을 관리하고 준비 자료를 자동 생성합니다.</p>
+        <p className="text-sm text-slate-500">
+          캘린더를 연동하여 미팅 일정을 관리하고 준비 자료를 자동 생성합니다.
+        </p>
       </div>
 
       {/* Connection Status */}
@@ -89,11 +94,11 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
               <IconCheck className="w-5 h-5 text-emerald-600" />
               <div>
                 <span className="text-sm font-semibold text-emerald-900">
-                  {settings.provider === 'google' ? 'Google Calendar' : 'Outlook Calendar'} 연동됨
+                  {settings.provider === "google" ? "Google Calendar" : "Outlook Calendar"} 연동됨
                 </span>
                 {settings.lastSyncAt && (
                   <p className="text-xs text-emerald-700">
-                    마지막 동기화: {new Date(settings.lastSyncAt).toLocaleString('ko-KR')}
+                    마지막 동기화: {new Date(settings.lastSyncAt).toLocaleString("ko-KR")}
                   </p>
                 )}
               </div>
@@ -114,7 +119,7 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
           <p className="text-sm font-medium text-slate-700">캘린더 서비스 선택</p>
 
           <button
-            onClick={() => handleConnect('google')}
+            onClick={() => handleConnect("google")}
             disabled={isConnecting}
             className="w-full flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50"
           >
@@ -129,7 +134,7 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
           </button>
 
           <button
-            onClick={() => handleConnect('outlook')}
+            onClick={() => handleConnect("outlook")}
             disabled={isConnecting}
             className="w-full flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50"
           >
@@ -167,7 +172,9 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium text-slate-700">AI 미팅 준비 자료</label>
-              <p className="text-xs text-slate-500">고객 미팅 전 AI가 자동으로 준비 자료를 생성합니다</p>
+              <p className="text-xs text-slate-500">
+                고객 미팅 전 AI가 자동으로 준비 자료를 생성합니다
+              </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -185,7 +192,9 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
               <label className="block text-sm font-medium text-slate-700 mb-2">동기화 주기</label>
               <select
                 value={settings.syncInterval}
-                onChange={(e) => handleSettingsChange({ syncInterval: parseInt(e.target.value) })}
+                onChange={(e) =>
+                  handleSettingsChange({ syncInterval: parseInt(e.target.value, 10) })
+                }
                 className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
               >
                 <option value={300000}>5분마다</option>
@@ -210,11 +219,12 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-900 mb-1">알림</p>
             <p className="text-xs text-amber-700">
-              현재 캘린더 연동은 시뮬레이션 모드입니다. 실제 연동을 위해서는 OAuth 설정이 필요합니다.
+              현재 캘린더 연동은 시뮬레이션 모드입니다. 실제 연동을 위해서는 OAuth 설정이
+              필요합니다.
             </p>
           </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

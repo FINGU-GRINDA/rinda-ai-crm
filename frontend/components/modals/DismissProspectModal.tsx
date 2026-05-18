@@ -1,24 +1,25 @@
-import React, { useState } from 'react';
-import { Prospect } from '../../types';
-import { Modal, Textarea } from '../ui';
+import type React from "react"
+import { useState } from "react"
+import type { Prospect } from "../../types"
+import { Modal, Textarea } from "../ui"
 
 interface DismissProspectModalProps {
-  isOpen: boolean;
-  prospect: Prospect | null;
-  onConfirm: (reason: string) => void;
-  onCancel: () => void;
+  isOpen: boolean
+  prospect: Prospect | null
+  onConfirm: (reason: string) => void
+  onCancel: () => void
 }
 
 const DISMISS_REASONS = [
-  '잘못된 산업',
-  '회사 규모가 너무 작음',
-  '회사 규모가 너무 큼',
-  '목표 시장 외',
-  '경쟁사',
-  '중복된 리드',
-  '신호 품질 낮음',
-  '기타',
-];
+  "잘못된 산업",
+  "회사 규모가 너무 작음",
+  "회사 규모가 너무 큼",
+  "목표 시장 외",
+  "경쟁사",
+  "중복된 리드",
+  "신호 품질 낮음",
+  "기타",
+]
 
 export const DismissProspectModal: React.FC<DismissProspectModalProps> = ({
   isOpen,
@@ -26,27 +27,27 @@ export const DismissProspectModal: React.FC<DismissProspectModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  const [selectedReason, setSelectedReason] = useState('');
-  const [customReason, setCustomReason] = useState('');
+  const [selectedReason, setSelectedReason] = useState("")
+  const [customReason, setCustomReason] = useState("")
 
-  if (!prospect) return null;
+  if (!prospect) return null
 
   const handleConfirm = () => {
-    const reason = selectedReason === '기타' ? customReason : selectedReason;
-    if (!reason.trim()) return;
-    onConfirm(reason.trim());
-    setSelectedReason('');
-    setCustomReason('');
-  };
+    const reason = selectedReason === "기타" ? customReason : selectedReason
+    if (!reason.trim()) return
+    onConfirm(reason.trim())
+    setSelectedReason("")
+    setCustomReason("")
+  }
 
   const handleCancel = () => {
-    setSelectedReason('');
-    setCustomReason('');
-    onCancel();
-  };
+    setSelectedReason("")
+    setCustomReason("")
+    onCancel()
+  }
 
-  const isOtherSelected = selectedReason === '기타';
-  const canSubmit = selectedReason && (!isOtherSelected || customReason.trim());
+  const isOtherSelected = selectedReason === "기타"
+  const canSubmit = selectedReason && (!isOtherSelected || customReason.trim())
 
   return (
     <Modal
@@ -55,7 +56,8 @@ export const DismissProspectModal: React.FC<DismissProspectModalProps> = ({
       title="잠재 고객에서 제외"
       description={
         <>
-          <span className="font-semibold text-slate-800">{prospect.companyName}</span>을(를) 잠재 고객 목록에서 제외할까요?
+          <span className="font-semibold text-slate-800">{prospect.companyName}</span>을(를) 잠재
+          고객 목록에서 제외할까요?
         </>
       }
       size="md"
@@ -114,7 +116,7 @@ export const DismissProspectModal: React.FC<DismissProspectModalProps> = ({
         )}
       </div>
     </Modal>
-  );
-};
+  )
+}
 
-export default DismissProspectModal;
+export default DismissProspectModal
