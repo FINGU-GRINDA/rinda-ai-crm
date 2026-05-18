@@ -33,7 +33,7 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
   )
 }
 
-const KANBAN_ORDER: CustomerStatus[] = ["new", "contact", "negotiation", "won", "lost"]
+const KANBAN_ORDER: CustomerStatus[] = ["prospect", "new", "contact", "negotiation", "won", "lost"]
 
 export const KANBAN_COLUMNS: { id: CustomerStatus; title: string; accent: string }[] =
   KANBAN_ORDER.map((id) => ({
@@ -48,6 +48,7 @@ interface KanbanBoardProps {
   onSelectCustomer: (customerId: string) => void
   onDeleteCustomer: (customer: Customer) => void
   onStatusChange: (customerId: string, newStatus: CustomerStatus) => Promise<void>
+  onConvertProspect?: (prospectId: string) => Promise<unknown>
   onAddCustomer?: () => void
 }
 
@@ -57,6 +58,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onSelectCustomer,
   onDeleteCustomer,
   onStatusChange,
+  onConvertProspect,
   onAddCustomer,
 }) => {
   const [draggedCustomerId, setDraggedCustomerId] = useState<string | null>(null)
@@ -102,6 +104,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const EmptyState: React.FC<{ columnId: CustomerStatus }> = ({ columnId }) => {
     const messages: Record<CustomerStatus, { title: string; subtitle?: string; showCTA: boolean }> =
       {
+        prospect: {
+          title: "잠재 고객이 없습니다",
+          subtitle: "AI 발굴에서 전환된 잠재 고객이 이 칼럼에 표시됩니다",
+          showCTA: false,
+        },
         new: {
           title: "신규 고객이 없습니다",
           subtitle: "고객을 추가하거나 잠재 고객에서 전환해 보세요",
@@ -221,6 +228,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           </div>
         )}
 
+        {customer.status === "prospect" && onConvertProspect && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              void onConvertProspect(customer.id)
+            }}
+            className="w-full mb-2 px-2 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+          >
+            고객으로 전환
+          </button>
+        )}
+
         <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-50">
           <span>{formatSafeDate(undefined)}</span>
           <IconArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity" />
@@ -310,7 +329,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             return (
               <div
                 key={column.id}
-                ref={(el) => (columnRefs.current[idx] = el)}
+                ref={(el) => {
+                  columnRefs.current[idx] = el
+                }}
                 role="region"
                 aria-label={`${column.title} 칼럼 - ${columnCustomers.length}개 항목`}
                 className={`w-[85vw] flex-shrink-0 snap-center flex flex-col rounded-xl bg-white border-l-4 ${column.accent} border-r border-t border-b border-neutral-200 overflow-hidden`}

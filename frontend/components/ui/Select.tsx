@@ -1,6 +1,6 @@
 import React from "react"
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size"> {
   label?: string
   hint?: string
   error?: string
