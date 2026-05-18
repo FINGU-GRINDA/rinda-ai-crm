@@ -1,6 +1,32 @@
 import { Elysia, t } from "elysia"
 import { customerRepository, prospectRepository, slackRepository } from "../repositories"
+import { geminiService } from "../services/gemini.service"
+import { logger } from "../utils/logger"
 import { ErrorCode, error, success, successList } from "../utils/response"
+
+// Discovery collection status (in-memory; survives within process lifetime).
+// Used by the "발굴 고객" tab to coordinate manual + scheduled runs.
+interface CollectionStatus {
+  isRunning: boolean
+  startedAt: number | null
+  finishedAt: number | null
+  lastRunDurationMs: number | null
+  lastSummary: string | null
+  lastCreated: number
+  lastSkipped: number
+  lastError: string | null
+}
+
+const collectionStatus: CollectionStatus = {
+  isRunning: false,
+  startedAt: null,
+  finishedAt: null,
+  lastRunDurationMs: null,
+  lastSummary: null,
+  lastCreated: 0,
+  lastSkipped: 0,
+  lastError: null,
+}
 
 export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
   // Get all prospects with filtering
@@ -96,6 +122,133 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
             landingPageUrl: t.Optional(t.String()),
           }),
         ),
+      }),
+    },
+  )
+
+  // Get collection status
+  .get("/status", () => {
+    return success({ ...collectionStatus })
+  })
+
+  // Run prospect discovery collection (AI-driven, ICP-based)
+  .post(
+    "/collect",
+    async ({ body, set }) => {
+      if (collectionStatus.isRunning) {
+        set.status = 409
+        return error("이미 수집이 진행 중입니다.", ErrorCode.COLLECTION_RUNNING)
+      }
+
+      const icpProfiles = body.icpProfiles ?? []
+      if (icpProfiles.length === 0) {
+        set.status = 400
+        return error(
+          "ICP 프로필이 비어있습니다. ICP 프로필을 먼저 추가하세요.",
+          ErrorCode.MISSING_ICP_PROFILES,
+        )
+      }
+
+      if (!geminiService.isAvailable()) {
+        set.status = 503
+        return error(
+          "Gemini API 키가 설정되지 않아 잠재 고객 발굴을 실행할 수 없습니다. (GEMINI_API_KEY)",
+          ErrorCode.SERVICE_UNAVAILABLE,
+        )
+      }
+
+      collectionStatus.isRunning = true
+      collectionStatus.startedAt = Date.now()
+      collectionStatus.finishedAt = null
+      collectionStatus.lastError = null
+
+      try {
+        // Build full exclusion list = client-supplied + DB-known prospects.
+        const supplied = (body.existingCompanyNames ?? []).filter(
+          (n): n is string => typeof n === "string" && n.trim().length > 0,
+        )
+        const recent = await prospectRepository.getRecent(500)
+        const recentNames = recent.map((r) => r.companyName).filter(Boolean)
+        const existingCompanyNames = Array.from(
+          new Set([...supplied, ...recentNames].map((n) => n.trim())),
+        )
+
+        const discovery = await geminiService.discoverExportProspects(
+          icpProfiles,
+          existingCompanyNames,
+          body.desiredCount ?? 10,
+        )
+
+        if (!discovery) {
+          throw new Error("AI 발굴 결과를 받지 못했습니다. 잠시 후 다시 시도해주세요.")
+        }
+
+        const validProfileIds = new Set(icpProfiles.map((p) => p.id))
+        const detectedAtIso = new Date().toISOString()
+
+        const bulkPayload = discovery.prospects.map((p) => ({
+          companyName: p.companyName,
+          website: p.website || undefined,
+          industry: p.industry || undefined,
+          sourceTitle: p.sourceTitle || undefined,
+          sourceUri: p.sourceUri || undefined,
+          sourcePublishedAt: detectedAtIso,
+          signalStrength: p.signalStrength,
+          icpMatch: p.icpMatchId && validProfileIds.has(p.icpMatchId) ? p.icpMatchId : undefined,
+          notes: p.notes || undefined,
+        }))
+
+        const result = await prospectRepository.bulkCreate(bulkPayload)
+
+        collectionStatus.lastSummary = discovery.summary
+        collectionStatus.lastCreated = result.created.length
+        collectionStatus.lastSkipped = result.skipped
+        collectionStatus.lastError = null
+
+        logger.info(
+          {
+            created: result.created.length,
+            skipped: result.skipped,
+            totalAnalyzed: discovery.prospects.length,
+          },
+          "Prospect discovery collection completed",
+        )
+
+        return success({
+          newProspects: result.created,
+          totalArticles: discovery.prospects.length,
+          skipped: result.skipped,
+          summary: discovery.summary,
+        })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        collectionStatus.lastError = message
+        logger.error({ error: message }, "Prospect collection failed")
+        set.status = 500
+        return error(message, ErrorCode.INTERNAL_ERROR)
+      } finally {
+        collectionStatus.isRunning = false
+        collectionStatus.finishedAt = Date.now()
+        if (collectionStatus.startedAt) {
+          collectionStatus.lastRunDurationMs =
+            collectionStatus.finishedAt - collectionStatus.startedAt
+        }
+      }
+    },
+    {
+      body: t.Object({
+        icpProfiles: t.Array(
+          t.Object({
+            id: t.String(),
+            name: t.String(),
+            industries: t.Optional(t.Array(t.String())),
+            keywords: t.Optional(t.Array(t.String())),
+            companySize: t.Optional(t.String()),
+            targetRegions: t.Optional(t.Array(t.String())),
+          }),
+        ),
+        existingCompanyNames: t.Optional(t.Array(t.String())),
+        desiredCount: t.Optional(t.Number()),
       }),
     },
   )

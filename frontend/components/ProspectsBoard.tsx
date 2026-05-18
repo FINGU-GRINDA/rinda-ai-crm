@@ -14,7 +14,7 @@ import {
 interface ProspectsBoardProps {
   prospects: Prospect[];
   onSelectProspect: (prospectId: string) => void;
-  onConvertToCustomer: (prospectId: string) => void;
+  onConvertProspect: (prospectId: string) => void;
   onDismissProspect: (prospectId: string) => void;
 }
 
@@ -51,7 +51,7 @@ const SIGNAL_COLUMNS = [
 export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
   prospects,
   onSelectProspect,
-  onConvertToCustomer,
+  onConvertProspect,
   onDismissProspect
 }) => {
   // Group prospects by signal strength
@@ -149,7 +149,7 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onConvertToCustomer(prospect.id);
+                onConvertProspect(prospect.id);
               }}
               className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 hover:border-blue-700 transition-all group-hover:scale-105"
             >

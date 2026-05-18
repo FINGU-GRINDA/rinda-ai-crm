@@ -23,6 +23,7 @@ import { DismissProspectModal } from './components/modals';
 // New separated components
 import { KanbanBoard, KANBAN_COLUMNS } from './components/KanbanBoard';
 import { ProspectsBoard } from './components/ProspectsBoard';
+import { ProspectDiscovery } from './components/ProspectDiscovery';
 import { MeetingsBoard } from './components/MeetingsBoard';
 import { CustomerDetailPanel } from './components/CustomerDetailPanel';
 import { AppHeader, StatsBar } from './components/AppHeader';
@@ -143,7 +144,8 @@ export const AppDashboard: React.FC = () => {
     customers: customers.length,
     prospects: prospects.length,
     meetings: meetings.length,
-    icp: 0 // Coming soon - no data yet
+    // "발굴 고객" tab shares the prospects pool but represents AI-curated discoveries
+    icp: prospects.length
   }), [customers, prospects, meetings]);
 
   // Statistics
@@ -309,10 +311,10 @@ export const AppDashboard: React.FC = () => {
         const result = await runProspectCollection(existingNames);
 
         if (result.newProspects.length > 0) {
-          setProspects(getProspects());
+          await fetchProspectsFromBackend();
         }
         setLastCollectionTime(Date.now());
-      } catch (error: any) {
+      } catch (error) {
         console.error('Prospect collection failed:', error);
       } finally {
         isCurrentlyCollecting = false;
@@ -327,7 +329,7 @@ export const AppDashboard: React.FC = () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [collectionSettings.autoRun, collectionSettings.interval, customers]);
+  }, [collectionSettings.autoRun, collectionSettings.interval, customers, fetchProspectsFromBackend]);
 
   // Load prospects on mount
   useEffect(() => {
@@ -838,14 +840,13 @@ export const AppDashboard: React.FC = () => {
               onRefresh={fetchMeetings}
             />
           ) : activeTab === 'icp' ? (
-            <div className="flex flex-col items-center justify-center h-full py-20">
-              <div className="text-6xl mb-4">🚀</div>
-              <h2 className="text-2xl font-bold text-slate-700 mb-2">Coming Soon</h2>
-              <p className="text-slate-500 text-center max-w-md">
-                발굴 고객 기능이 곧 출시됩니다.<br/>
-                AI 기반 잠재 고객 발굴 기능을 준비 중입니다.
-              </p>
-            </div>
+            <ProspectDiscovery
+              prospects={prospects}
+              existingCompanyNames={customers.map(c => c.name)}
+              onConvertProspect={handleConvertProspectToCustomer}
+              onDismissProspect={handleDismissProspect}
+              onProspectsChanged={fetchProspectsFromBackend}
+            />
           ) : filteredCustomers.length === 0 && searchQuery ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
