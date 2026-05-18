@@ -4,7 +4,7 @@
  */
 
 import { createContext, type ReactNode, useContext } from "react"
-import { useCustomers } from "../hooks/useCustomers"
+import { type CustomerStats, useCustomers } from "../hooks/useCustomers"
 import type { Customer, CustomerStatus, EnrichedData, FollowUpAction, Proposal } from "../types"
 
 interface CustomerContextType {
@@ -42,7 +42,7 @@ interface CustomerContextType {
   ) => Promise<FollowUpAction | null>
 
   // Stats
-  stats: any
+  stats: CustomerStats | null
   fetchStats: () => Promise<void>
 
   // Utilities

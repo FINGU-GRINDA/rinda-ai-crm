@@ -40,7 +40,7 @@
         "useTemplate": "error"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "error",
         "noArrayIndexKey": "off",
         "useIterableCallbackReturn": "error"
       },

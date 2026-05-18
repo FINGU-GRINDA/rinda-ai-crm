@@ -44,7 +44,7 @@ interface UseCustomersReturn {
   refreshCustomer: (id: string) => Promise<Customer | null>
 }
 
-interface CustomerStats {
+export interface CustomerStats {
   countByStatus: Record<CustomerStatus, number>
   dueFollowUpsCount: number
   dueFollowUps: Record<string, unknown>[]

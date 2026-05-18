@@ -221,9 +221,10 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
         setSummaryResult(summary)
         onComplete(summary)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Summarization failed:", err)
-      setError(err.message || "미팅 요약 생성에 실패했습니다.")
+      const message = err instanceof Error ? err.message : "미팅 요약 생성에 실패했습니다."
+      setError(message)
       setRecordingStatus("error")
     }
   }, [audioBlob, selectedCustomerId, title, meetingDate, onComplete])

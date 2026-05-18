@@ -30,28 +30,49 @@ export const clearConversationHistory = (sessionId: string = "default"): void =>
   localStorage.removeItem(`${AI_ASSISTANT_CONVERSATIONS_KEY}_${sessionId}`)
 }
 
+type AssistantIntent = "enrich" | "proposal" | "search" | "analyze" | "followup" | "general"
+
+const VALID_INTENTS: AssistantIntent[] = [
+  "enrich",
+  "proposal",
+  "search",
+  "analyze",
+  "followup",
+  "general",
+]
+
 // Parse user intent from message - using backend API
 export const parseUserIntent = async (
   message: string,
   customers: Customer[],
 ): Promise<{
-  intent: "enrich" | "proposal" | "search" | "analyze" | "followup" | "general"
+  intent: AssistantIntent
   customerId?: string
   customerName?: string
-  parameters?: Record<string, any>
+  parameters?: Record<string, unknown>
 }> => {
   try {
     // Create customer names list for context
     const customerNames = customers.map((c) => ({ id: c.id, name: c.name }))
 
     const response = await apiClient.parseAssistantIntent(message, customerNames)
-    const result = (response as any).data
+    if (!response.success) {
+      return { intent: "general" }
+    }
+    const result = response.data
+    const rawIntent = result.intent
+    const intent: AssistantIntent = VALID_INTENTS.includes(rawIntent as AssistantIntent)
+      ? (rawIntent as AssistantIntent)
+      : "general"
 
     return {
-      intent: result.intent || "general",
-      customerId: result.customerId,
-      customerName: result.customerName,
-      parameters: result.parameters || {},
+      intent,
+      customerId: typeof result.customerId === "string" ? result.customerId : undefined,
+      customerName: typeof result.customerName === "string" ? result.customerName : undefined,
+      parameters:
+        result.parameters && typeof result.parameters === "object"
+          ? (result.parameters as Record<string, unknown>)
+          : {},
     }
   } catch (error) {
     console.error("Intent parsing failed:", error)
@@ -64,8 +85,8 @@ export const executeAction = async (
   intent: string,
   customerId: string | undefined,
   customers: Customer[],
-  parameters?: Record<string, any>,
-): Promise<{ success: boolean; message: string; data?: any }> => {
+  parameters?: Record<string, unknown>,
+): Promise<{ success: boolean; message: string; data?: Record<string, unknown> }> => {
   if (!customerId && (intent === "enrich" || intent === "proposal")) {
     return {
       success: false,
@@ -88,10 +109,11 @@ export const executeAction = async (
           message: `${customer.name}의 정보를 성공적으로 수집했습니다.`,
           data: { enrichedData, customerId: customer.id },
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error)
         return {
           success: false,
-          message: `정보 수집 중 오류가 발생했습니다: ${error.message}`,
+          message: `정보 수집 중 오류가 발생했습니다: ${errMsg}`,
         }
       }
 
@@ -134,15 +156,17 @@ export const executeAction = async (
             customerId: customer.id,
           },
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error)
         return {
           success: false,
-          message: `제안서 생성 중 오류가 발생했습니다: ${error.message}`,
+          message: `제안서 생성 중 오류가 발생했습니다: ${errMsg}`,
         }
       }
 
     case "search": {
-      const searchTerm = parameters?.query || ""
+      const queryParam = parameters?.query
+      const searchTerm = typeof queryParam === "string" ? queryParam : ""
       const matchingCustomers = customers.filter(
         (c) =>
           c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -215,7 +239,8 @@ export const generateResponse = async (
   const intent = await parseUserIntent(userMessage, customers)
 
   // Execute action if needed
-  let actionResult: { success: boolean; message: string; data?: any } | null = null
+  let actionResult: { success: boolean; message: string; data?: Record<string, unknown> } | null =
+    null
 
   if (intent.intent !== "general") {
     actionResult = await executeAction(
@@ -239,12 +264,16 @@ export const generateResponse = async (
       context,
       conversationHistory.slice(-5),
     )
-    const result = (response as any).data
+    const result: Record<string, unknown> = response.success ? response.data : {}
+    const content =
+      typeof result.content === "string"
+        ? result.content
+        : "죄송합니다. 응답을 생성하지 못했습니다."
 
     const assistantMessage: AIMessage = {
       id: `msg_${Date.now()}`,
       role: "assistant",
-      content: result.content || "죄송합니다. 응답을 생성하지 못했습니다.",
+      content,
       timestamp: new Date().toISOString(),
       metadata: {
         action: intent.intent,
@@ -254,7 +283,7 @@ export const generateResponse = async (
     }
 
     return assistantMessage
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("AI response generation failed:", error)
 
     // If action was executed, return its result
@@ -273,7 +302,8 @@ export const generateResponse = async (
     }
 
     // Handle service unavailable errors
-    if (error?.message?.includes("AI service not available")) {
+    const errMsg = error instanceof Error ? error.message : ""
+    if (errMsg.includes("AI service not available")) {
       return {
         id: `msg_${Date.now()}`,
         role: "assistant",

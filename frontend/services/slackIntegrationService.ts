@@ -70,11 +70,12 @@ export const validateWebhookUrl = async (
   try {
     const result = await apiClient.validateSlackWebhook(webhookUrl)
     if (result.success && "data" in result) {
-      return { success: (result.data as any).valid }
+      return { success: result.data.valid === true }
     }
     return { success: false }
-  } catch (error: any) {
-    return { success: false, error: error.message || "Validation failed" }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Validation failed"
+    return { success: false, error: message }
   }
 }
 
@@ -87,8 +88,9 @@ export const sendTestMessage = async (
   try {
     const result = await apiClient.sendSlackTestMessage(webhookUrl)
     return { success: result.success }
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to send test message" }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to send test message"
+    return { success: false, error: message }
   }
 }
 
@@ -206,7 +208,7 @@ export const sendFollowUpCompletedNotification = async (
   }
 
   try {
-    await apiClient.sendSlackNotification(settings.webhookUrl, "followup_reminder" as any, {
+    await apiClient.sendSlackNotification(settings.webhookUrl, "followup_reminder", {
       customer,
       followUp,
       completionNote,
@@ -232,7 +234,7 @@ export const sendDailyDigestNotification = async (
   }
 
   try {
-    await apiClient.sendSlackNotification(settings.webhookUrl, "new_prospect" as any, {
+    await apiClient.sendSlackNotification(settings.webhookUrl, "new_prospect", {
       pendingCount,
       overdueCount,
       todayFollowUps,

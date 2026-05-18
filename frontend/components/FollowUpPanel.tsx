@@ -26,6 +26,15 @@ interface FollowUpPanelProps {
   onSaveFollowUp: (action: FollowUpAction) => void
 }
 
+const extractErrorMessage = (err: unknown): string | undefined => {
+  if (err instanceof Error) return err.message
+  if (err && typeof err === "object") {
+    const nested = (err as { error?: { message?: unknown } }).error?.message
+    if (typeof nested === "string") return nested
+  }
+  return undefined
+}
+
 export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
   customer,
   isLostDeal,
@@ -55,7 +64,7 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
         // Generate message from stored strategy
         const newMessage = await generateFollowUpMessage(customer, storedStrategy, isLostDeal)
         setMessage(newMessage)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Message generation error:", err)
         setError("메시지 생성에 실패했습니다.")
       } finally {
@@ -87,18 +96,15 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
       // 메시지 생성
       const newMessage = await generateFollowUpMessage(customer, newStrategy, isLostDeal)
       setMessage(newMessage)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Follow up generation error:", err)
 
-      // API Key 에러 처리
-      if (err?.message?.includes("API key") || err?.message?.includes("INVALID_ARGUMENT")) {
+      const message = extractErrorMessage(err)
+
+      if (message?.includes("API key") || message?.includes("INVALID_ARGUMENT")) {
         setError("Gemini API Key가 유효하지 않습니다. 환경 변수를 확인해주세요.")
-      } else if (err?.message) {
-        setError(err.message)
-      } else if (err?.error?.message) {
-        setError(err.error.message)
       } else {
-        setError("전략 생성에 실패했습니다. 잠시 후 다시 시도해주세요.")
+        setError(message || "전략 생성에 실패했습니다. 잠시 후 다시 시도해주세요.")
       }
     } finally {
       setIsGenerating(false)

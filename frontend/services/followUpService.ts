@@ -1,4 +1,5 @@
 import { apiClient } from "../src/services/apiClient"
+import { isSuccessResponse } from "../src/utils/typeGuards"
 import type { Customer } from "../types"
 
 export interface FollowUpStrategy {
@@ -16,6 +17,39 @@ export interface FollowUpMessage {
   suggestedChannel: "email" | "call" | "linkedin" | "meeting"
 }
 
+/**
+ * Narrows a Record<string, unknown> payload from the backend to a FollowUpStrategy.
+ * Throws if the required fields are missing.
+ */
+const toFollowUpStrategy = (data: Record<string, unknown>): FollowUpStrategy => {
+  const probability = data.probability
+  const probabilityValue: "high" | "medium" | "low" =
+    probability === "high" || probability === "medium" || probability === "low"
+      ? probability
+      : "medium"
+  return {
+    recommendedTiming: typeof data.recommendedTiming === "string" ? data.recommendedTiming : "",
+    approach: typeof data.approach === "string" ? data.approach : "",
+    messageTone: typeof data.messageTone === "string" ? data.messageTone : "",
+    keyPoints: Array.isArray(data.keyPoints) ? data.keyPoints.map((k) => String(k)) : [],
+    probability: probabilityValue,
+    reasoning: typeof data.reasoning === "string" ? data.reasoning : "",
+  }
+}
+
+const toFollowUpMessage = (data: Record<string, unknown>): FollowUpMessage => {
+  const channel = data.suggestedChannel
+  const channelValue: FollowUpMessage["suggestedChannel"] =
+    channel === "email" || channel === "call" || channel === "linkedin" || channel === "meeting"
+      ? channel
+      : "email"
+  return {
+    subject: typeof data.subject === "string" ? data.subject : undefined,
+    content: typeof data.content === "string" ? data.content : "",
+    suggestedChannel: channelValue,
+  }
+}
+
 // Lost Deal 분석 및 재접촉 전략 생성
 export const analyzeLostDeal = async (
   customer: Customer,
@@ -23,7 +57,10 @@ export const analyzeLostDeal = async (
 ): Promise<FollowUpStrategy> => {
   try {
     const response = await apiClient.generateFollowUpStrategy(customer.id, true)
-    return (response as any).data as FollowUpStrategy
+    if (!isSuccessResponse(response)) {
+      throw new Error("Lost deal analysis failed")
+    }
+    return toFollowUpStrategy(response.data)
   } catch (error) {
     console.error("Lost deal analysis failed:", error)
     throw error
@@ -34,7 +71,10 @@ export const analyzeLostDeal = async (
 export const generateFollowUpStrategy = async (customer: Customer): Promise<FollowUpStrategy> => {
   try {
     const response = await apiClient.generateFollowUpStrategy(customer.id, false)
-    return (response as any).data as FollowUpStrategy
+    if (!isSuccessResponse(response)) {
+      throw new Error("Follow up strategy generation failed")
+    }
+    return toFollowUpStrategy(response.data)
   } catch (error) {
     console.error("Follow up strategy generation failed:", error)
     throw error
@@ -49,7 +89,10 @@ export const generateFollowUpMessage = async (
 ): Promise<FollowUpMessage> => {
   try {
     const response = await apiClient.generateFollowUpMessage(customer.id, strategy, isLostDeal)
-    return (response as any).data as FollowUpMessage
+    if (!isSuccessResponse(response)) {
+      throw new Error("Follow up message generation failed")
+    }
+    return toFollowUpMessage(response.data)
   } catch (error) {
     console.error("Follow up message generation failed:", error)
     throw error

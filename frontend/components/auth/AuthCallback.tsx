@@ -63,9 +63,9 @@ export const AuthCallback: React.FC = () => {
           },
         )
 
-        if (!(response as any).success) {
-          console.error("Token exchange failed:", (response as any).error)
-          setError((response as any).error || "Authentication failed")
+        if (!response.success) {
+          console.error("Token exchange failed:", response.error)
+          setError(response.error || "Authentication failed")
           setTimeout(() => {
             navigate("/login?error=auth_failed", { replace: true })
           }, 2000)

@@ -1,5 +1,37 @@
+import type { ApiResponse } from "../../elysia-server/src/types/api"
 import { apiClient } from "../src/services/apiClient"
 import type { CalendarEvent, CalendarIntegration, Customer, MeetingPreparation } from "../types"
+
+interface RawCalendarAttendee {
+  email?: string
+}
+
+interface RawCalendarEvent {
+  id?: string
+  title?: string
+  description?: string
+  start?: string
+  end?: string
+  location?: string
+  attendees?: RawCalendarAttendee[]
+  hangoutLink?: string
+}
+
+// `meetingLink` is preserved as an extra property even though it's not on CalendarEvent —
+// downstream consumers read it via property access.
+type CalendarEventWithMeetingLink = CalendarEvent & { meetingLink?: string }
+
+const toCalendarEvent = (event: RawCalendarEvent): CalendarEventWithMeetingLink => ({
+  id: event.id ?? "",
+  title: event.title ?? "",
+  description: event.description,
+  startTime: event.start ?? "",
+  endTime: event.end ?? "",
+  location: event.location,
+  attendees: event.attendees?.map((a) => a.email ?? "").filter(Boolean) ?? [],
+  meetingLink: event.hangoutLink,
+  customerId: undefined,
+})
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? ""
@@ -66,9 +98,13 @@ export const connectCalendarProvider = async (
     } else {
       throw new Error(data.error || "OAuth URL을 가져올 수 없습니다.")
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Calendar connection failed:", error)
-    throw new Error(error.message || "Calendar 연결에 실패했습니다. 서버 설정을 확인해주세요.")
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Calendar 연결에 실패했습니다. 서버 설정을 확인해주세요."
+    throw new Error(message)
   }
 }
 
@@ -85,7 +121,7 @@ export const disconnectCalendarProvider = async (): Promise<void> => {
     if (!data.success) {
       throw new Error(data.error || "Calendar 연결 해제에 실패했습니다.")
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Calendar disconnection failed:", error)
   }
 
@@ -113,18 +149,8 @@ export const fetchCalendarEvents = async (
     const response = await fetch(url)
     const data = await response.json()
 
-    if (data.success && data.data) {
-      return data.data.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        startTime: new Date(event.start).getTime(),
-        endTime: new Date(event.end).getTime(),
-        location: event.location,
-        attendees: event.attendees?.map((a: any) => a.email) || [],
-        meetingLink: event.hangoutLink,
-        customerId: undefined,
-      }))
+    if (data.success && Array.isArray(data.data)) {
+      return (data.data as RawCalendarEvent[]).map(toCalendarEvent)
     }
     return []
   } catch (error) {
@@ -153,18 +179,8 @@ export const getTodayMeetings = async (): Promise<CalendarEvent[]> => {
     const response = await fetch(`${API_BASE_URL}/api/calendar/events/today`)
     const data = await response.json()
 
-    if (data.success && data.data) {
-      return data.data.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        startTime: new Date(event.start).getTime(),
-        endTime: new Date(event.end).getTime(),
-        location: event.location,
-        attendees: event.attendees?.map((a: any) => a.email) || [],
-        meetingLink: event.hangoutLink,
-        customerId: undefined,
-      }))
+    if (data.success && Array.isArray(data.data)) {
+      return (data.data as RawCalendarEvent[]).map(toCalendarEvent)
     }
     return []
   } catch (error) {
@@ -196,12 +212,15 @@ export const matchEventToCustomer = async (
   `
 
   try {
-    const response = await apiClient.request("/api/ai/generate", {
-      method: "POST",
-      body: JSON.stringify({ prompt }),
-    })
+    const response = await apiClient.request<ApiResponse<{ content?: string }>>(
+      "/api/ai/generate",
+      {
+        method: "POST",
+        body: JSON.stringify({ prompt }),
+      },
+    )
 
-    const result = (response as any).data || {}
+    const result = response.success ? response.data : {}
     const matchedName = (result.content || "").trim()
     const customer = customers.find(
       (c) =>
@@ -266,23 +285,29 @@ export const generateMeetingPreparation = async (
   `
 
   try {
-    const response = await apiClient.request("/api/ai/generate", {
-      method: "POST",
-      body: JSON.stringify({ prompt }),
-    })
+    const response = await apiClient.request<ApiResponse<{ content?: string }>>(
+      "/api/ai/generate",
+      {
+        method: "POST",
+        body: JSON.stringify({ prompt }),
+      },
+    )
 
-    const result = (response as any).data || {}
+    const result = response.success ? response.data : {}
     const text = result.content || "{}"
 
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/)
-      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
+      const parsed: Record<string, unknown> = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
 
       return {
         customerId: customer.id,
-        summary: parsed.summary || `${customer.name}와의 미팅 준비`,
-        keyPoints: parsed.keyPoints || [],
-        suggestedTopics: parsed.suggestedTopics || [],
+        summary:
+          typeof parsed.summary === "string" ? parsed.summary : `${customer.name}와의 미팅 준비`,
+        keyPoints: Array.isArray(parsed.keyPoints) ? (parsed.keyPoints as string[]) : [],
+        suggestedTopics: Array.isArray(parsed.suggestedTopics)
+          ? (parsed.suggestedTopics as string[])
+          : [],
         generatedAt: new Date().toISOString(),
       }
     } catch {
@@ -345,22 +370,12 @@ export const getUpcomingMeetings = async (
     const response = await fetch(`${API_BASE_URL}/api/calendar/events/upcoming`)
     const data = await response.json()
 
-    if (data.success && data.data) {
-      const events = data.data.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        startTime: new Date(event.start).getTime(),
-        endTime: new Date(event.end).getTime(),
-        location: event.location,
-        attendees: event.attendees?.map((a: any) => a.email) || [],
-        meetingLink: event.hangoutLink,
-        customerId: undefined,
-      }))
+    if (data.success && Array.isArray(data.data)) {
+      const events = (data.data as RawCalendarEvent[]).map(toCalendarEvent)
 
       // Filter by customerId if provided
       if (customerId) {
-        return events.filter((e: CalendarEvent) => e.customerId === customerId)
+        return events.filter((e) => e.customerId === customerId)
       }
       return events
     }

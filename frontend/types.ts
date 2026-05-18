@@ -253,7 +253,7 @@ export interface Notification {
   read: boolean
   createdAt: string // ISO date string
   actionUrl?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // Context-Aware AI Suggestion Types
@@ -277,7 +277,7 @@ export interface AIMessage {
   metadata?: {
     action?: string
     customerId?: string
-    result?: any
+    result?: unknown
   }
 }
 

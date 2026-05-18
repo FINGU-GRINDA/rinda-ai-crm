@@ -126,8 +126,10 @@ export const BusinessCardScanner: React.FC<BusinessCardScannerProps> = ({
         setEditableResult({ ...data })
         setMode("result")
       }
-    } catch (err: any) {
-      setError(err.message || "명함 인식에 실패했습니다. 다시 시도해주세요.")
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "명함 인식에 실패했습니다. 다시 시도해주세요."
+      setError(message)
     } finally {
       setIsProcessing(false)
     }

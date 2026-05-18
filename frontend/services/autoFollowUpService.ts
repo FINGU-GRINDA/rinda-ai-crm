@@ -45,17 +45,26 @@ export const calculateOptimalFollowUpTiming = async (
 ): Promise<{ days: number; reason: string; priority: "high" | "medium" | "low" }> => {
   try {
     const response = await apiClient.calculateFollowUpTiming(customer.id)
-    const result = (response as any).data
+    if (!response.success) {
+      throw new Error("Follow-up timing calculation failed")
+    }
+    const result = response.data
 
     // Validate and set defaults
-    let days = result.days ?? 7
+    let days = typeof result.days === "number" ? result.days : 7
     if (days < 0) days = 0
     if (days > 90) days = 90
 
+    const priorityValue: "high" | "medium" | "low" =
+      result.priority === "high" || result.priority === "medium" || result.priority === "low"
+        ? result.priority
+        : "medium"
+
     return {
       days,
-      reason: result.reason || "정기적인 Follow-up이 필요합니다.",
-      priority: result.priority || "medium",
+      reason:
+        typeof result.reason === "string" ? result.reason : "정기적인 Follow-up이 필요합니다.",
+      priority: priorityValue,
     }
   } catch (error) {
     console.error("Follow-up timing calculation failed:", error)
@@ -97,11 +106,11 @@ export const determineFollowUpType = async (
 ): Promise<"email" | "call" | "meeting" | "message"> => {
   try {
     const response = await apiClient.determineFollowUpType(customer.id)
-    const result = (response as any).data
-    const type = result.type || "email"
-
-    if (["email", "call", "meeting", "message"].includes(type)) {
-      return type as "email" | "call" | "meeting" | "message"
+    if (response.success) {
+      const type = response.data.type
+      if (type === "email" || type === "call" || type === "meeting" || type === "message") {
+        return type
+      }
     }
   } catch (error) {
     console.error("Follow-up type determination failed:", error)
@@ -131,9 +140,11 @@ export const generateFollowUpContent = async (
     }
 
     const response = await apiClient.generateFollowUpMessage(customer.id, strategy, false)
-    const result = (response as any).data
-
-    return result.content || `${customer.name}와의 Follow-up이 필요합니다.`
+    if (response.success) {
+      const content = response.data.content
+      if (typeof content === "string") return content
+    }
+    return `${customer.name}와의 Follow-up이 필요합니다.`
   } catch (error) {
     console.error("Follow-up content generation failed:", error)
     return `${customer.name}와의 Follow-up이 필요합니다.`

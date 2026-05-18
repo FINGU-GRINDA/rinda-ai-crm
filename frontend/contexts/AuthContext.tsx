@@ -1,6 +1,7 @@
 import type React from "react"
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react"
 import { apiClient } from "../src/services/apiClient"
+import { getErrorMessage } from "../src/utils/typeGuards"
 
 export interface User {
   id: string
@@ -47,7 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.getCurrentUser()
       if (response.success && response.data) {
-        setUser(response.data as User)
+        setUser(response.data as unknown as User)
       } else {
         setUser(null)
       }
@@ -70,7 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(response.data.user as User)
         return { success: true }
       }
-      return { success: false, error: (response as any).error || "Registration failed" }
+      return { success: false, error: getErrorMessage(response) || "Registration failed" }
     } catch (error) {
       const err = error as Error
       return { success: false, error: err.message || "Registration failed" }
@@ -84,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(response.data.user as User)
         return { success: true }
       }
-      return { success: false, error: (response as any).error || "Login failed" }
+      return { success: false, error: getErrorMessage(response) || "Login failed" }
     } catch (error) {
       const err = error as Error
       return { success: false, error: err.message || "Login failed" }
@@ -94,14 +95,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = useCallback(async () => {
     try {
       const response = await apiClient.getGoogleOAuthUrl()
-      if (response.success && (response as any).data?.url) {
+      if (response.success && typeof response.data?.url === "string") {
+        const oauthUrl = response.data.url
         // Store state for validation in callback (CSRF protection)
-        const url = new URL((response as any).data.url)
+        const url = new URL(oauthUrl)
         const state = url.searchParams.get("state")
         if (state) {
           sessionStorage.setItem("oauth_state", state)
         }
-        window.location.href = (response as any).data.url
+        window.location.href = oauthUrl
       }
     } catch (error) {
       console.error("Failed to get Google OAuth URL:", error)
@@ -114,7 +116,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.getCurrentUser()
       if (response.success && response.data) {
-        setUser(response.data as User)
+        setUser(response.data as unknown as User)
         return { success: true }
       }
       return { success: false }
