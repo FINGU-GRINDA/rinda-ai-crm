@@ -16,7 +16,8 @@ export const Textarea: React.FC<TextareaProps> = ({
   id,
   ...rest
 }) => {
-  const textareaId = id || React.useId()
+  const generatedId = React.useId()
+  const textareaId = id || generatedId
   const hintId = hint || error ? `${textareaId}-desc` : undefined
   const hasError = Boolean(error)
 
