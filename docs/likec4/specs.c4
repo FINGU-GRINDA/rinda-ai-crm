@@ -1,0 +1,60 @@
+specification {
+  // Element kinds
+  element actor {
+    style {
+      shape person
+      color green
+    }
+  }
+
+  element system {
+    style {
+      color primary
+    }
+  }
+
+  element webapp {
+    style {
+      shape browser
+    }
+  }
+
+  element service {
+    style {
+      shape rectangle
+    }
+  }
+
+  element component {
+    style {
+      shape rectangle
+    }
+  }
+
+  element database {
+    style {
+      shape cylinder
+      color amber
+    }
+  }
+
+  element externalSystem {
+    style {
+      color muted
+    }
+  }
+
+  // Relationship kinds
+  relationship http
+  relationship https
+  relationship webhook
+  relationship oauth
+  relationship sql
+
+  // Tags
+  tag frontend
+  tag backend
+  tag integration
+  tag ai
+  tag auth
+}

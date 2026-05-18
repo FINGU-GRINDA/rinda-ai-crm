@@ -1,0 +1,112 @@
+// Internals of the RINDA CRM system.
+model {
+  extend rinda {
+
+    // ---- Frontend (React + Vite SPA) ----
+    frontend = webapp 'Frontend SPA' {
+      #frontend
+      description 'React 19 + Vite + Tailwind. Renders Kanban / Prospects / Meetings boards and AI-driven panels.'
+      technology 'React 19, TypeScript, Vite, Tailwind'
+
+      boards = component 'Boards & Panels' {
+        description 'KanbanBoard, ProspectsBoard, MeetingsBoard, CustomerDetailPanel, FollowUpPanel, EnrichmentPanel.'
+      }
+
+      aiUi = component 'AI UI' {
+        #ai
+        description 'AIAssistant, ProposalGenerator, MeetingRecorder, BusinessCardScanner, ICPSettings.'
+      }
+
+      apiClient = component 'apiClient' {
+        description 'Single typed client (frontend/src/services/apiClient.ts). All REST calls go through it.'
+        technology 'fetch'
+      }
+
+      integrationsUi = component 'Frontend integration services' {
+        #integration
+        description 'slackIntegrationService, emailIntegrationService, calendarIntegrationService, notificationService, geminiService (proxy).'
+      }
+
+      boards -> apiClient 'CRUD via REST'
+      aiUi -> apiClient 'AI endpoints'
+      integrationsUi -> apiClient 'Integration endpoints'
+    }
+
+    // ---- Backend (Elysia on Bun) ----
+    backend = service 'Backend API' {
+      #backend
+      description 'Elysia (Bun) HTTP server. Routes to Services to Repositories to Drizzle ORM.'
+      technology 'Elysia, Bun, TypeScript'
+
+      // ---- Routes layer ----
+      routes = component 'Routes' {
+        description 'Elysia route modules: auth, customer, prospect, leads, contact, meeting, notification, settings, icp, followup, ai, gmail, calendar, mixpanel, slack-api, slack-event, slack-backfill.'
+
+        authRoutes = component 'auth.routes' { #auth }
+        customerRoutes = component 'customer.routes'
+        prospectRoutes = component 'prospect.routes'
+        leadsRoutes = component 'leads.routes'
+        contactRoutes = component 'contact.routes'
+        meetingRoutes = component 'meeting.routes'
+        notifRoutes = component 'notification.routes'
+        settingsRoutes = component 'settings.routes'
+        icpRoutes = component 'icp.routes'
+        followupRoutes = component 'followup.routes'
+        aiRoutes = component 'ai.routes' { #ai }
+        gmailRoutes = component 'gmail.routes' { #integration }
+        calendarRoutes = component 'calendar.routes' { #integration }
+        mixpanelRoutes = component 'mixpanel.routes' { #integration }
+        slackApiRoutes = component 'slack-api.routes' { #integration }
+        slackEventRoutes = component 'slack-event.routes' { #integration }
+        slackBackfillRtes = component 'slack-backfill.routes' { #integration }
+      }
+
+      authMw = component 'Auth middleware' {
+        #auth
+        description 'JWT session check applied to all non-auth routes.'
+      }
+
+      // ---- Services layer ----
+      services = component 'Services' {
+        authSvc = component 'auth.service' { #auth }
+        encryptionSvc = component 'encryption.service' { #auth }
+        googleOAuthSvc = component 'google-oauth.service' { #auth #integration }
+        geminiSvc = component 'gemini.service' {
+          #ai
+          description 'Wraps @google/generative-ai: customer analysis, proposal generation, image generation, AI assistant.'
+        }
+        slackApiSvc = component 'slack-api.service' { #integration }
+        slackEventSvc = component 'slack-event.service' { #integration }
+        slackBackfillSvc = component 'slack-backfill.service' { #integration }
+        slackWebhookSvc = component 'slack-webhook.service' { #integration }
+        gmailSvc = component 'gmail.service' { #integration }
+        calendarSvc = component 'calendar.service' { #integration }
+        mixpanelSvc = component 'mixpanel.service' { #integration }
+        fileProcessingSvc = component 'file-processing.service' {
+          description 'OCR (tesseract), PDF/Office parsing, image processing (sharp).'
+        }
+      }
+
+      // ---- Repositories layer ----
+      repositories = component 'Repositories' {
+        description 'Drizzle ORM repositories: customer, prospect, contact, meeting, email, attachment, followup, icp, notification, oauth, mixpanel, settings, slack.'
+      }
+
+      // ---- Wiring inside backend ----
+      routes -> authMw 'all non-auth routes go through'
+      authMw -> authSvc 'verifies JWT session'
+      routes -> services 'invokes business logic'
+      services -> repositories 'reads/writes domain data'
+    }
+
+    // ---- Database ----
+    db = database 'PostgreSQL' {
+      description 'Primary store. Schemas: users, sessions, customers, prospects, contacts, meetings, emails, attachments, followups, icp, notifications, mixpanel, settings, slack, oauth, oauth-states.'
+      technology 'Postgres + Drizzle ORM'
+    }
+
+    // ---- Top-level edges inside the system ----
+    frontend -> backend 'REST + JWT' 'HTTPS / JSON'
+    backend -> db 'queries via Drizzle' 'SQL'
+  }
+}

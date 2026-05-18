@@ -1,0 +1,12 @@
+// Backend services -> external systems wiring.
+model {
+  rinda.backend.services.geminiSvc -> gemini 'Generative content + image generation' 'HTTPS'
+  rinda.backend.services.slackApiSvc -> slack 'Web API (chat.postMessage, conversations.*)' 'HTTPS'
+  rinda.backend.services.slackBackfillSvc -> slack 'Conversations history backfill' 'HTTPS'
+  slack -> rinda.backend.routes.slackEventRoutes 'Event subscriptions & slash commands' 'Webhook'
+
+  rinda.backend.services.gmailSvc -> gmail 'List / read / send messages' 'HTTPS'
+  rinda.backend.services.calendarSvc -> gcal 'List / create events' 'HTTPS'
+  rinda.backend.services.googleOAuthSvc -> googleOAuth 'Authorization code + refresh tokens' 'HTTPS'
+  rinda.backend.services.mixpanelSvc -> mixpanel 'Ingest events / JQL queries' 'HTTPS'
+}
