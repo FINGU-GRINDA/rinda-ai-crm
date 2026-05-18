@@ -14,7 +14,7 @@ interface TableViewProps {
 
 export const TableView: React.FC<TableViewProps> = ({
   customers,
-  selectedCustomerId,
+  selectedCustomerId: _selectedCustomerId,
   onSelectCustomer,
   selectedRows,
   onSelectionChange,
