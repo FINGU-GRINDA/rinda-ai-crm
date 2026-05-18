@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   completeScheduledFollowUp,
   deleteScheduledFollowUp,
@@ -84,10 +84,10 @@ export const CustomerFollowUpWidget: React.FC<CustomerFollowUpWidgetProps> = ({
   const [completingFollowUp, setCompletingFollowUp] = useState<ScheduledFollowUp | null>(null)
 
   // Load follow-ups for this customer
-  const loadFollowUps = () => {
+  const loadFollowUps = useCallback(() => {
     const customerFollowUps = getCustomerFollowUps(customer.id)
     setFollowUps(customerFollowUps)
-  }
+  }, [customer.id])
 
   useEffect(() => {
     loadFollowUps()

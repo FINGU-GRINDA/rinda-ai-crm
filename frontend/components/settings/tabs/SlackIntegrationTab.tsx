@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   getSlackSettings,
   saveSlackSettings,
@@ -71,7 +71,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({
   }, [webhookUrl, formData.webhookUrl])
 
   // Submit all form changes
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     setIsSaving(true)
     setErrorMessage("")
     setSuccessMessage("")
@@ -86,16 +86,16 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [formData, onSettingsChange])
 
   // Reset form to original state
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setFormData(originalData)
     setWebhookUrl(originalData.webhookUrl)
     setValidationStatus(originalData.isValidated ? "valid" : "idle")
     setErrorMessage("")
     setSuccessMessage("")
-  }
+  }, [originalData])
 
   // Report form state to parent component
   useEffect(() => {

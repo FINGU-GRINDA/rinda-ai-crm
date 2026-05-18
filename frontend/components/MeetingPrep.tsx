@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { generateMeetingPreparation } from "../services/calendarIntegrationService"
 import type { CalendarEvent, Customer, MeetingPreparation } from "../types"
 import {
@@ -24,7 +24,7 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadPreparation = async () => {
+  const loadPreparation = useCallback(async () => {
     setIsLoading(true)
     setError(null)
 
@@ -36,7 +36,7 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [customer, event])
 
   useEffect(() => {
     if (event.meetingPrep) {

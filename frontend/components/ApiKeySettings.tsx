@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   IconCheck,
   IconExternalLink,
@@ -25,9 +25,9 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
   const [errorMessage, setErrorMessage] = useState("")
   const [currentMaskedKey, setCurrentMaskedKey] = useState<string | null>(null)
 
-  const validateApiKey = async () => {
+  const validateApiKey = useCallback(async () => {
     setErrorMessage("API Key 관리가 서버로 이동되었습니다. 서버 환경설정을 확인해주세요.")
-  }
+  }, [])
 
   useEffect(() => {
     if (isOpen) {

@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   clearConversationHistory,
   getConversationHistory,
@@ -21,7 +21,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const loadConversation = () => {
+  const loadConversation = useCallback(() => {
     const history = getConversationHistory()
     if (history.length === 0) {
       // Add welcome message
@@ -36,11 +36,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
     } else {
       setMessages(history)
     }
-  }
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
@@ -49,9 +45,12 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
     }
   }, [isOpen, loadConversation])
 
+  // Auto-scroll to the latest message whenever messages change. The effect doesn't
+  // read messages directly (only the ref) but must re-run on each messages update.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: messages is the scroll trigger
   useEffect(() => {
-    scrollToBottom()
-  }, [scrollToBottom])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return

@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { IconCheck, IconExternalLink, IconLoader, IconRefresh, IconX } from "../../Icons"
 
 interface MixpanelSettings {
@@ -68,7 +68,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({
   const [successMessage, setSuccessMessage] = useState("")
   const [newEvent, setNewEvent] = useState("")
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/mixpanel/settings`)
       if (response.ok) {
@@ -86,9 +86,9 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const fetchConnectionStatus = async () => {
+  const fetchConnectionStatus = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/mixpanel/connection-status`)
       if (response.ok) {
@@ -98,7 +98,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({
     } catch (error) {
       console.error("Failed to fetch connection status:", error)
     }
-  }
+  }, [])
 
   // Load settings on mount
   useEffect(() => {
@@ -113,7 +113,7 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({
   }, [formData, originalData])
 
   // Submit all form changes
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     setIsSaving(true)
     setErrorMessage("")
     setSuccessMessage("")
@@ -145,14 +145,14 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [formData, onSettingsChange])
 
   // Reset form to original state
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setFormData(originalData)
     setErrorMessage("")
     setSuccessMessage("")
-  }
+  }, [originalData])
 
   // Field handlers - only update local state
   const handleToggleEnabled = (enabled: boolean) => {
