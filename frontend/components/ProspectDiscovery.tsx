@@ -964,7 +964,9 @@ export const ProspectDiscovery: React.FC<ProspectDiscoveryProps> = ({
                 input={keywordInput}
                 onChangeInput={setKeywordInput}
                 onAdd={(v) => {
-                  v.split(",").forEach((token) => addToList("keywords", token))
+                  v.split(",").forEach((token) => {
+                    addToList("keywords", token)
+                  })
                   setKeywordInput("")
                 }}
                 onRemove={(v) => removeFromList("keywords", v)}

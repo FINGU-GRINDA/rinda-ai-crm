@@ -57,7 +57,9 @@ export const markNotificationAsRead = (notificationId: string): void => {
 // Mark all notifications as read
 export const markAllAsRead = (): void => {
   const existing = getNotifications()
-  existing.forEach((n) => (n.read = true))
+  existing.forEach((n) => {
+    n.read = true
+  })
   localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(existing))
 }
 
