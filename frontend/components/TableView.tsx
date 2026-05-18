@@ -1,8 +1,8 @@
 import React from 'react';
-import { Customer, CustomerStatus } from '../types';
+import { Customer } from '../types';
 import { DataTable, TableColumn } from './DataTable';
-import { KANBAN_COLUMNS } from './KanbanBoard';
 import { IconBrain, IconFileText } from './Icons';
+import { StatusBadge } from './ui/StatusBadge';
 
 interface TableViewProps {
   customers: Customer[];
@@ -29,7 +29,7 @@ export const TableView: React.FC<TableViewProps> = ({
         <div className="flex items-center gap-2">
           <span className="font-medium text-neutral-900">{customer.name}</span>
           {customer.enrichedData && (
-            <IconBrain className="w-3.5 h-3.5 text-blue-600" title="AI 분석 완료" />
+            <IconBrain className="w-3.5 h-3.5 text-violet-600" aria-label="회사 정보 수집 완료" />
           )}
         </div>
       ),
@@ -39,14 +39,9 @@ export const TableView: React.FC<TableViewProps> = ({
       label: '상태',
       width: 120,
       sortable: true,
-      render: (customer) => {
-        const column = KANBAN_COLUMNS.find((col) => col.id === customer.status);
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-neutral-100 text-neutral-700">
-            {column?.title || customer.status}
-          </span>
-        );
-      },
+      render: (customer) => (
+        <StatusBadge kind="status" value={customer.status} />
+      ),
     },
     {
       id: 'industry',
@@ -112,7 +107,7 @@ export const TableView: React.FC<TableViewProps> = ({
         onRowClick={(row) => onSelectCustomer(row.id)}
         selectedRows={selectedRows}
         onSelectionChange={onSelectionChange}
-        emptyMessage="고객이 없습니다"
+        emptyMessage="아직 등록된 고객이 없습니다"
       />
     </div>
   );

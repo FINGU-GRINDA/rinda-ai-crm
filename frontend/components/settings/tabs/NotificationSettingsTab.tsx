@@ -215,7 +215,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                     type="time"
                     value={settings.email.digestTime}
                     onChange={(e) => setEmail({ digestTime: e.target.value })}
-                    className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               )}

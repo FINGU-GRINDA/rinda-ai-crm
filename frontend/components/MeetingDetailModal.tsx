@@ -60,10 +60,10 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
       <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-white">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <IconMessageSquare className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <IconMessageSquare className="w-5 h-5 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-slate-800 truncate">{meeting.title}</h2>
@@ -158,10 +158,10 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
 
           {/* Customer Needs */}
           {meeting.customerNeeds && meeting.customerNeeds.length > 0 && (
-            <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+            <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl">
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <div className="w-6 h-6 bg-indigo-100 rounded flex items-center justify-center">
-                  <IconBriefcase className="w-3.5 h-3.5 text-indigo-600" />
+                <div className="w-6 h-6 bg-violet-100 rounded flex items-center justify-center">
+                  <IconBriefcase className="w-3.5 h-3.5 text-violet-600" />
                 </div>
                 고객 니즈
               </h4>
@@ -193,20 +193,20 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
 
           {/* Next Steps */}
           {meeting.nextSteps && meeting.nextSteps.length > 0 && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <div className="w-6 h-6 bg-green-100 rounded flex items-center justify-center">
-                  <IconArrowRight className="w-3.5 h-3.5 text-green-600" />
+                <div className="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center">
+                  <IconArrowRight className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
                 다음 단계
-                <span className="ml-1 bg-green-200 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                <span className="ml-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">
                   {meeting.nextSteps.length}
                 </span>
               </h4>
               <ul className="space-y-2">
                 {meeting.nextSteps.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                    <IconArrowRight className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <IconArrowRight className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <span className="leading-relaxed">{item}</span>
                   </li>
                 ))}

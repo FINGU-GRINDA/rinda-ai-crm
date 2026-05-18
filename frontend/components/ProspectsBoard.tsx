@@ -10,6 +10,8 @@ import {
   IconCheck,
   IconX
 } from './Icons';
+import { signalBadge, toneStyles, type SignalKey } from '../styles/design-tokens';
+import { StatusBadge } from './ui/StatusBadge';
 
 interface ProspectsBoardProps {
   prospects: Prospect[];
@@ -18,35 +20,26 @@ interface ProspectsBoardProps {
   onDismissProspect: (prospectId: string) => void;
 }
 
-const SIGNAL_COLUMNS = [
-  {
-    id: 'high' as const,
-    title: '높은 관심도',
-    color: 'bg-red-50 border-red-200',
-    textColor: 'text-red-700',
-    badgeColor: 'bg-red-100 text-red-700',
-    icon: '🔥',
-    description: '즉각 대응 필요'
-  },
-  {
-    id: 'medium' as const,
-    title: '중간 관심도',
-    color: 'bg-yellow-50 border-yellow-200',
-    textColor: 'text-yellow-700',
-    badgeColor: 'bg-yellow-100 text-yellow-700',
-    icon: '⚡',
-    description: '모니터링 권장'
-  },
-  {
-    id: 'low' as const,
-    title: '낮은 관심도',
-    color: 'bg-slate-50 border-slate-200',
-    textColor: 'text-slate-700',
-    badgeColor: 'bg-slate-100 text-slate-700',
-    icon: '📊',
-    description: '참고용'
-  }
-];
+type SignalColumn = {
+  id: SignalKey;
+  title: string;
+  description: string;
+  surface: string;
+  text: string;
+  borderLeft: string;
+};
+
+const SIGNAL_COLUMNS: SignalColumn[] = (['high', 'medium', 'low'] as SignalKey[]).map(id => {
+  const tone = toneStyles[signalBadge[id].tone];
+  return {
+    id,
+    title: signalBadge[id].label,
+    description: signalBadge[id].description,
+    surface: `${tone.bg} ${tone.border} border`,
+    text: tone.text,
+    borderLeft: tone.borderLeft,
+  };
+});
 
 export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
   prospects,
@@ -195,12 +188,12 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
           <IconSparkles className="w-8 h-8 text-slate-400" />
         </div>
         <h3 className="text-lg font-semibold text-slate-800 mb-2">
-          아직 발견된 잠재고객이 없습니다
+          아직 발굴된 잠재 고객이 없습니다
         </h3>
         <p className="text-sm text-slate-500 mb-4 max-w-md">
-          ICP 설정을 완료하면 자동으로 관심 있는 기업들을 찾아드립니다.
+          이상적 고객 조건(ICP)을 설정하면 AI가 관심을 가질 만한 기업을 자동으로 찾아 드려요.
           <br />
-          설정 메뉴에서 ICP 프로필을 추가해보세요.
+          설정 메뉴에서 ICP 프로필을 추가해 보세요.
         </p>
       </div>
     );
@@ -214,10 +207,10 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
           <div>
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
               <IconSparkles className="w-6 h-6 text-blue-600" />
-              잠재고객 ({totalProspects})
+              잠재 고객 ({totalProspects})
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              AI가 자동으로 발견한 관심 기업들입니다
+              AI가 자동으로 발굴한 관심 기업입니다
             </p>
           </div>
         </div>
@@ -235,27 +228,25 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
                 className="flex flex-col w-80 flex-shrink-0"
               >
                 {/* Column Header */}
-                <div className={`${column.color} border rounded-lg p-3 mb-3`}>
+                <div className={`bg-white border border-slate-200 border-l-4 ${column.borderLeft} rounded-lg p-3 mb-3 shadow-sm`}>
                   <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{column.icon}</span>
-                      <h3 className={`font-semibold text-sm ${column.textColor}`}>
-                        {column.title}
-                      </h3>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${column.badgeColor}`}>
-                      {columnProspects.length}
-                    </span>
+                    <h3 className="font-semibold text-sm text-slate-800">
+                      {column.title}
+                    </h3>
+                    <StatusBadge kind="signal" value={column.id} showDot={false} />
                   </div>
-                  <p className="text-xs text-slate-600">{column.description}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-slate-500">{column.description}</p>
+                    <span className="text-xs text-slate-400 font-medium">{columnProspects.length}건</span>
+                  </div>
                 </div>
 
                 {/* Cards */}
                 <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                   {columnProspects.length === 0 ? (
-                    <div className="bg-slate-50 border border-dashed border-slate-300 rounded-lg p-4 text-center">
+                    <div className="bg-gradient-to-b from-slate-50 to-white border border-dashed border-slate-300 rounded-lg p-4 text-center">
                       <p className="text-xs text-slate-500">
-                        해당 신호 강도의 잠재고객이 없습니다
+                        이 단계에 속한 잠재 고객이 없습니다
                       </p>
                     </div>
                   ) : (

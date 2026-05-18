@@ -21,11 +21,11 @@ const getTypeIcon = (type: FollowUpType) => {
     case 'email':
       return <IconMail className="w-3.5 h-3.5 text-blue-600" />;
     case 'call':
-      return <IconMessageSquare className="w-3.5 h-3.5 text-green-600" />;
+      return <IconMessageSquare className="w-3.5 h-3.5 text-emerald-600" />;
     case 'meeting':
-      return <IconCalendar className="w-3.5 h-3.5 text-purple-600" />;
+      return <IconCalendar className="w-3.5 h-3.5 text-amber-600" />;
     case 'message':
-      return <IconMessageSquare className="w-3.5 h-3.5 text-orange-600" />;
+      return <IconMessageSquare className="w-3.5 h-3.5 text-slate-600" />;
     default:
       return <IconMail className="w-3.5 h-3.5 text-slate-600" />;
   }
@@ -173,9 +173,9 @@ export const CustomerFollowUpWidget: React.FC<CustomerFollowUpWidgetProps> = ({
                       </span>
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                         followUp.priority === 'high'
-                          ? 'bg-red-100 text-red-700'
+                          ? 'bg-red-50 text-red-700'
                           : followUp.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-700'
+                          ? 'bg-amber-50 text-amber-700'
                           : 'bg-slate-100 text-slate-600'
                       }`}>
                         {followUp.priority === 'high' ? '높음' : followUp.priority === 'medium' ? '보통' : '낮음'}

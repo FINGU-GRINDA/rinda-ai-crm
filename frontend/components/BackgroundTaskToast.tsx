@@ -65,9 +65,9 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
           {/* Header */}
           <div
             className={`px-4 py-3 flex items-center justify-between cursor-pointer ${
-              task.status === 'completed' ? 'bg-gradient-to-r from-emerald-50 to-green-50' :
-              task.status === 'error' ? 'bg-gradient-to-r from-red-50 to-rose-50' :
-              'bg-gradient-to-r from-blue-50 to-indigo-50'
+              task.status === 'completed' ? 'bg-emerald-50' :
+              task.status === 'error' ? 'bg-red-50' :
+              'bg-blue-50'
             }`}
             onClick={() => toggleExpand(task.id)}
           >
@@ -129,14 +129,14 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
               <div className="relative pt-2">
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-out"
+                    className="h-full bg-blue-600 rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${task.progress}%` }}
                   />
                 </div>
                 <div className="flex justify-between mt-1">
                   <span className="text-xs text-slate-400">{task.progress}%</span>
                   <span className="text-xs text-slate-400">
-                    {Math.ceil((100 - task.progress) / 10)}초 남음
+                    약 {Math.ceil((100 - task.progress) / 10)}초 남음
                   </span>
                 </div>
               </div>
@@ -195,9 +195,9 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
               {/* Completed Actions */}
               {task.status === 'completed' && task.result && (
                 <div className="pt-3 space-y-3">
-                  <div className="flex items-center gap-2 text-xs text-emerald-600">
+                  <div className="flex items-center gap-2 text-xs text-emerald-700">
                     <IconCheck className="w-4 h-4" />
-                    <span>제안서 생성이 완료되었습니다!</span>
+                    <span>제안서 생성이 완료됐어요</span>
                   </div>
 
                   {/* Preview */}
@@ -215,7 +215,7 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
                   <div className="flex gap-2">
                     <button
                       onClick={() => onViewResult?.(task)}
-                      className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                     >
                       <IconFileText className="w-4 h-4" />
                       제안서 보기
@@ -234,7 +234,11 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
               {task.status === 'error' && (
                 <div className="pt-3 space-y-3">
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm text-red-700">{task.error}</p>
+                    <p className="text-sm text-red-700 font-medium mb-1">제안서 생성에 실패했어요</p>
+                    <p className="text-xs text-red-700/80 leading-relaxed">
+                      {task.error || '원인을 확인하지 못했어요.'}
+                    </p>
+                    <p className="text-xs text-red-700/80 mt-2">잠시 후 다시 시도해 주세요.</p>
                   </div>
                   <button
                     onClick={() => dismissTask(task.id)}
@@ -247,9 +251,9 @@ export const BackgroundTaskToast: React.FC<BackgroundTaskToastProps> = ({ onView
 
               {/* Timestamp */}
               <div className="mt-3 text-xs text-slate-400 text-right">
-                시작: {new Date(task.createdAt).toLocaleTimeString('ko-KR')}
+                {new Date(task.createdAt).toLocaleTimeString('ko-KR')}에 시작
                 {task.completedAt && (
-                  <> / 완료: {new Date(task.completedAt).toLocaleTimeString('ko-KR')}</>
+                  <> · {new Date(task.completedAt).toLocaleTimeString('ko-KR')}에 완료</>
                 )}
               </div>
             </div>

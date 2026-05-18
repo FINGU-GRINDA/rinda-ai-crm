@@ -184,10 +184,10 @@ export const BusinessCardScanner: React.FC<BusinessCardScannerProps> = ({
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-slate-200 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all"
+                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all"
                 >
-                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Upload className="w-6 h-6 text-purple-600" />
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Upload className="w-6 h-6 text-blue-600" />
                   </div>
                   <span className="text-sm font-medium text-slate-700">파일 업로드</span>
                 </button>
@@ -317,7 +317,7 @@ export const BusinessCardScanner: React.FC<BusinessCardScannerProps> = ({
           {/* Mode: Result */}
           {mode === 'result' && editableResult && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-600 mb-4">
+              <div className="flex items-center gap-2 text-emerald-600 mb-4">
                 <Check className="w-5 h-5" />
                 <span className="font-medium">명함 인식 완료</span>
               </div>

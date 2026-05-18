@@ -229,9 +229,9 @@ export const ICPSettings: React.FC<Props> = ({ isOpen, onClose, onManualRun, exi
         </div>
 
         {/* Collection Settings Section */}
-        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 mb-6 border border-purple-200">
+        <div className="bg-slate-50 rounded-xl p-6 mb-6 border border-slate-200">
           <div className="flex items-center gap-2 mb-4">
-            <IconSparkles className="w-5 h-5 text-purple-600" />
+            <IconSparkles className="w-5 h-5 text-blue-600" />
             <h3 className="text-lg font-semibold text-slate-800">잠재 고객 수집 설정</h3>
           </div>
 
@@ -249,7 +249,7 @@ export const ICPSettings: React.FC<Props> = ({ isOpen, onClose, onManualRun, exi
                   onChange={(e) => handleSettingsChange({ autoRun: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
             </div>
 
@@ -262,7 +262,7 @@ export const ICPSettings: React.FC<Props> = ({ isOpen, onClose, onManualRun, exi
                 value={collectionSettings.interval}
                 onChange={(e) => handleSettingsChange({ interval: parseInt(e.target.value) })}
                 disabled={!collectionSettings.autoRun}
-                className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none bg-white disabled:bg-slate-100 disabled:cursor-not-allowed"
+                className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white disabled:bg-slate-100 disabled:cursor-not-allowed"
               >
                 <option value={1800000}>30분마다</option>
                 <option value={3600000}>1시간마다</option>
@@ -280,35 +280,35 @@ export const ICPSettings: React.FC<Props> = ({ isOpen, onClose, onManualRun, exi
             </div>
 
             {/* Manual Run Button */}
-            <div className="pt-2 border-t border-purple-200">
+            <div className="pt-2 border-t border-slate-200">
               <button
                 onClick={handleManualRun}
                 disabled={isRunning || profiles.length === 0}
-                className="w-full py-3 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+                className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
               >
                 {isRunning ? (
                   <>
                     <IconSparkles className="w-4 h-4 animate-spin" />
-                    <span>수집 중...</span>
+                    <span>잠재 고객을 수집하는 중입니다</span>
                   </>
                 ) : (
                   <>
                     <IconPlay className="w-4 h-4" />
-                    <span>지금 수집 실행</span>
+                    <span>지금 수집하기</span>
                   </>
                 )}
               </button>
               {lastRunResult && (
-                <div className="mt-3 p-3 bg-white rounded-lg border border-purple-200">
+                <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200">
                   <p className="text-sm text-slate-700">
                     <span className="font-semibold">최근 수집 결과:</span> {lastRunResult.totalArticles}개 기사 분석, 
-                    <span className="text-purple-600 font-semibold"> {lastRunResult.newProspects}개</span> 잠재 고객 발견
+                    <span className="text-blue-600 font-semibold"> {lastRunResult.newProspects}개</span> 잠재 고객 발견
                   </p>
                 </div>
               )}
               {profiles.length === 0 && (
                 <p className="text-xs text-slate-500 mt-2 text-center">
-                  ICP 프로필을 먼저 추가해주세요
+                  먼저 이상적 고객 조건(ICP) 프로필을 추가해 주세요
                 </p>
               )}
             </div>
@@ -392,12 +392,12 @@ export const ICPSettings: React.FC<Props> = ({ isOpen, onClose, onManualRun, exi
               {formData.keywords?.map((keyword, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-sm"
+                  className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm"
                 >
                   {keyword}
                   <button
                     onClick={() => removeKeyword(index)}
-                    className="text-indigo-700 hover:text-indigo-900"
+                    className="text-blue-700 hover:text-blue-900"
                   >
                     <IconX className="w-3 h-3" />
                   </button>

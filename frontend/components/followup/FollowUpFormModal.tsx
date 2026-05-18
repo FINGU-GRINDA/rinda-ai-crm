@@ -19,8 +19,8 @@ const followUpTypes: { value: FollowUpType; label: string; icon: React.ReactNode
 ];
 
 const priorities: { value: FollowUpPriority; label: string; color: string }[] = [
-  { value: 'high', label: '높음', color: 'bg-red-100 text-red-700 border-red-200' },
-  { value: 'medium', label: '보통', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  { value: 'high', label: '높음', color: 'bg-red-50 text-red-700 border-red-200' },
+  { value: 'medium', label: '보통', color: 'bg-amber-50 text-amber-700 border-amber-200' },
   { value: 'low', label: '낮음', color: 'bg-slate-100 text-slate-700 border-slate-200' },
 ];
 

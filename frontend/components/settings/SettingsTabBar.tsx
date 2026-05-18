@@ -76,7 +76,7 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
               onClick={() => onTabChange(tab.id)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 isActive
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -111,13 +111,13 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
             onClick={() => onTabChange(tab.id)}
             className={`group flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
               isActive
-                ? 'bg-indigo-50 text-indigo-700'
+                ? 'bg-blue-50 text-blue-700'
                 : 'text-slate-700 hover:bg-slate-100'
             }`}
           >
             <Icon
               className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
+                isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'
               }`}
             />
             <div className="flex-1 min-w-0">
@@ -132,7 +132,7 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
               </div>
               <p
                 className={`text-xs mt-0.5 truncate ${
-                  isActive ? 'text-indigo-500' : 'text-slate-500'
+                  isActive ? 'text-blue-500' : 'text-slate-500'
                 }`}
               >
                 {tab.description}

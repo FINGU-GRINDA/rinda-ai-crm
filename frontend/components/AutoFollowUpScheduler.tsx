@@ -131,9 +131,9 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return 'bg-red-100 text-red-700 border-red-200';
+        return 'bg-red-50 text-red-700 border-red-200';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'low':
         return 'bg-slate-100 text-slate-700 border-slate-200';
       default:
@@ -162,7 +162,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <IconClock className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-bold text-slate-800">자동 Follow-up 스케줄</h3>
+          <h3 className="text-lg font-bold text-slate-800">자동 후속 액션 스케줄</h3>
         </div>
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
@@ -192,9 +192,10 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
           <button
             onClick={() => setShowStats(!showStats)}
             className={`p-2 rounded-lg transition-colors ${
-              showStats ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              showStats ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
-            title="통계 표시/숨기기"
+            title="통계 표시 전환"
+            aria-label="통계 표시 전환"
           >
             <IconDashboard className="w-4 h-4" />
           </button>
@@ -207,7 +208,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
             {autoScheduling ? (
               <>
                 <IconLoader className="w-4 h-4 animate-spin" />
-                <span>스케줄링 중...</span>
+                <span>스케줄을 만드는 중입니다</span>
               </>
             ) : (
               <>

@@ -7,6 +7,7 @@ import {
   IconBrain,
   IconTrash
 } from './Icons';
+import { statusBadge, toneStyles } from '../styles/design-tokens';
 
 // Tooltip Component
 const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => {
@@ -38,13 +39,13 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
   );
 };
 
-export const KANBAN_COLUMNS: { id: CustomerStatus; title: string; accent: string }[] = [
-  { id: 'new', title: '새로운 고객', accent: 'border-l-slate-400' },
-  { id: 'contact', title: '연락 중', accent: 'border-l-blue-500' },
-  { id: 'negotiation', title: '제안 검토', accent: 'border-l-indigo-600' },
-  { id: 'won', title: '계약 완료', accent: 'border-l-emerald-500' },
-  { id: 'lost', title: '종료된 거래', accent: 'border-l-red-500' },
-];
+const KANBAN_ORDER: CustomerStatus[] = ['new', 'contact', 'negotiation', 'won', 'lost'];
+
+export const KANBAN_COLUMNS: { id: CustomerStatus; title: string; accent: string }[] = KANBAN_ORDER.map(id => ({
+  id,
+  title: statusBadge[id].label,
+  accent: toneStyles[statusBadge[id].tone].borderLeft,
+}));
 
 interface KanbanBoardProps {
   customers: Customer[];
@@ -100,11 +101,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   // Empty state component with contextual messages
   const EmptyState: React.FC<{ columnId: CustomerStatus }> = ({ columnId }) => {
     const messages: Record<CustomerStatus, { title: string; subtitle?: string; showCTA: boolean }> = {
-      new: { title: '신규 고객이 없습니다', subtitle: '고객을 추가하거나 프로스펙트를 전환하세요', showCTA: true },
-      contact: { title: '연락 중인 고객이 없습니다', subtitle: '신규 고객을 이 단계로 드래그하세요', showCTA: false },
-      negotiation: { title: '제안 검토 중인 고객이 없습니다', subtitle: '제안서를 보낸 고객을 여기로 이동하세요', showCTA: false },
-      won: { title: '계약 완료 고객이 없습니다', subtitle: '계약이 완료되면 여기로 이동하세요', showCTA: false },
-      lost: { title: '종료된 거래가 없습니다', showCTA: false }
+      new: { title: '신규 고객이 없습니다', subtitle: '고객을 추가하거나 잠재 고객에서 전환해 보세요', showCTA: true },
+      contact: { title: '컨택 중인 고객이 없습니다', subtitle: '신규 고객 카드를 이 단계로 드래그해 주세요', showCTA: false },
+      negotiation: { title: '협상 중인 고객이 없습니다', subtitle: '제안서를 보낸 고객을 이 단계로 옮겨 주세요', showCTA: false },
+      won: { title: '성사된 거래가 없습니다', subtitle: '계약이 완료되면 이 단계로 이동시켜 주세요', showCTA: false },
+      lost: { title: '실주된 거래가 없습니다', showCTA: false }
     };
 
     const message = messages[columnId];
@@ -161,8 +162,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           <h4 className="font-semibold text-slate-800 text-sm flex-1">{customer.name}</h4>
           <div className="flex items-center gap-1">
             {customer.enrichedData && (
-              <Tooltip text="AI 분석 완료">
-                <IconBrain className="w-4 h-4 text-blue-600 flex-shrink-0 ml-2" />
+              <Tooltip text="회사 정보 수집 완료">
+                <IconBrain className="w-4 h-4 text-violet-600 flex-shrink-0 ml-2" />
               </Tooltip>
             )}
             <Tooltip text="삭제">
@@ -191,12 +192,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
 
         {customer.enrichedData?.salesOpportunity ? (
-          <div className="bg-blue-50 p-2 rounded text-[11px] text-neutral-800 leading-snug line-clamp-2 mb-2 border border-blue-100">
-            <span className="font-semibold">💡 AI 인사이트: </span>
+          <div className="bg-violet-50 p-2 rounded text-[11px] text-violet-900 leading-snug line-clamp-2 mb-2 border border-violet-100">
+            <span className="font-semibold">AI 인사이트 · </span>
             {customer.enrichedData.salesOpportunity}
           </div>
         ) : (
-          <div className="text-xs text-neutral-400 italic mb-2">AI 분석을 실행해보세요</div>
+          <div className="text-xs text-slate-400 italic mb-2">‘회사 정보 자동 채우기’를 실행해 보세요</div>
         )}
 
         <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-50">

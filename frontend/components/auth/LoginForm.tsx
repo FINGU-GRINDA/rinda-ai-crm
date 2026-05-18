@@ -83,7 +83,7 @@ export const LoginForm: React.FC = () => {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-xl border border-slate-200">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-blue-600">
             RINDA CRM
           </h1>
           <p className="mt-2 text-gray-600">
@@ -150,7 +150,7 @@ export const LoginForm: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2"
           >
             {loading && <IconLoader className="w-4 h-4 animate-spin" />}
             {isSignUp ? 'Create Account' : 'Sign In'}

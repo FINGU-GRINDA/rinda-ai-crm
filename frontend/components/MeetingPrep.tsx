@@ -48,10 +48,10 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
 
   if (isLoading) {
     return (
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-xl p-10 text-center">
+      <div className="bg-gradient-to-b from-slate-50 to-white border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
         <IconLoader className="w-8 h-8 text-blue-600 mx-auto mb-4 animate-spin" />
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">미팅 준비 자료 생성 중...</h4>
-        <p className="text-slate-500 text-sm">잠시만 기다려주세요.</p>
+        <h4 className="text-sm font-semibold text-slate-700 mb-2">미팅 준비 자료를 만드는 중입니다</h4>
+        <p className="text-slate-500 text-sm">잠시만 기다려 주세요</p>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
       <div className="bg-red-50 border border-red-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-2">
           <IconAlertCircle className="w-5 h-5 text-red-600" />
-          <h4 className="text-sm font-semibold text-red-800">오류 발생</h4>
+          <h4 className="text-sm font-semibold text-red-800">준비 자료를 만들지 못했어요</h4>
         </div>
         <p className="text-sm text-red-700 mb-4">{error}</p>
         <button
@@ -76,19 +76,19 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
 
   if (!preparation) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
+      <div className="bg-gradient-to-b from-slate-50 to-white border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <IconCalendar className="w-8 h-8 text-blue-600" />
         </div>
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">미팅 준비 자료 없음</h4>
+        <h4 className="text-sm font-semibold text-slate-700 mb-2">아직 준비 자료가 없습니다</h4>
         <p className="text-slate-500 text-sm mb-4">
-          미팅 준비 자료를 생성하시겠습니까?
+          AI가 미팅에 맞는 준비 자료를 만들어 드릴까요?
         </p>
         <button
           onClick={loadPreparation}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
         >
-          준비 자료 생성하기
+          준비 자료 만들기
         </button>
       </div>
     );
@@ -119,10 +119,10 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
       </div>
 
       {/* Summary */}
-      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-4">
+      <div className="bg-violet-50 border border-violet-100 rounded-lg p-4">
         <div className="flex items-start gap-2 mb-2">
-          <IconBrain className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
-          <h4 className="text-sm font-semibold text-slate-800">요약</h4>
+          <IconBrain className="w-5 h-5 text-violet-600 flex-shrink-0 mt-0.5" />
+          <h4 className="text-sm font-semibold text-slate-800">AI 요약</h4>
         </div>
         <p className="text-sm text-slate-700 leading-relaxed">{preparation.summary}</p>
       </div>
@@ -151,14 +151,14 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
       {preparation.suggestedTopics.length > 0 && (
         <div>
           <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <IconLightbulb className="w-4 h-4 text-yellow-600" />
+            <IconLightbulb className="w-4 h-4 text-amber-600" />
             제안할 주제
           </h4>
           <div className="flex flex-wrap gap-2">
             {preparation.suggestedTopics.map((topic, idx) => (
               <span
                 key={idx}
-                className="px-3 py-1.5 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg text-xs font-medium"
+                className="px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium"
               >
                 {topic}
               </span>
@@ -172,7 +172,7 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
         onClick={loadPreparation}
         className="w-full py-2 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200"
       >
-        준비 자료 다시 생성하기
+        준비 자료 다시 만들기
       </button>
     </div>
   );
