@@ -33,8 +33,14 @@ class GoogleOAuthService {
     this.clientId = config.GOOGLE_CLIENT_ID || ""
     this.clientSecret = config.GOOGLE_CLIENT_SECRET || ""
     this.redirectUri = config.GOOGLE_REDIRECT_URI || ""
+  }
 
-    if (!this.clientId || !this.clientSecret || !this.redirectUri) {
+  isConfigured(): boolean {
+    return Boolean(this.clientId && this.clientSecret && this.redirectUri)
+  }
+
+  private assertConfigured(): void {
+    if (!this.isConfigured()) {
       throw new Error(
         "Google OAuth environment variables (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI) are required",
       )
@@ -42,6 +48,7 @@ class GoogleOAuthService {
   }
 
   getAuthorizationUrl(state: string, flowType: "signin" | "gmail" | "calendar"): string {
+    this.assertConfigured()
     const scopes = this.getScopesForFlowType(flowType)
 
     const params = new URLSearchParams({
@@ -75,6 +82,7 @@ class GoogleOAuthService {
   }
 
   async exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
+    this.assertConfigured()
     const params = new URLSearchParams({
       code,
       client_id: this.clientId,
@@ -100,6 +108,7 @@ class GoogleOAuthService {
   }
 
   async refreshAccessToken(refreshToken: string): Promise<GoogleTokenResponse> {
+    this.assertConfigured()
     const params = new URLSearchParams({
       refresh_token: refreshToken,
       client_id: this.clientId,
