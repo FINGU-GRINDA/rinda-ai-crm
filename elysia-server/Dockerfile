@@ -17,7 +17,7 @@ WORKDIR /app
 # Copy lockfile + manifest first to maximize Docker layer cache hits.
 COPY package.json bun.lock ./
 
-RUN bun install --frozen-lockfile --production=false
+RUN bun install --frozen-lockfile
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime
