@@ -36,7 +36,7 @@ jobs:
         run: bun type-check
 
   frontend:
-    name: Frontend (lint + type-check + build)
+    name: Frontend (lint + build)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
