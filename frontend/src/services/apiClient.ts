@@ -13,9 +13,11 @@ import type {
   ApiMeetingSummary,
 } from '../../../elysia-server/src/types/api'
 
-// Use relative URL to leverage Vite's proxy (avoids CORS issues)
-// The proxy in vite.config.ts will forward /api/* requests to the backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Empty string => relative /api paths.
+//   dev:  Vite's /api proxy forwards to the API server (vite.config.ts).
+//   prod: nginx in the same container proxies to BACKEND_URL.
+// Set VITE_API_URL at build time only if the bundle should hit the API directly.
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 // Health check response type
 export interface HealthCheckResponse {
