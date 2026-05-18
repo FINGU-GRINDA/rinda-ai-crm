@@ -69,7 +69,7 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
               <IconKey className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -138,13 +138,13 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
                     ? 'border-emerald-300 bg-emerald-50 focus:ring-emerald-500'
                     : validationStatus === 'invalid'
                     ? 'border-red-300 bg-red-50 focus:ring-red-500'
-                    : 'border-slate-300 bg-white focus:ring-indigo-500'
+                    : 'border-slate-300 bg-white focus:ring-blue-500'
                 }`}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {/* Validation Status Icon */}
                 {validationStatus === 'validating' && (
-                  <IconLoader className="w-5 h-5 text-indigo-600 animate-spin" />
+                  <IconLoader className="w-5 h-5 text-blue-600 animate-spin" />
                 )}
                 {validationStatus === 'valid' && (
                   <IconCheck className="w-5 h-5 text-emerald-600" />
@@ -186,9 +186,9 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
 
             {/* Validation in progress */}
             {validationStatus === 'validating' && (
-              <p className="mt-2 text-xs text-indigo-600 flex items-center gap-1">
+              <p className="mt-2 text-xs text-blue-600 flex items-center gap-1">
                 <IconLoader className="w-3 h-3 animate-spin" />
-                API Key 검증 중...
+                API Key를 검증하는 중입니다
               </p>
             )}
           </div>
@@ -231,15 +231,15 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ isOpen, onClose 
               <button
                 onClick={validateApiKey}
                 disabled={isValidating}
-                className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isValidating ? '검증 중...' : '검증하기'}
+                {isValidating ? '검증하는 중입니다' : '검증하기'}
               </button>
             )}
             <button
               onClick={handleSave}
               disabled={apiKey.length > 0 && validationStatus !== 'valid'}
-              className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-400"
+              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {validationStatus === 'valid' ? '저장하기' : '확인'}
             </button>

@@ -139,11 +139,11 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
   const getProbabilityColor = (prob: string) => {
     switch (prob) {
       case 'high':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'low':
-        return 'bg-red-100 text-red-700 border-red-200';
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
         return 'bg-slate-100 text-slate-700 border-slate-200';
     }
@@ -164,10 +164,10 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
 
   if (isGenerating) {
     return (
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-xl p-10 text-center">
+      <div className="bg-gradient-to-b from-slate-50 to-white border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
         <IconLoader className="w-8 h-8 text-blue-600 mx-auto mb-4 animate-spin" />
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">AI 전략 생성 중...</h4>
-        <p className="text-slate-500 text-sm">잠시만 기다려주세요.</p>
+        <h4 className="text-sm font-semibold text-slate-700 mb-2">AI가 전략을 세우는 중입니다</h4>
+        <p className="text-slate-500 text-sm">잠시만 기다려 주세요</p>
       </div>
     );
   }
@@ -177,7 +177,7 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
       <div className="bg-red-50 border border-red-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-2">
           <IconX className="w-5 h-5 text-red-600" />
-          <h4 className="text-sm font-semibold text-red-800">오류 발생</h4>
+          <h4 className="text-sm font-semibold text-red-800">전략을 만들지 못했어요</h4>
         </div>
         <p className="text-sm text-red-700 mb-4">{error}</p>
         <button
@@ -192,19 +192,19 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
 
   if (!strategy || !message) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <IconBrain className="w-8 h-8 text-blue-600" />
+      <div className="bg-gradient-to-b from-slate-50 to-white border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
+        <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <IconBrain className="w-8 h-8 text-violet-600" />
         </div>
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">Follow Up 전략 없음</h4>
+        <h4 className="text-sm font-semibold text-slate-700 mb-2">아직 후속 전략이 없습니다</h4>
         <p className="text-slate-500 text-sm mb-4">
-          AI가 재접촉 전략을 생성하도록 하시겠습니까?
+          AI가 재접촉 전략을 만들어 드릴까요?
         </p>
         <button
           onClick={generateStrategy}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
         >
-          전략 생성하기
+          전략 만들기
         </button>
       </div>
     );
@@ -213,31 +213,31 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
   return (
     <div className="space-y-6">
       {/* 전략 요약 */}
-      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-5">
+      <div className="bg-violet-50 border border-violet-100 rounded-xl p-5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-2">
-            <IconBrain className="w-5 h-5 text-indigo-600" />
+            <IconBrain className="w-5 h-5 text-violet-600" />
             <h3 className="text-sm font-bold text-slate-800">AI 재접촉 전략</h3>
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getProbabilityColor(strategy.probability)}`}>
-            성공 가능성: {getProbabilityLabel(strategy.probability)}
+            성공 가능성 {getProbabilityLabel(strategy.probability)}
           </span>
         </div>
-        
+
         <div className="space-y-3 text-sm">
           <div>
-            <span className="font-semibold text-slate-700">접근 방법:</span>
+            <span className="font-semibold text-slate-700">접근 방법</span>
             <p className="text-slate-600 mt-1">{strategy.approach}</p>
           </div>
-          
+
           <div>
-            <span className="font-semibold text-slate-700">메시지 톤:</span>
+            <span className="font-semibold text-slate-700">메시지 톤</span>
             <p className="text-slate-600 mt-1">{strategy.messageTone}</p>
           </div>
-          
+
           {strategy.keyPoints.length > 0 && (
             <div>
-              <span className="font-semibold text-slate-700">핵심 포인트:</span>
+              <span className="font-semibold text-slate-700">핵심 포인트</span>
               <ul className="list-disc list-inside mt-1 space-y-1 text-slate-600">
                 {strategy.keyPoints.map((point, idx) => (
                   <li key={idx}>{point}</li>
@@ -245,14 +245,14 @@ export const FollowUpPanel: React.FC<FollowUpPanelProps> = ({
               </ul>
             </div>
           )}
-          
+
           {timing && (
-            <div className="flex items-center gap-2 pt-2 border-t border-indigo-200">
-              <IconClock className="w-4 h-4 text-indigo-600" />
+            <div className="flex items-center gap-2 pt-2 border-t border-violet-200">
+              <IconClock className="w-4 h-4 text-violet-600" />
               <div>
-                <span className="font-semibold text-slate-700">권장 시기: </span>
+                <span className="font-semibold text-slate-700">권장 시기 </span>
                 <span className="text-slate-600">
-                  {timing.days === 0 ? '즉시' : `${timing.days}일 후`} ({timing.date.toLocaleDateString('ko-KR')})
+                  {timing.days === 0 ? '바로 진행' : `${timing.days}일 후`} ({timing.date.toLocaleDateString('ko-KR')})
                 </span>
               </div>
             </div>

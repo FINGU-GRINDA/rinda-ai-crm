@@ -35,19 +35,20 @@ export const FollowUpSchedulerHeader: React.FC<FollowUpSchedulerHeaderProps> = (
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
         isActive
-          ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+          ? 'bg-blue-100 text-blue-700 shadow-sm'
           : hasOverdue
           ? 'bg-red-50 text-red-700 hover:bg-red-100'
           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
       }`}
-      title="자동 Follow-up 스케줄 관리"
+      title="자동 후속 액션 스케줄"
+      aria-label="자동 후속 액션 스케줄"
     >
       {hasOverdue ? (
         <IconAlertCircle className="w-4 h-4" />
       ) : (
         <IconClock className="w-4 h-4" />
       )}
-      <span className="text-sm font-medium hidden sm:inline">Follow-up</span>
+      <span className="text-sm font-medium hidden sm:inline">후속 액션</span>
       {totalPending > 0 && (
         <span
           className={`min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs font-bold transition-all ${

@@ -86,7 +86,7 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
                 ${isActive
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-slate-100 text-slate-600'
                 }
               `}
@@ -115,15 +115,15 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
             className={`
               flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all
               ${isActive
-                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }
             `}
           >
-            <Icon className={`w-5 h-5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+            <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className={`text-sm font-medium truncate ${isActive ? 'text-indigo-700' : ''}`}>
+                <span className={`text-sm font-medium truncate ${isActive ? 'text-blue-700' : ''}`}>
                   {tab.label}
                 </span>
                 {getStatusBadge(tab.id)}

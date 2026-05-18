@@ -11,43 +11,43 @@ interface Props {
 export const EnrichmentPanel: React.FC<Props> = ({ data, isLoading, lastEnrichedAt }) => {
   if (isLoading) {
     return (
-      <div className="p-6 border border-blue-100 bg-blue-50/50 rounded-xl animate-pulse">
+      <div className="p-6 border border-violet-100 bg-violet-50 rounded-xl animate-pulse">
         <div className="flex items-center space-x-3 mb-4">
-          <IconSearch className="w-5 h-5 text-blue-600 animate-spin" />
-          <span className="text-blue-700 font-medium">AI가 회사 정보를 찾고 있어요...</span>
+          <IconSearch className="w-5 h-5 text-violet-600 animate-spin" />
+          <span className="text-violet-700 font-medium">AI가 회사 정보를 찾고 있어요</span>
         </div>
-        <div className="h-4 bg-blue-200 rounded w-3/4 mb-2"></div>
-        <div className="h-4 bg-blue-200 rounded w-1/2"></div>
+        <div className="h-4 bg-violet-200 rounded w-3/4 mb-2"></div>
+        <div className="h-4 bg-violet-200 rounded w-1/2"></div>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-300">
-      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 px-6 py-3 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <h3 className="text-sm font-semibold text-blue-900 flex items-center">
-          <IconBuilding className="w-4 h-4 mr-2" />
+      <div className="bg-slate-50 px-6 py-3 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <h3 className="text-sm font-semibold text-slate-900 flex items-center">
+          <IconBuilding className="w-4 h-4 mr-2 text-blue-600" />
           AI가 찾아낸 회사 정보
         </h3>
         {lastEnrichedAt && (
            <span className="text-xs text-slate-500 bg-white px-2 py-1 rounded-full border border-slate-200">
-             분석 시각: {new Date(lastEnrichedAt).toLocaleString('ko-KR', { 
-               year: 'numeric', 
-               month: 'short', 
+             {new Date(lastEnrichedAt).toLocaleString('ko-KR', {
+               year: 'numeric',
+               month: 'short',
                day: 'numeric',
                hour: '2-digit',
                minute: '2-digit'
-             })}
+             })}에 수집
            </span>
         )}
       </div>
-      
+
       <div className="p-6 space-y-6">
-        {/* Sales Opportunity - New Feature */}
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200 shadow-sm">
-          <h4 className="text-xs uppercase tracking-wider text-indigo-700 font-bold mb-3 flex items-center">
-            <IconBrain className="w-4 h-4 mr-2 text-indigo-600" />
-            💡 AI가 발견한 영업 기회
+        {/* Sales Opportunity - AI accent */}
+        <div className="bg-violet-50 p-4 rounded-lg border border-violet-100 shadow-sm">
+          <h4 className="text-xs uppercase tracking-wider text-violet-700 font-bold mb-3 flex items-center">
+            <IconBrain className="w-4 h-4 mr-2 text-violet-600" />
+            AI가 발견한 영업 기회
           </h4>
           <p className="text-slate-800 text-sm font-medium leading-relaxed">{data.salesOpportunity}</p>
         </div>
@@ -60,11 +60,11 @@ export const EnrichmentPanel: React.FC<Props> = ({ data, isLoading, lastEnriched
 
         {/* Key Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="text-xs text-slate-500 mb-1 font-medium">CEO</div>
+          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+            <div className="text-xs text-slate-500 mb-1 font-medium">대표</div>
             <div className="font-semibold text-slate-800 text-sm">{data.ceo || '정보 없음'}</div>
           </div>
-          <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
             <div className="text-xs text-slate-500 mb-1 font-medium">설립 연도</div>
             <div className="font-semibold text-slate-800 text-sm">{data.foundedYear || '정보 없음'}</div>
           </div>

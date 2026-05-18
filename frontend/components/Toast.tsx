@@ -43,14 +43,14 @@ export const Toast: React.FC<ToastProps> = ({
   const typeStyles = {
     success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
     error: 'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+    warning: 'bg-amber-50 border-amber-200 text-amber-800',
     info: 'bg-blue-50 border-blue-200 text-blue-800'
   };
 
   const icons = {
     success: <IconCheck className="w-5 h-5 text-emerald-600" />,
     error: <IconX className="w-5 h-5 text-red-600" />,
-    warning: <IconClock className="w-5 h-5 text-yellow-600" />,
+    warning: <IconClock className="w-5 h-5 text-amber-600" />,
     info: <IconLightbulb className="w-5 h-5 text-blue-600" />
   };
 

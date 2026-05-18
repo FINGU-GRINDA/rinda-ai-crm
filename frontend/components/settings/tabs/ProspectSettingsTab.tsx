@@ -219,9 +219,9 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
       </div>
 
       {/* Collection Settings Section */}
-      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-5 border border-purple-200">
+      <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
         <div className="flex items-center gap-2 mb-4">
-          <IconSparkles className="w-5 h-5 text-purple-600" />
+          <IconSparkles className="w-5 h-5 text-blue-600" />
           <h4 className="text-base font-semibold text-slate-800">수집 설정</h4>
         </div>
 
@@ -239,7 +239,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 onChange={(e) => handleSettingsChange({ autoRun: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
@@ -268,11 +268,11 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
           </div>
 
           {/* Manual Run Button */}
-          <div className="pt-2 border-t border-purple-200">
+          <div className="pt-2 border-t border-slate-200">
             <button
               onClick={handleManualRun}
               disabled={isRunning || profiles.length === 0}
-              className="w-full py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+              className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
             >
               {isRunning ? (
                 <>
@@ -287,10 +287,10 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
               )}
             </button>
             {lastRunResult && (
-              <div className="mt-3 p-3 bg-white rounded-lg border border-purple-200">
+              <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200">
                 <p className="text-sm text-slate-700">
                   <span className="font-semibold">최근 수집 결과:</span> {lastRunResult.totalArticles}개 기사 분석,
-                  <span className="text-purple-600 font-semibold"> {lastRunResult.newProspects}개</span> 잠재 고객 발견
+                  <span className="text-blue-600 font-semibold"> {lastRunResult.newProspects}개</span> 잠재 고객 발견
                 </p>
               </div>
             )}
@@ -332,7 +332,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 className="flex-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 placeholder="예: SaaS"
               />
-              <button onClick={addIndustry} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+              <button onClick={addIndustry} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
                 추가
               </button>
             </div>
@@ -359,15 +359,15 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 className="flex-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 placeholder="예: AI, 자동화, 클라우드"
               />
-              <button onClick={addKeyword} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+              <button onClick={addKeyword} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
                 추가
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
               {formData.keywords?.map((keyword, index) => (
-                <span key={index} className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-sm">
+                <span key={index} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
                   {keyword}
-                  <button onClick={() => removeKeyword(index)} className="text-indigo-700 hover:text-indigo-900">
+                  <button onClick={() => removeKeyword(index)} className="text-blue-700 hover:text-blue-900">
                     <IconX className="w-3 h-3" />
                   </button>
                 </span>
@@ -389,7 +389,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
           <div className="flex gap-3">
             <button
               onClick={handleSave}
-              className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center justify-center gap-2"
+              className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
             >
               <IconCheck className="w-4 h-4" />
               {editingId ? '수정 저장' : '프로필 추가'}
@@ -415,7 +415,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 <div className="flex justify-between items-start mb-2">
                   <h5 className="font-semibold text-slate-800">{profile.name}</h5>
                   <div className="flex gap-2">
-                    <button onClick={() => handleEdit(profile)} className="text-indigo-600 hover:text-indigo-700 text-sm">
+                    <button onClick={() => handleEdit(profile)} className="text-blue-600 hover:text-blue-700 text-sm">
                       수정
                     </button>
                     <button onClick={() => handleDelete(profile.id)} className="text-red-600 hover:text-red-700 text-sm">

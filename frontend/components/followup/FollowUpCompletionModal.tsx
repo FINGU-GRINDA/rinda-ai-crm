@@ -31,11 +31,11 @@ const getTypeIcon = (type: FollowUpType) => {
     case 'email':
       return <IconMail className="w-4 h-4 text-blue-600" />;
     case 'call':
-      return <IconMessageSquare className="w-4 h-4 text-green-600" />;
+      return <IconMessageSquare className="w-4 h-4 text-emerald-600" />;
     case 'meeting':
-      return <IconCalendar className="w-4 h-4 text-purple-600" />;
+      return <IconCalendar className="w-4 h-4 text-amber-600" />;
     case 'message':
-      return <IconMessageSquare className="w-4 h-4 text-orange-600" />;
+      return <IconMessageSquare className="w-4 h-4 text-slate-600" />;
     default:
       return <IconMail className="w-4 h-4 text-slate-600" />;
   }
@@ -88,7 +88,7 @@ export const FollowUpCompletionModal: React.FC<FollowUpCompletionModalProps> = (
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <IconCheck className="w-5 h-5 text-emerald-600" />
-            Follow-up 완료 처리
+            후속 액션 완료 처리
           </h2>
           <button
             onClick={onCancel}
@@ -117,9 +117,9 @@ export const FollowUpCompletionModal: React.FC<FollowUpCompletionModalProps> = (
                   </span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     followUp.priority === 'high'
-                      ? 'bg-red-100 text-red-700'
+                      ? 'bg-red-50 text-red-700'
                       : followUp.priority === 'medium'
-                      ? 'bg-yellow-100 text-yellow-700'
+                      ? 'bg-amber-50 text-amber-700'
                       : 'bg-slate-100 text-slate-700'
                   }`}>
                     {followUp.priority === 'high' ? '높음' : followUp.priority === 'medium' ? '보통' : '낮음'}

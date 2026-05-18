@@ -43,7 +43,7 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
         {/* Business Card Scan Button */}
         <button
           onClick={handleBusinessCardClick}
-          className="flex items-center gap-3 bg-purple-600 text-white pl-4 pr-5 py-3 rounded-full shadow-lg hover:bg-purple-700 active:scale-95 transition-all whitespace-nowrap"
+          className="flex items-center gap-3 bg-violet-600 text-white pl-4 pr-5 py-3 rounded-full shadow-lg hover:bg-violet-700 active:scale-95 transition-all whitespace-nowrap"
         >
           <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
             <CreditCard className="w-4 h-4" />
@@ -69,9 +69,9 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
         className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 active:scale-95 ${
           isExpanded
             ? 'bg-slate-700 rotate-45'
-            : 'bg-gradient-to-br from-emerald-500 to-teal-600'
+            : 'bg-blue-600 hover:bg-blue-700'
         }`}
-        aria-label={isExpanded ? '닫기' : '빠른 액션'}
+        aria-label={isExpanded ? '닫기' : '빠른 작업'}
       >
         {isExpanded ? (
           <X className="w-5 h-5 text-white" />
