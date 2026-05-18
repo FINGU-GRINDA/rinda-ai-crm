@@ -12,12 +12,15 @@ interface TabNavigationProps {
     meetings: number;
     icp: number;
   };
+  // Per-tab "in progress" indicator (e.g. icp tab when AI discovery is running).
+  busy?: Partial<Record<TabType, boolean>>;
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab,
   onTabChange,
-  counts
+  counts,
+  busy,
 }) => {
   const tabs: { id: TabType; label: string; icon: React.ReactNode; count: number }[] = [
     {
@@ -82,6 +85,16 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
             >
               {tab.count}
             </span>
+            {busy?.[tab.id] && (
+              <span
+                className="relative inline-flex h-2 w-2"
+                aria-label="진행 중"
+                title="진행 중"
+              >
+                <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+            )}
           </button>
         ))}
       </div>
