@@ -423,13 +423,11 @@ export const filterFollowUps = (
   }
 
   // Filter by date range
-  if (filters.dateRange) {
+  const { dateRange } = filters
+  if (dateRange) {
     result = result.filter((f) => {
       const scheduledForTimestamp = new Date(f.scheduledFor).getTime()
-      return (
-        scheduledForTimestamp >= filters.dateRange?.start &&
-        scheduledForTimestamp <= filters.dateRange?.end
-      )
+      return scheduledForTimestamp >= dateRange.start && scheduledForTimestamp <= dateRange.end
     })
   }
 

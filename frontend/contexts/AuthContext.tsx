@@ -36,6 +36,28 @@ export function useAuth() {
   return context
 }
 
+function isUser(value: unknown): value is User {
+  if (typeof value !== "object" || value === null) return false
+  const v = value as Record<string, unknown>
+  return (
+    typeof v.id === "string" &&
+    typeof v.email === "string" &&
+    typeof v.name === "string" &&
+    typeof v.emailVerified === "boolean" &&
+    (v.picture === undefined || typeof v.picture === "string")
+  )
+}
+
+function extractUser(data: unknown): User | null {
+  if (isUser(data)) return data
+  // Some endpoints wrap the user under a `user` key
+  if (typeof data === "object" && data !== null && "user" in data) {
+    const wrapped = (data as { user: unknown }).user
+    if (isUser(wrapped)) return wrapped
+  }
+  return null
+}
+
 interface AuthProviderProps {
   children: ReactNode
 }
@@ -48,7 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.getCurrentUser()
       if (response.success && response.data) {
-        setUser(response.data as unknown as User)
+        setUser(extractUser(response.data))
       } else {
         setUser(null)
       }
@@ -68,7 +90,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.register({ email, password, name })
       if (response.success && response.data) {
-        setUser(response.data.user as User)
+        const parsed = extractUser(response.data)
+        if (!parsed) {
+          return { success: false, error: "Invalid registration response" }
+        }
+        setUser(parsed)
         return { success: true }
       }
       return { success: false, error: getErrorMessage(response) || "Registration failed" }
@@ -82,7 +108,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.login({ email, password })
       if (response.success && response.data) {
-        setUser(response.data.user as User)
+        const parsed = extractUser(response.data)
+        if (!parsed) {
+          return { success: false, error: "Invalid login response" }
+        }
+        setUser(parsed)
         return { success: true }
       }
       return { success: false, error: getErrorMessage(response) || "Login failed" }
@@ -116,7 +146,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.getCurrentUser()
       if (response.success && response.data) {
-        setUser(response.data as unknown as User)
+        const parsed = extractUser(response.data)
+        if (!parsed) {
+          return { success: false }
+        }
+        setUser(parsed)
         return { success: true }
       }
       return { success: false }
