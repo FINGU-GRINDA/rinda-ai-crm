@@ -26,7 +26,8 @@ export const Input: React.FC<InputProps> = ({
   id,
   ...inputProps
 }) => {
-  const inputId = id || React.useId()
+  const generatedId = React.useId()
+  const inputId = id || generatedId
   const hintId = hint || error ? `${inputId}-desc` : undefined
   const hasError = Boolean(error)
 

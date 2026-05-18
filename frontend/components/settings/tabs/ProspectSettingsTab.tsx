@@ -356,7 +356,12 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 type="text"
                 value={industryInput}
                 onChange={(e) => setIndustryInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addIndustry())}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    addIndustry()
+                  }
+                }}
                 className="flex-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 placeholder="예: SaaS"
               />
@@ -394,7 +399,12 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 type="text"
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addKeyword())}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    addKeyword()
+                  }
+                }}
                 className="flex-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 placeholder="예: AI, 자동화, 클라우드"
               />

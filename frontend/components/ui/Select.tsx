@@ -23,7 +23,8 @@ export const Select: React.FC<SelectProps> = ({
   children,
   ...rest
 }) => {
-  const selectId = id || React.useId()
+  const generatedId = React.useId()
+  const selectId = id || generatedId
   const hintId = hint || error ? `${selectId}-desc` : undefined
   const hasError = Boolean(error)
 

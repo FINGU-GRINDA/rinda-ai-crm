@@ -71,9 +71,8 @@ const PRESET_REGIONS: RegionPreset[] = [
   { name: "호주", flag: "🇦🇺" },
 ]
 
-const REGION_FLAGS: Record<string, string> = PRESET_REGIONS.reduce(
-  (acc, r) => ({ ...acc, [r.name]: r.flag }),
-  {} as Record<string, string>,
+const REGION_FLAGS: Record<string, string> = Object.fromEntries(
+  PRESET_REGIONS.map((r) => [r.name, r.flag]),
 )
 
 // Heuristic: guess a flag from a free-form region/country string
