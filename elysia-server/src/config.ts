@@ -13,15 +13,10 @@ export const isProduction = NODE_ENV === "production"
 export const isTest = NODE_ENV === "test"
 
 const configSchema = z.object({
-  // Database
+  // Database — single source of truth, parsed by pg / drizzle.
   DATABASE_URL: z.string().default("postgres://postgres:postgres@localhost:5432/postgres"),
   DB_POOL_MIN: z.coerce.number().default(2), // Default: 2
   DB_POOL_MAX: z.coerce.number().default(10), // Default: 10
-  DB_HOST: z.string().default("localhost"), // Default: localhost
-  DB_PORT: z.coerce.number().default(5432), // Default: 5432
-  DB_USER: z.string().default("postgres"), // Default: postgres
-  DB_PASSWORD: z.string().default("postgres"), // Default: postgres
-  DB_NAME: z.string().default("postgres"), // Default: postgres
 
   // Server
   PORT: z.coerce.number().default(3001),
