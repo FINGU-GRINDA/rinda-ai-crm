@@ -284,10 +284,10 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-slate-200 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all"
+                  className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all"
                 >
-                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Upload className="w-6 h-6 text-purple-600" />
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Upload className="w-6 h-6 text-blue-600" />
                   </div>
                   <span className="text-sm font-medium text-slate-700">파일 업로드</span>
                 </button>
@@ -407,7 +407,7 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
           {/* Mode: Complete (Ready to summarize) */}
           {recordingStatus === 'complete' && (
             <div className="space-y-6">
-              <div className="flex items-center gap-2 text-green-600 mb-4">
+              <div className="flex items-center gap-2 text-emerald-600 mb-4">
                 <Check className="w-5 h-5" />
                 <span className="font-medium">녹음 완료</span>
               </div>
@@ -512,7 +512,7 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
           {/* Summary Result */}
           {summaryResult && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-600 mb-4">
+              <div className="flex items-center gap-2 text-emerald-600 mb-4">
                 <Check className="w-5 h-5" />
                 <span className="font-medium">요약 완료</span>
               </div>
@@ -545,7 +545,7 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
               )}
 
               {summaryResult.nextSteps.length > 0 && (
-                <div className="p-4 bg-green-50 rounded-xl">
+                <div className="p-4 bg-emerald-50 rounded-xl">
                   <h4 className="font-medium text-slate-800 mb-2">다음 단계</h4>
                   <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
                     {summaryResult.nextSteps.map((item, i) => (

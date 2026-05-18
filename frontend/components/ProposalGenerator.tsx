@@ -173,19 +173,19 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
                         onClick={() => setGenerationMode('background')}
                         className={`p-4 rounded-xl border-2 text-left transition-all ${
                           generationMode === 'background'
-                            ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                            : 'border-slate-200 bg-white hover:border-indigo-300'
+                            ? 'border-violet-500 bg-violet-50 shadow-md'
+                            : 'border-slate-200 bg-white hover:border-violet-300'
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            generationMode === 'background' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'
+                            generationMode === 'background' ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-500'
                           }`}>
                             <IconClock className="w-5 h-5" />
                           </div>
                           <div className="flex-1">
                             <h4 className={`font-semibold text-sm ${
-                              generationMode === 'background' ? 'text-indigo-900' : 'text-slate-700'
+                              generationMode === 'background' ? 'text-violet-900' : 'text-slate-700'
                             }`}>
                               백그라운드에서 생성
                               <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
@@ -261,7 +261,7 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
           {(status === 'thinking' || status === 'generating_image') && (
             <div className="flex flex-col items-center justify-center h-64 space-y-6">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400 blur-xl opacity-30 animate-pulse rounded-full"></div>
+                <div className="absolute inset-0 bg-blue-400 blur-xl opacity-30 animate-pulse rounded-full"></div>
                 <IconLoader className="w-12 h-12 text-blue-600 animate-spin relative z-10" />
               </div>
               <h3 className="text-lg font-medium text-slate-800 animate-pulse">
@@ -271,7 +271,7 @@ export const ProposalGenerator: React.FC<Props> = ({ customer, onClose, onSave }
                 <ul className="text-sm space-y-2.5">
                   {stepLog.map((log, i) => (
                     <li key={i} className="flex items-center text-slate-700 bg-white px-3 py-2 rounded border border-slate-100">
-                      <IconCheck className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                      <IconCheck className="w-4 h-4 text-emerald-500 mr-2 flex-shrink-0" />
                       <span className="flex-1">{log}</span>
                     </li>
                   ))}

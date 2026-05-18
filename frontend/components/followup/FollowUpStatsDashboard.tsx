@@ -100,16 +100,16 @@ export const FollowUpStatsDashboard: React.FC<FollowUpStatsDashboardProps> = ({
         <div className="bg-white border border-slate-200 rounded-xl p-3">
           <p className="text-xs text-slate-500 mb-2">유형별</p>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+            <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-full">
               이메일 {stats.byType.email}
             </span>
-            <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
+            <span className="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
               전화 {stats.byType.call}
             </span>
-            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+            <span className="text-xs px-2 py-1 bg-amber-50 text-amber-700 rounded-full">
               미팅 {stats.byType.meeting}
             </span>
-            <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-full">
+            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-700 rounded-full">
               메시지 {stats.byType.message}
             </span>
           </div>

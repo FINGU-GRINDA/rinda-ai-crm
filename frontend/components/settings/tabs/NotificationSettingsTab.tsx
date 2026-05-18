@@ -125,7 +125,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
@@ -142,7 +142,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                   type="checkbox"
                   checked={settings.browser.types.followUp}
                   onChange={(e) => handleBrowserTypeChange('followUp', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
 
@@ -155,7 +155,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                   type="checkbox"
                   checked={settings.browser.types.meeting}
                   onChange={(e) => handleBrowserTypeChange('meeting', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
 
@@ -168,7 +168,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                   type="checkbox"
                   checked={settings.browser.types.news}
                   onChange={(e) => handleBrowserTypeChange('news', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
 
@@ -181,7 +181,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                   type="checkbox"
                   checked={settings.browser.types.prospect}
                   onChange={(e) => handleBrowserTypeChange('prospect', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
 
@@ -194,7 +194,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                   type="checkbox"
                   checked={settings.browser.types.risk}
                   onChange={(e) => handleBrowserTypeChange('risk', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
             </div>
@@ -222,7 +222,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 onChange={(e) => handleEmailSettingsChange({ enabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
@@ -237,7 +237,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                   type="checkbox"
                   checked={settings.email.dailyDigest}
                   onChange={(e) => handleEmailSettingsChange({ dailyDigest: e.target.checked })}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </div>
 

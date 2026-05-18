@@ -120,13 +120,13 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
       }`}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center touch-target"
+          className="w-12 h-12 md:w-14 md:h-14 bg-violet-600 text-white rounded-full shadow-lg hover:bg-violet-700 hover:shadow-xl transition-all flex items-center justify-center touch-target"
           aria-label="AI 어시스턴트 열기"
         >
           <IconBrain className="w-5 h-5 md:w-6 md:h-6" />
         </button>
         {/* Label - Mobile only */}
-        <span className="absolute -top-1 -right-1 md:hidden px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full shadow-sm">
+        <span className="absolute -top-1 -right-1 md:hidden px-1.5 py-0.5 bg-violet-700 text-white text-[10px] font-bold rounded-full shadow-sm">
           AI
         </span>
       </div>
@@ -135,14 +135,14 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
       {isOpen && (
         <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-6 md:w-96 md:h-[600px] bg-white md:border md:border-slate-200 md:rounded-xl shadow-2xl z-50 flex flex-col safe-bottom">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-violet-50">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center">
                 <IconBrain className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-800">AI 어시스턴트</h3>
-                <p className="text-xs text-slate-500">자연어로 CRM을 제어하세요</p>
+                <p className="text-xs text-slate-500">대화로 CRM을 다뤄 보세요</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -180,9 +180,9 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
                   {message.metadata?.result && (
                     <div className="mt-2 pt-2 border-t border-opacity-20">
                       {message.metadata.result.success ? (
-                        <span className="text-xs opacity-75">✓ 작업 완료</span>
+                        <span className="text-xs opacity-75">완료됐어요</span>
                       ) : (
-                        <span className="text-xs opacity-75">✗ 작업 실패</span>
+                        <span className="text-xs opacity-75">처리하지 못했어요</span>
                       )}
                     </div>
                   )}
@@ -194,8 +194,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
               <div className="flex justify-start">
                 <div className="bg-slate-100 rounded-lg px-4 py-2">
                   <div className="flex items-center gap-2">
-                    <IconLoader className="w-4 h-4 animate-spin text-blue-600" />
-                    <span className="text-sm text-slate-600">생각 중...</span>
+                    <IconLoader className="w-4 h-4 animate-spin text-violet-600" />
+                    <span className="text-sm text-slate-600">생각하는 중입니다</span>
                   </div>
                 </div>
               </div>
@@ -213,7 +213,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="메시지를 입력하세요..."
+                placeholder="무엇을 도와드릴까요?"
                 className="flex-1 px-4 py-3 md:py-2 text-base md:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 disabled={isLoading}
               />
@@ -227,7 +227,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
               </button>
             </div>
             <p className="text-xs text-slate-400 mt-2 hidden md:block">
-              예: "삼성전자 분석해줘", "제안서 만들어줘", "고객 통계 보여줘"
+              예: ‘삼성전자 분석해 줘’, ‘제안서 만들어 줘’, ‘고객 통계 보여 줘’
             </p>
           </div>
         </div>

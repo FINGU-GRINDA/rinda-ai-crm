@@ -28,7 +28,7 @@ interface UnifiedSettingsProps {
 // Loading spinner for lazy loaded tabs
 const TabLoader: React.FC = () => (
   <div className="flex items-center justify-center h-64">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
   </div>
 );
 
@@ -169,7 +169,7 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-4 md:p-6 py-3 md:py-6 border-b border-slate-200 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-blue-600 flex items-center justify-center">
               <IconSettings className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
@@ -231,16 +231,16 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
               <button
                 onClick={activeFormState.onSave}
                 disabled={activeFormState.isSaving}
-                className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50"
+                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50"
               >
                 {activeFormState.isSaving && <IconLoader className="w-4 h-4 animate-spin" />}
-                {activeFormState.isSaving ? '저장 중...' : '설정 저장'}
+                {activeFormState.isSaving ? '저장하는 중입니다' : '설정 저장'}
               </button>
             </>
           ) : (
             <button
               onClick={onClose}
-              className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all shadow-md hover:shadow-lg"
+              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-md hover:shadow-lg"
             >
               닫기
             </button>

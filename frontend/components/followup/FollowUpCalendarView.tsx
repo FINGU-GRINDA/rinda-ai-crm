@@ -233,9 +233,9 @@ export const FollowUpCalendarView: React.FC<FollowUpCalendarViewProps> = ({
                       }}
                       className={`text-xs px-1.5 py-0.5 rounded truncate cursor-pointer transition-colors ${
                         fu.priority === 'high'
-                          ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                          ? 'bg-red-50 text-red-700 hover:bg-red-100'
                           : fu.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                          ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                       title={`${customer?.name || '알 수 없음'}: ${fu.reason}`}

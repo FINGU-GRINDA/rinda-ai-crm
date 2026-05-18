@@ -222,7 +222,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <Tooltip text="명함 스캔">
               <button
                 onClick={onOpenBusinessCardScanner}
-                className="p-2 rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                className="p-2 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 transition-colors"
+                aria-label="명함 스캔"
               >
                 <CreditCard className="w-4 h-4" />
               </button>
@@ -305,31 +306,31 @@ interface StatsBarProps {
 
 export const StatsBar: React.FC<StatsBarProps> = ({ stats, lastCollectionTime }) => {
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 px-4 md:px-6 py-3 flex flex-wrap items-center gap-4 md:gap-6 text-sm animate-in slide-in-from-top duration-200">
+    <div className="bg-gradient-to-b from-slate-50 to-white border-b border-slate-200 px-4 md:px-6 py-3 flex flex-wrap items-center gap-4 md:gap-6 text-sm animate-in slide-in-from-top duration-200">
       <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium">전체 고객 수</span>
-        <span className="font-bold text-slate-800">{stats.total}개</span>
+        <span className="text-slate-600 font-medium">전체 고객</span>
+        <span className="font-bold text-slate-800">{stats.total}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-slate-600 font-medium">AI 분석 완료</span>
-        <span className="font-bold text-indigo-600">{stats.enriched}개</span>
+        <span className="font-bold text-violet-600">{stats.enriched}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-slate-600 font-medium">작성된 제안서</span>
-        <span className="font-bold text-emerald-600">{stats.proposals}개</span>
+        <span className="font-bold text-blue-600">{stats.proposals}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium">성공한 계약</span>
-        <span className="font-bold text-emerald-700">{stats.byStatus.won}개</span>
+        <span className="text-slate-600 font-medium">성사된 거래</span>
+        <span className="font-bold text-emerald-700">{stats.byStatus.won || 0}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-slate-600 font-medium">잠재 고객</span>
-        <span className="font-bold text-purple-700">{stats.byStatus.prospect || 0}개</span>
+        <span className="font-bold text-slate-800">{stats.byStatus.prospect || 0}</span>
       </div>
       {lastCollectionTime && (
         <div className="flex items-center gap-2">
-          <span className="text-slate-600 font-medium">마지막 수집:</span>
-          <span className="text-slate-700">{new Date(lastCollectionTime).toLocaleTimeString()}</span>
+          <span className="text-slate-600 font-medium">마지막 수집</span>
+          <span className="text-slate-700">{new Date(lastCollectionTime).toLocaleTimeString('ko-KR')}</span>
         </div>
       )}
     </div>

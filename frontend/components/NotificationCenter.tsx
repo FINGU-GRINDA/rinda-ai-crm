@@ -104,12 +104,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     if (priority === 'high') {
       return 'bg-red-50 border-red-200';
     }
-    
+
     switch (type) {
       case 'meeting':
         return 'bg-blue-50 border-blue-200';
       case 'followup':
-        return 'bg-indigo-50 border-indigo-200';
+        return 'bg-amber-50 border-amber-200';
       case 'news':
         return 'bg-emerald-50 border-emerald-200';
       case 'risk':
@@ -191,7 +191,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               disabled={isChecking}
               className="w-full text-xs text-slate-600 hover:text-slate-800 py-1 disabled:opacity-50"
             >
-              {isChecking ? '확인 중...' : '새 알림 확인'}
+              {isChecking ? '확인하는 중입니다' : '새 알림 확인'}
             </button>
           </div>
 
@@ -215,8 +215,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
                       className={`p-4 cursor-pointer hover:bg-slate-50 transition-colors border-l-4 ${
-                        notification.priority === 'high' ? 'border-red-500' : 
-                        notification.priority === 'medium' ? 'border-yellow-500' : 
+                        notification.priority === 'high' ? 'border-red-500' :
+                        notification.priority === 'medium' ? 'border-amber-500' :
                         'border-blue-500'
                       } ${getNotificationColor(notification.type, notification.priority)}`}
                     >

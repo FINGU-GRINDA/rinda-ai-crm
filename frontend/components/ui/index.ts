@@ -3,3 +3,7 @@ export { StatusBadge } from './StatusBadge';
 export { Card } from './Card';
 export { EmptyState } from './EmptyState';
 export { SectionHeader } from './SectionHeader';
+export { Input } from './Input';
+export { Textarea } from './Textarea';
+export { Select } from './Select';
+export { Modal } from './Modal';

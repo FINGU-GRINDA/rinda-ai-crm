@@ -30,7 +30,7 @@ export const TextSkeleton: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
 // Page spinner
 export const PageSpinner: React.FC<{ message?: string }> = ({ message }) => (
   <div className="flex flex-col items-center justify-center h-full p-12">
-    <IconLoader className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
+    <IconLoader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
     {message && (
       <p className="text-sm text-slate-600">{message}</p>
     )}

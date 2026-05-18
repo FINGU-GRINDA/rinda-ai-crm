@@ -41,7 +41,7 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
         </div>
 
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-slate-800">Deal 실패 처리</h2>
+          <h2 className="text-lg font-bold text-slate-800">실주 처리</h2>
           <button
             onClick={onCancel}
             className="text-slate-400 hover:text-slate-600 transition-colors p-2 touch-target"
@@ -53,9 +53,9 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
 
         <div className="mb-4">
           <p className="text-sm text-slate-600 mb-4">
-            <span className="font-semibold text-slate-800">{customerName}</span>의 거래를 Lost Deal로 표시합니다.
+            <span className="font-semibold text-slate-800">{customerName}</span>건을 실주로 처리합니다.
             <br />
-            실패 사유를 입력해주세요. (AI 재접촉 전략 수립에 활용됩니다)
+            실주 사유를 입력해 주세요. AI가 재접촉 전략을 세울 때 활용합니다.
           </p>
         </div>
 
@@ -63,7 +63,7 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
           {/* 빠른 선택 */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              일반적인 사유 (선택)
+              자주 쓰이는 사유 (선택 입력)
             </label>
             <div className="grid grid-cols-2 gap-2">
               {commonReasons.map((commonReason) => (
@@ -107,7 +107,7 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
                   setSelectedReason('기타');
                 }
               }}
-              placeholder="거래 실패의 구체적인 사유를 입력해주세요..."
+              placeholder="실주에 이른 구체적인 사유를 입력해 주세요"
               rows={4}
               className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
             />
@@ -121,12 +121,12 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
             >
               취소
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={!reason.trim()}
               className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Lost Deal로 표시
+              실주로 처리
             </button>
           </div>
         </form>
