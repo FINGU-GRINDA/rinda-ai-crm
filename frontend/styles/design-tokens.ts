@@ -2,6 +2,11 @@
  * Design Tokens - RINDA CRM
  *
  * 전체 앱에서 사용하는 디자인 토큰을 중앙 관리합니다.
+ *
+ * 사용 가능한 색상 패밀리(6종)에만 의존하세요:
+ *   blue(주색·정보), slate(중립), emerald(성공), amber(주의/협상),
+ *   red(위험/실주), violet(AI 단일 액센트)
+ * indigo, purple, rose, fuchsia, green, sky, teal 등은 사용 금지.
  */
 
 export const colors = {
@@ -33,8 +38,73 @@ export const colors = {
   error: '#EF4444',     // Single red (red-500)
 
   // Accent: Minimal accent for special features
-  accent: '#8B5CF6',    // Single purple (violet-500)
+  accent: '#8B5CF6',    // Single violet (violet-500)
 };
+
+// ============================================================
+// SEMANTIC TONE → 색상 매핑 (Badge, 상태 표시에 사용)
+// ============================================================
+export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'accent';
+
+export const toneStyles: Record<Tone, { bg: string; text: string; border: string; dot: string; borderLeft: string }> = {
+  neutral: { bg: 'bg-slate-100',   text: 'text-slate-700',   border: 'border-slate-200',   dot: 'bg-slate-400',   borderLeft: 'border-l-slate-400'   },
+  info:    { bg: 'bg-blue-50',     text: 'text-blue-700',    border: 'border-blue-200',    dot: 'bg-blue-500',    borderLeft: 'border-l-blue-500'    },
+  success: { bg: 'bg-emerald-50',  text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500', borderLeft: 'border-l-emerald-500' },
+  warning: { bg: 'bg-amber-50',    text: 'text-amber-700',   border: 'border-amber-200',   dot: 'bg-amber-500',   borderLeft: 'border-l-amber-500'   },
+  danger:  { bg: 'bg-red-50',      text: 'text-red-700',     border: 'border-red-200',     dot: 'bg-red-500',     borderLeft: 'border-l-red-500'     },
+  accent:  { bg: 'bg-violet-50',   text: 'text-violet-700',  border: 'border-violet-200',  dot: 'bg-violet-500',  borderLeft: 'border-l-violet-500'  },
+};
+
+// ============================================================
+// 고객 상태 (CustomerStatus) 통일 매핑
+// ============================================================
+export type CustomerStatusKey = 'new' | 'contact' | 'negotiation' | 'won' | 'lost';
+
+export const statusBadge: Record<CustomerStatusKey, { label: string; tone: Tone }> = {
+  new:         { label: '신규',    tone: 'neutral' },
+  contact:     { label: '컨택 중', tone: 'info'    },
+  negotiation: { label: '협상 중', tone: 'warning' },
+  won:         { label: '성사',    tone: 'success' },
+  lost:        { label: '실주',    tone: 'danger'  },
+};
+
+// ============================================================
+// 우선순위 통일 매핑
+// ============================================================
+export type PriorityKey = 'high' | 'medium' | 'low';
+
+export const priorityBadge: Record<PriorityKey, { label: string; tone: Tone }> = {
+  high:   { label: '높음', tone: 'danger'  },
+  medium: { label: '보통', tone: 'warning' },
+  low:    { label: '낮음', tone: 'neutral' },
+};
+
+// ============================================================
+// 잠재 고객 신호 강도 매핑
+// ============================================================
+export type SignalKey = 'high' | 'medium' | 'low';
+
+export const signalBadge: Record<SignalKey, { label: string; description: string; tone: Tone }> = {
+  high:   { label: '강한 신호', description: '즉각 대응을 권장합니다', tone: 'success' },
+  medium: { label: '보통 신호', description: '지속 관찰을 권장합니다', tone: 'info'    },
+  low:    { label: '약한 신호', description: '참고 자료로 활용하세요', tone: 'neutral' },
+};
+
+// ============================================================
+// AI 표면 (단일 액센트, 그라데이션 금지)
+// ============================================================
+export const aiSurface = 'bg-violet-50 border border-violet-100 text-violet-900';
+export const aiAccentText = 'text-violet-700';
+export const aiAccentIconBg = 'bg-violet-100';
+
+// ============================================================
+// 허용 그라데이션 (화이트 페이드만)
+// ============================================================
+export const allowedGradients = {
+  heroSlate:  'bg-gradient-to-b from-slate-50 to-white',
+  heroBlue:   'bg-gradient-to-b from-blue-50 to-white',
+  emptyState: 'bg-gradient-to-b from-slate-50 to-white',
+} as const;
 
 export const typography = {
   // Headings

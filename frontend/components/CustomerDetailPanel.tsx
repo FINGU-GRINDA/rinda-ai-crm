@@ -24,6 +24,10 @@ import {
 } from './Icons';
 import { KANBAN_COLUMNS } from './KanbanBoard';
 import { apiClient } from '../src/services/apiClient';
+import { StatusBadge } from './ui/StatusBadge';
+import { Card } from './ui/Card';
+import { EmptyState } from './ui/EmptyState';
+import { aiSurface, aiAccentText, aiAccentIconBg } from '../styles/design-tokens';
 
 // Tooltip Component
 const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => (
@@ -148,16 +152,16 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
               </a>
 
               <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg">
-                <span className="text-xs text-slate-600 font-medium">진행 상태:</span>
+                <span className="text-xs text-slate-600 font-medium">진행 상태</span>
                 <select
                   value={customer.status}
                   onChange={(e) => onStatusChange(e.target.value as CustomerStatus)}
                   className="text-xs font-semibold bg-transparent border-none rounded py-0 pl-1 pr-4 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                  aria-label="진행 상태 변경"
                 >
                   {KANBAN_COLUMNS.map(col => (
                     <option key={col.id} value={col.id}>{col.title}</option>
                   ))}
-                  <option value="lost">Lost Deal</option>
                 </select>
               </div>
             </div>
@@ -174,7 +178,7 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
         <div className="sticky top-[88px] z-10 bg-white border-b border-slate-200 px-6 py-4 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 space-y-2">
-              <Tooltip text="Gemini Agent가 웹 검색을 통해 기업 정보를 수집하고 세일즈 기회를 포착합니다.">
+              <Tooltip text="AI가 웹에서 회사 정보를 찾아 영업 기회를 정리해 드립니다.">
                 <Button
                   variant="secondary"
                   size="md"
@@ -183,9 +187,9 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
                   loadingText={enrichmentProgress.message}
                   icon={<IconBrain className="w-4 h-4" />}
                   fullWidth
-                  aria-label="AI 데이터 분석 실행"
+                  aria-label="회사 정보 자동 채우기"
                 >
-                  데이터 분석 실행
+                  회사 정보 자동 채우기
                 </Button>
               </Tooltip>
 
@@ -199,8 +203,8 @@ export const CustomerDetailPanel: React.FC<CustomerDetailPanelProps> = ({
 
             <Tooltip text={
               !customer?.enrichedData
-                ? "먼저 데이터 분석을 실행하세요"
-                : "데이터와 메모를 바탕으로 제안서 초안과 커버 이미지를 생성합니다"
+                ? "먼저 회사 정보를 자동으로 채워 주세요"
+                : "수집된 정보와 메모를 바탕으로 AI가 제안서 초안과 표지 이미지를 만들어 드립니다"
             }>
               <Button
                 variant="primary"
@@ -343,7 +347,7 @@ const InfoTabContent: React.FC<{
 }> = ({ customer, isEnriching }) => (
   <div className="space-y-6">
     {/* Basic Info Card */}
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
       <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center">
         <IconBuilding className="w-4 h-4 mr-2 text-blue-600" />
         기본 정보
@@ -368,15 +372,7 @@ const InfoTabContent: React.FC<{
         <div className="sm:col-span-2">
           <span className="text-xs font-medium text-slate-600">진행 상태</span>
           <div className="mt-1">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-              customer.status === 'new' ? 'bg-slate-100 text-slate-700' :
-              customer.status === 'contact' ? 'bg-blue-100 text-blue-700' :
-              customer.status === 'negotiation' ? 'bg-indigo-100 text-indigo-700' :
-              customer.status === 'won' ? 'bg-emerald-100 text-emerald-700' :
-              'bg-red-100 text-red-700'
-            }`}>
-              {KANBAN_COLUMNS.find(c => c.id === customer.status)?.title || customer.status}
-            </span>
+            <StatusBadge kind="status" value={customer.status} />
           </div>
         </div>
       </div>
@@ -389,17 +385,17 @@ const InfoTabContent: React.FC<{
           <IconFileText className="w-4 h-4 mr-2 text-blue-600" />
           메모장
         </h3>
-        <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full flex items-center border border-emerald-200 shadow-sm">
+        <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full flex items-center border border-emerald-200">
           <IconCheck className="w-3 h-3 mr-1.5" />
-          자동으로 저장돼요
+          자동으로 저장됐어요
         </span>
       </div>
       <textarea
-        className="w-full text-sm text-slate-700 bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg p-4 border-2 border-slate-200 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none placeholder:text-slate-400"
+        className="w-full text-sm text-slate-700 bg-slate-50 rounded-lg p-4 border-2 border-slate-200 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none placeholder:text-slate-400"
         rows={5}
         value={customer.notes}
         readOnly
-        placeholder="고객과의 대화 내용, 특이사항, 다음 미팅 준비사항 등을 자유롭게 적어보세요..."
+        placeholder="고객과의 대화 내용, 특이 사항, 다음 미팅 준비 사항을 자유롭게 작성해 보세요"
       />
     </div>
 
@@ -411,16 +407,12 @@ const InfoTabContent: React.FC<{
         lastEnrichedAt={customer.lastEnrichedAt}
       />
     ) : (
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <IconBrain className="w-8 h-8 text-blue-600" />
-        </div>
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">아직 분석된 정보가 없어요</h4>
-        <p className="text-slate-500 text-sm leading-relaxed">
-          위의 '데이터 분석 실행' 버튼을 눌러보세요.<br/>
-          AI가 회사 정보를 찾아 영업 기회를 찾아드려요.
-        </p>
-      </div>
+      <EmptyState
+        size="lg"
+        icon={<IconBrain className="w-8 h-8" />}
+        title="아직 수집된 회사 정보가 없습니다"
+        description={<>위의 ‘회사 정보 자동 채우기’ 버튼을 눌러 보세요.<br/>AI가 회사 정보를 찾아 영업 기회를 정리해 드립니다.</>}
+      />
     )}
   </div>
 );
@@ -435,9 +427,9 @@ const ActionTabContent: React.FC<{
   <div className="space-y-6">
     {/* AI Analysis Results */}
     {customer.enrichedData ? (
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center">
-          <IconBrain className="w-4 h-4 mr-2 text-indigo-600" />
+      <Card tone="ai" padding="lg">
+        <h3 className={`text-sm font-bold mb-4 flex items-center ${aiAccentText}`}>
+          <IconBrain className="w-4 h-4 mr-2" />
           AI 분석 결과
         </h3>
         <EnrichmentPanel
@@ -445,24 +437,23 @@ const ActionTabContent: React.FC<{
           isLoading={isEnriching}
           lastEnrichedAt={customer.lastEnrichedAt}
         />
-      </div>
+      </Card>
     ) : (
-      <div className="bg-gradient-to-br from-slate-50 to-indigo-50 border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
-        <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <IconBrain className="w-8 h-8 text-indigo-600" />
-        </div>
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">AI 분석이 필요해요</h4>
-        <p className="text-slate-500 text-sm leading-relaxed mb-4">
-          먼저 AI 분석을 실행하여 고객 정보를 수집해주세요.
-        </p>
-        <button
-          onClick={onEnrichment}
-          disabled={isEnriching}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isEnriching ? '분석 중...' : 'AI 분석 실행하기'}
-        </button>
-      </div>
+      <EmptyState
+        size="lg"
+        icon={<IconBrain className="w-8 h-8" />}
+        title="AI 분석을 시작해 보세요"
+        description="먼저 회사 정보를 자동으로 채우면, AI가 영업 기회를 정리해 드립니다."
+        action={
+          <button
+            onClick={onEnrichment}
+            disabled={isEnriching}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isEnriching ? '정보를 채우는 중입니다…' : '회사 정보 자동 채우기'}
+          </button>
+        }
+      />
     )}
 
     {/* Customer Follow-up Schedule Widget */}
@@ -478,7 +469,7 @@ const ActionTabContent: React.FC<{
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-200 pb-3 flex items-center">
           <IconTrendingUp className="w-4 h-4 mr-2 text-blue-600" />
-          AI Follow Up 전략
+          AI 후속 액션 전략
         </h3>
         <FollowUpPanel
           customer={customer}
@@ -499,27 +490,27 @@ const HistoryTabContent: React.FC<{
     {/* Proposals List */}
     <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
       <h3 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-200 pb-3 flex items-center">
-        <IconFileText className="w-4 h-4 mr-2 text-emerald-600" />
+        <IconFileText className="w-4 h-4 mr-2 text-blue-600" />
         작성한 제안서
         {customer.proposals.length > 0 && (
-          <span className="ml-2 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">
-            {customer.proposals.length}개
+          <span className="ml-2 bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-xs font-semibold">
+            {customer.proposals.length}건
           </span>
         )}
       </h3>
       <div className="space-y-3">
         {customer.proposals.length === 0 ? (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
-            <IconFileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 font-medium mb-1">아직 작성한 제안서가 없어요.</p>
-            <p className="text-xs text-slate-400">위의 '제안서 초안 작성' 버튼을 눌러 AI가 만들어드릴게요.</p>
-          </div>
+          <EmptyState
+            icon={<IconFileText className="w-8 h-8" />}
+            title="아직 작성한 제안서가 없습니다"
+            description="위의 ‘제안서 초안 작성’ 버튼을 누르면 AI가 만들어 드립니다"
+          />
         ) : (
           customer.proposals.map(proposal => (
             <div
               key={proposal.id}
               onClick={() => onSelectProposal(proposal)}
-              className="bg-gradient-to-br from-white to-slate-50 rounded-lg border border-slate-200 shadow-sm overflow-hidden group hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer"
+              className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden group hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
             >
               <div className="flex">
                 {proposal.imageUrl && (
@@ -542,7 +533,7 @@ const HistoryTabContent: React.FC<{
                     <ReactMarkdown allowedElements={['p']}>{proposal.content.substring(0, 150)}</ReactMarkdown>
                   </div>
                   <div className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                    <span>전체보기</span>
+                    <span>전체 보기</span>
                     <IconArrowRight className="w-3 h-3" />
                   </div>
                 </div>
@@ -558,9 +549,9 @@ const HistoryTabContent: React.FC<{
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-200 pb-3 flex items-center">
           <IconTrendingUp className="w-4 h-4 mr-2 text-emerald-600" />
-          Follow Up 이력
-          <span className="ml-2 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">
-            {customer.followUpHistory.length}개
+          후속 액션 이력
+          <span className="ml-2 bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-xs font-semibold">
+            {customer.followUpHistory.length}건
           </span>
         </h3>
         <div className="space-y-3">
@@ -572,9 +563,9 @@ const HistoryTabContent: React.FC<{
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                    action.type === 'email' ? 'bg-blue-100 text-blue-700' :
-                    action.type === 'call' ? 'bg-purple-100 text-purple-700' :
-                    action.type === 'meeting' ? 'bg-indigo-100 text-indigo-700' :
+                    action.type === 'email' ? 'bg-blue-50 text-blue-700' :
+                    action.type === 'call' ? 'bg-emerald-50 text-emerald-700' :
+                    action.type === 'meeting' ? 'bg-amber-50 text-amber-700' :
                     'bg-slate-100 text-slate-700'
                   }`}>
                     {action.type === 'email' ? '이메일' :
@@ -586,8 +577,8 @@ const HistoryTabContent: React.FC<{
                   </span>
                 </div>
                 <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                  action.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                  action.status === 'planned' ? 'bg-yellow-100 text-yellow-700' :
+                  action.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
+                  action.status === 'planned' ? 'bg-amber-50 text-amber-700' :
                   'bg-slate-100 text-slate-700'
                 }`}>
                   {action.status === 'completed' ? '완료' :
@@ -617,7 +608,7 @@ const MeetingTabContent: React.FC<{
         <div className="animate-spin">
           <IconMessageSquare className="w-8 h-8 text-blue-600" />
         </div>
-        <span className="ml-3 text-slate-600 text-sm">미팅 이력 불러오는 중...</span>
+        <span className="ml-3 text-slate-600 text-sm">미팅 기록을 불러오는 중입니다</span>
       </div>
     );
   }
@@ -627,17 +618,18 @@ const MeetingTabContent: React.FC<{
       {/* Header with refresh */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-slate-800 flex items-center">
-          <IconMessageSquare className="w-4 h-4 mr-2 text-purple-600" />
+          <IconMessageSquare className="w-4 h-4 mr-2 text-blue-600" />
           미팅 이력
           {meetings.length > 0 && (
-            <span className="ml-2 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-semibold">
-              {meetings.length}개
+            <span className="ml-2 bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-xs font-semibold">
+              {meetings.length}건
             </span>
           )}
         </h3>
         <button
           onClick={onRefresh}
           className="text-slate-500 hover:text-slate-700 p-1 hover:bg-slate-100 rounded transition-colors"
+          aria-label="새로고침"
         >
           <IconRefresh className="w-4 h-4" />
         </button>
@@ -645,11 +637,11 @@ const MeetingTabContent: React.FC<{
 
       {/* Meeting List */}
       {meetings.length === 0 ? (
-        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
-          <IconMessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-500 font-medium mb-1">아직 기록된 미팅이 없어요.</p>
-          <p className="text-xs text-slate-400">미팅 녹음 기능으로 첫 미팅을 기록해보세요.</p>
-        </div>
+        <EmptyState
+          icon={<IconMessageSquare className="w-8 h-8" />}
+          title="아직 기록된 미팅이 없습니다"
+          description="미팅 녹음 기능으로 첫 미팅을 기록해 보세요"
+        />
       ) : (
         <div className="space-y-3">
           {meetings.map(meeting => (
@@ -688,12 +680,12 @@ const MeetingCard: React.FC<{
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer group"
+      className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-slate-800 text-sm truncate group-hover:text-purple-600 transition-colors">
+          <h4 className="font-semibold text-slate-800 text-sm truncate group-hover:text-blue-600 transition-colors">
             {meeting.title}
           </h4>
           <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
@@ -727,13 +719,13 @@ const MeetingCard: React.FC<{
           </span>
         )}
         {meeting.actionItems && meeting.actionItems.length > 0 && (
-          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full flex items-center gap-1">
+          <span className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full flex items-center gap-1">
             <IconCheck className="w-3 h-3" />
             액션 {meeting.actionItems.length}
           </span>
         )}
         {meeting.nextSteps && meeting.nextSteps.length > 0 && (
-          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
+          <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full flex items-center gap-1">
             <IconArrowRight className="w-3 h-3" />
             다음 {meeting.nextSteps.length}
           </span>
@@ -741,7 +733,7 @@ const MeetingCard: React.FC<{
       </div>
 
       {/* View More Indicator */}
-      <div className="mt-3 text-xs text-purple-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+      <div className="mt-3 text-xs text-blue-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
         <span>자세히 보기</span>
         <IconArrowRight className="w-3 h-3" />
       </div>

@@ -90,7 +90,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
 
   // Handle delete
   const handleDelete = async (meetingId: string) => {
-    if (!confirm('이 미팅을 삭제하시겠습니까?')) return;
+    if (!confirm('이 미팅 기록을 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
 
     setDeletingId(meetingId);
     try {
@@ -98,7 +98,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
       onRefresh();
     } catch (error) {
       console.error('Failed to delete meeting:', error);
-      alert('미팅 삭제에 실패했습니다.');
+      alert('미팅을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setDeletingId(null);
     }
@@ -120,7 +120,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
       } else {
         // Create new meeting
         if (!data.customerId || !data.title) {
-          alert('고객과 제목은 필수입니다.');
+          alert('고객과 미팅 제목은 반드시 입력해 주세요.');
           return;
         }
         await apiClient.createMeeting({
@@ -138,7 +138,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
       onRefresh();
     } catch (error) {
       console.error('Failed to save meeting:', error);
-      alert('미팅 저장에 실패했습니다.');
+      alert('미팅을 저장하지 못했어요. 입력 내용을 확인하고 다시 시도해 주세요.');
     }
   };
 
@@ -236,7 +236,7 @@ export const MeetingsBoard: React.FC<MeetingsBoardProps> = ({
           아직 기록된 미팅이 없습니다
         </h3>
         <p className="text-sm text-slate-500 mb-4 max-w-md">
-          미팅을 직접 추가하거나, Slack 미팅 노트 채널에서 자동으로 생성됩니다.
+          미팅을 직접 추가하거나, Slack 미팅 노트 채널을 연결하면 자동으로 기록돼요.
         </p>
         <button
           onClick={() => setShowFormModal(true)}
