@@ -814,6 +814,7 @@ export const AppDashboard: React.FC = () => {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             counts={tabCounts}
+            busy={{ icp: isCollecting }}
           />
           <ViewSwitcher currentView={viewMode} onViewChange={setViewMode} />
         </div>

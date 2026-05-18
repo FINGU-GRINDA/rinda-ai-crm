@@ -149,6 +149,11 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
         )
       }
 
+      // Clamp desiredCount to a sane range so a typo or hostile client can't
+      // make us burn budget on a 10000-prospect run.
+      const requested = body.desiredCount ?? 10
+      const desiredCount = Math.max(1, Math.min(30, Math.floor(requested)))
+
       if (!geminiService.isAvailable()) {
         set.status = 503
         return error(
@@ -176,11 +181,13 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
         const discovery = await geminiService.discoverExportProspects(
           icpProfiles,
           existingCompanyNames,
-          body.desiredCount ?? 10,
+          desiredCount,
         )
 
         if (!discovery) {
-          throw new Error("AI 발굴 결과를 받지 못했습니다. 잠시 후 다시 시도해주세요.")
+          throw new Error(
+            "AI 발굴 결과를 받지 못했습니다. 잠시 후 다시 시도해주세요. (Gemini 응답이 비어있거나 형식 오류)",
+          )
         }
 
         const validProfileIds = new Set(icpProfiles.map((p) => p.id))
@@ -200,7 +207,20 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
 
         const result = await prospectRepository.bulkCreate(bulkPayload)
 
-        collectionStatus.lastSummary = discovery.summary
+        // Compose a richer human-readable summary if Gemini's is empty/sparse.
+        let summary = discovery.summary?.trim() || ""
+        if (!summary) {
+          if (result.created.length === 0 && discovery.prospects.length === 0) {
+            summary =
+              "이번 라운드에서는 새 바이어를 찾지 못했습니다. ICP 키워드를 더 구체적으로 보완하면 결과가 개선됩니다."
+          } else if (result.created.length === 0) {
+            summary = `AI가 ${discovery.prospects.length}개 후보를 제안했지만 모두 이미 파이프라인에 있어 제외되었습니다.`
+          } else {
+            summary = `${result.created.length}개의 새로운 잠재 바이어를 발견했습니다.`
+          }
+        }
+
+        collectionStatus.lastSummary = summary
         collectionStatus.lastCreated = result.created.length
         collectionStatus.lastSkipped = result.skipped
         collectionStatus.lastError = null
@@ -218,7 +238,7 @@ export const prospectRoutes = new Elysia({ prefix: "/api/prospects" })
           newProspects: result.created,
           totalArticles: discovery.prospects.length,
           skipped: result.skipped,
-          summary: discovery.summary,
+          summary,
         })
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
