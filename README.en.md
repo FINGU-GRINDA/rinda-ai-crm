@@ -89,15 +89,17 @@ Required to boot the API: `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`,
 Both services ship a production-ready `Dockerfile` designed for Dokploy (or
 any platform that builds from a `Dockerfile` and injects env vars at runtime).
 
-| Service       | Image base          | Port | Healthcheck         |
-| ------------- | ------------------- | ---- | ------------------- |
-| elysia-server | `oven/bun:1.1-alpine` | 3001 | `GET /health`      |
-| frontend      | `nginx:1.27-alpine` | 80   | `GET /`             |
+| Service       | Image base            | Port | Healthcheck   |
+| ------------- | --------------------- | ---- | ------------- |
+| elysia-server | `oven/bun:1.3-alpine` | 3001 | `GET /health` |
+| frontend      | `nginx:1.27-alpine`   | 80   | `GET /`       |
 
 Notes:
 
-- The frontend image substitutes `${BACKEND_URL}` into the nginx config at
-  container start (`docker-entrypoint.sh` → `nginx.conf.template`).
+- The frontend bundle calls the backend **directly** from the browser. Pass
+  the API URL as a Docker **build arg** in Dokploy:
+  `VITE_API_URL=https://api.example.com`. CORS on the backend must include
+  the frontend origin (`FRONTEND_URLS`).
 - The server image runs migrations on boot; no separate migration step is
   required in your Dokploy pipeline.
 - Do **not** bake `.env` files into images — Dokploy injects them at runtime.
