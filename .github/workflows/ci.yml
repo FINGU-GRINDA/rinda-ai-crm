@@ -32,6 +32,9 @@ jobs:
       - name: Lint (Biome)
         run: bun lint:check
 
+      - name: Format check (Biome)
+        run: bun run format:check
+
       - name: Type-check
         run: bun type-check
 
@@ -57,6 +60,9 @@ jobs:
 
       - name: Lint (Biome)
         run: npm run lint:check
+
+      - name: Format check (Biome)
+        run: npm run format:check
 
       - name: Build
         run: npm run build
