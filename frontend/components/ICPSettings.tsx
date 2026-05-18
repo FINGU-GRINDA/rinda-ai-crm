@@ -96,17 +96,19 @@ export const ICPSettings: React.FC<Props> = ({
   }
 
   const handleSave = () => {
-    if (!formData.name || formData.name.trim() === "") {
+    const { name, industries, keywords } = formData
+
+    if (!name || name.trim() === "") {
       alert("ICP 프로필 이름을 입력해주세요.")
       return
     }
 
-    if (formData.industries?.length === 0) {
+    if (!industries || industries.length === 0) {
       alert("최소 하나의 산업을 선택해주세요.")
       return
     }
 
-    if (formData.keywords?.length === 0) {
+    if (!keywords || keywords.length === 0) {
       alert("최소 하나의 키워드를 입력해주세요.")
       return
     }
@@ -121,9 +123,9 @@ export const ICPSettings: React.FC<Props> = ({
           ? {
               ...p,
               ...formData,
-              name: formData.name!,
-              industries: formData.industries!,
-              keywords: formData.keywords!,
+              name,
+              industries,
+              keywords,
               updatedAt: now,
             }
           : p,
@@ -132,9 +134,9 @@ export const ICPSettings: React.FC<Props> = ({
       // 새로 생성
       const newProfile: ICPProfile = {
         id: `icp_${now}_${Math.random().toString(36).substr(2, 9)}`,
-        name: formData.name!,
-        industries: formData.industries!,
-        keywords: formData.keywords!,
+        name,
+        industries,
+        keywords,
         companySize: formData.companySize,
         targetRegions: formData.targetRegions,
         createdAt: now,

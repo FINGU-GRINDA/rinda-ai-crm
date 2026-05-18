@@ -327,13 +327,15 @@ export const CustomerFollowUpWidget: React.FC<CustomerFollowUpWidgetProps> = ({
       />
 
       {/* Completion Modal */}
-      <FollowUpCompletionModal
-        followUp={completingFollowUp!}
-        customer={customer}
-        onComplete={handleComplete}
-        onCancel={() => setCompletingFollowUp(null)}
-        isOpen={completingFollowUp !== null}
-      />
+      {completingFollowUp && (
+        <FollowUpCompletionModal
+          followUp={completingFollowUp}
+          customer={customer}
+          onComplete={handleComplete}
+          onCancel={() => setCompletingFollowUp(null)}
+          isOpen={completingFollowUp !== null}
+        />
+      )}
     </div>
   )
 }

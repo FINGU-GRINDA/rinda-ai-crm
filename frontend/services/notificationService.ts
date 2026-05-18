@@ -422,11 +422,10 @@ export const checkAndSendDailyDigest = async (customers: Customer[]): Promise<vo
         scheduledDate.getFullYear() === today.getFullYear()
       )
     })
-    .map((followUp) => {
+    .flatMap((followUp) => {
       const customer = customers.find((c) => c.id === followUp.customerId)
-      return { customer: customer!, followUp }
+      return customer ? [{ customer, followUp }] : []
     })
-    .filter((item) => item.customer)
 
   const pendingCount = getUpcomingFollowUps(7).length
 

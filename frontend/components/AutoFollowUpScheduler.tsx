@@ -412,17 +412,15 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
       )}
 
       {/* Completion Modal */}
-      <FollowUpCompletionModal
-        followUp={completingFollowUp!}
-        customer={
-          completingFollowUp
-            ? customers.find((c) => c.id === completingFollowUp.customerId)
-            : undefined
-        }
-        onComplete={handleComplete}
-        onCancel={() => setCompletingFollowUp(null)}
-        isOpen={completingFollowUp !== null}
-      />
+      {completingFollowUp && (
+        <FollowUpCompletionModal
+          followUp={completingFollowUp}
+          customer={customers.find((c) => c.id === completingFollowUp.customerId)}
+          onComplete={handleComplete}
+          onCancel={() => setCompletingFollowUp(null)}
+          isOpen={completingFollowUp !== null}
+        />
+      )}
     </div>
   )
 }
