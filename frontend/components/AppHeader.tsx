@@ -1,16 +1,20 @@
-import { ChevronDown, CreditCard, LogOut, Mic, User } from "lucide-react"
+import { ChevronDown, CreditCard, LogOut, Mic, Sparkles, User } from "lucide-react"
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
+import { useLanguage, useTranslation } from "../src/i18n/LanguageContext"
 import type { Customer } from "../types"
 import { FollowUpSchedulerHeader } from "./followup"
 import { IconDashboard, IconPlus, IconSearch, IconSettings, IconX } from "./Icons"
+import { LanguageSwitcher } from "./LanguageSwitcher"
 import { NotificationCenter } from "./NotificationCenter"
 
 // Profile Dropdown Component
 const ProfileDropdown: React.FC = () => {
   const { user, logout } = useAuth()
+  const t = useTranslation()
+  const { availableLanguages, language, setLanguage } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -62,11 +66,40 @@ const ProfileDropdown: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+        <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
           {/* User Info */}
           <div className="px-4 py-3 border-b border-slate-100">
-            <p className="text-sm font-medium text-slate-800 truncate">{user.name || "User"}</p>
+            <p className="text-sm font-medium text-slate-800 truncate">
+              {user.name || t.profile.user}
+            </p>
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          </div>
+
+          {/* Language selector */}
+          <div className="px-3 py-2 border-b border-slate-100">
+            <div className="px-1 pb-1.5 text-[10px] font-semibold tracking-wider uppercase text-slate-400">
+              {t.settingsShell.language}
+            </div>
+            <div className="flex gap-1">
+              {availableLanguages.map((l) => {
+                const selected = l.code === language
+                return (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => setLanguage(l.code)}
+                    className={`flex-1 px-2 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                      selected
+                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        : "text-slate-600 hover:bg-slate-100 border border-transparent"
+                    }`}
+                    aria-pressed={selected}
+                  >
+                    {l.short}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* Menu Items */}
@@ -74,12 +107,11 @@ const ProfileDropdown: React.FC = () => {
             <button
               onClick={() => {
                 setIsOpen(false)
-                // Could open profile settings here
               }}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
             >
               <User className="w-4 h-4" />
-              <span>프로필</span>
+              <span>{t.profile.profile}</span>
             </button>
             <button
               onClick={() => {
@@ -89,7 +121,7 @@ const ProfileDropdown: React.FC = () => {
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span>로그아웃</span>
+              <span>{t.profile.logout}</span>
             </button>
           </div>
         </div>
@@ -142,22 +174,28 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenBusinessCardScanner,
   onOpenMeetingRecorder,
 }) => {
+  const t = useTranslation()
   return (
     <>
       {/* Mobile Header */}
       <header className="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-            <IconDashboard className="w-5 h-5" />
+          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+            <Sparkles className="w-5 h-5" />
           </div>
-          <h1 className="font-bold text-slate-800 text-lg tracking-tight">RINDA CRM</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="font-bold text-slate-800 text-lg tracking-tight">{t.common.appName}</h1>
+            <span className="text-[10px] font-semibold tracking-wider text-blue-700 bg-blue-50 border border-blue-200 rounded px-1 py-0.5">
+              {t.common.alpha}
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <ProfileDropdown />
           <button
             onClick={onAddCustomer}
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-2.5 flex items-center justify-center transition-all shadow-md active:scale-95 touch-target"
-            aria-label="새 고객 추가"
+            aria-label={t.header.addCustomerAria}
           >
             <IconPlus className="w-5 h-5" />
           </button>
@@ -167,12 +205,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       {/* Desktop Header */}
       <header className="hidden md:flex bg-white border-b border-slate-200 px-6 py-4 flex-row justify-between items-center gap-4 z-10 shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-            <IconDashboard className="w-5 h-5" />
+          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+            <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-bold text-slate-800 text-lg tracking-tight">RINDA CRM</h1>
-            <p className="text-xs text-slate-500">AI가 함께하는 스마트 영업 관리</p>
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-bold text-slate-800 text-lg tracking-tight">
+                {t.common.appName}
+              </h1>
+              <span className="text-[10px] font-semibold tracking-wider text-blue-700 bg-blue-50 border border-blue-200 rounded px-1 py-0.5">
+                {t.common.alpha}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">{t.header.tagline}</p>
           </div>
 
           <nav className="ml-6 flex items-center gap-1 text-sm">
@@ -198,7 +243,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <input
               id="search-input"
               type="text"
-              placeholder="고객 검색... (Ctrl+K)"
+              placeholder={t.header.searchPlaceholder}
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
@@ -225,25 +270,25 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           >
             {industries.map((industry) => (
               <option key={industry} value={industry}>
-                {industry === "all" ? "모든 산업 분야" : industry}
+                {industry === "all" ? t.header.allIndustries : industry}
               </option>
             ))}
           </select>
 
           <div className="flex items-center gap-2">
             {/* Business Card Scan Button */}
-            <Tooltip text="명함 스캔">
+            <Tooltip text={t.header.businessCard}>
               <button
                 onClick={onOpenBusinessCardScanner}
                 className="p-2 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 transition-colors"
-                aria-label="명함 스캔"
+                aria-label={t.header.businessCard}
               >
                 <CreditCard className="w-4 h-4" />
               </button>
             </Tooltip>
 
             {/* Meeting Record Button */}
-            <Tooltip text="미팅 녹음">
+            <Tooltip text={t.header.meetingRecord}>
               <button
                 onClick={onOpenMeetingRecorder}
                 className="p-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
@@ -253,7 +298,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </Tooltip>
 
             {/* Stats Toggle */}
-            <Tooltip text="영업 현황 한눈에 보기">
+            <Tooltip text={t.header.statsToggle}>
               <button
                 onClick={onToggleStats}
                 className={`p-2 rounded-lg transition-colors ${
@@ -275,8 +320,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             {/* Notification Center */}
             <NotificationCenter customers={customers} />
 
+            {/* Language Switcher */}
+            <LanguageSwitcher variant="ghost" align="right" showLabel={false} />
+
             {/* Settings */}
-            <Tooltip text="CRM 설정">
+            <Tooltip text={t.header.settings}>
               <button
                 onClick={onOpenSettings}
                 className="p-2 rounded-lg transition-colors bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -285,13 +333,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               </button>
             </Tooltip>
 
-            <Tooltip text="새로운 고객을 추가해 영업 파이프라인을 시작하세요 (Ctrl+N)">
+            <Tooltip text={t.header.addCustomerTooltip}>
               <button
                 onClick={onAddCustomer}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 px-4 flex items-center text-sm font-medium transition-all shadow-md hover:shadow-lg active:scale-95"
               >
                 <IconPlus className="w-4 h-4 mr-2" />
-                <span>새 고객 추가</span>
+                <span>{t.header.addCustomer}</span>
               </button>
             </Tooltip>
 
@@ -318,33 +366,37 @@ interface StatsBarProps {
 }
 
 export const StatsBar: React.FC<StatsBarProps> = ({ stats, lastCollectionTime }) => {
+  const t = useTranslation()
+  const { language } = useLanguage()
+  const localeMap: Record<string, string> = { ko: "ko-KR", en: "en-US", ja: "ja-JP" }
+  const locale = localeMap[language] ?? "ko-KR"
   return (
     <div className="bg-gradient-to-b from-slate-50 to-white border-b border-slate-200 px-4 md:px-6 py-3 flex flex-wrap items-center gap-4 md:gap-6 text-sm animate-in slide-in-from-top duration-200">
       <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium">전체 고객</span>
+        <span className="text-slate-600 font-medium">{t.stats.totalCustomers}</span>
         <span className="font-bold text-slate-800">{stats.total}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium">AI 분석 완료</span>
+        <span className="text-slate-600 font-medium">{t.stats.aiAnalyzed}</span>
         <span className="font-bold text-violet-600">{stats.enriched}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium">작성된 제안서</span>
+        <span className="text-slate-600 font-medium">{t.stats.proposals}</span>
         <span className="font-bold text-blue-600">{stats.proposals}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium">성사된 거래</span>
+        <span className="text-slate-600 font-medium">{t.stats.won}</span>
         <span className="font-bold text-emerald-700">{stats.byStatus.won || 0}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-slate-600 font-medium">잠재 고객</span>
+        <span className="text-slate-600 font-medium">{t.stats.prospects}</span>
         <span className="font-bold text-slate-800">{stats.byStatus.prospect || 0}</span>
       </div>
       {lastCollectionTime && (
         <div className="flex items-center gap-2">
-          <span className="text-slate-600 font-medium">마지막 수집</span>
+          <span className="text-slate-600 font-medium">{t.stats.lastCollection}</span>
           <span className="text-slate-700">
-            {new Date(lastCollectionTime).toLocaleTimeString("ko-KR")}
+            {new Date(lastCollectionTime).toLocaleTimeString(locale)}
           </span>
         </div>
       )}

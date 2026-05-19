@@ -2,13 +2,15 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
+import { useTranslation } from "../../src/i18n/LanguageContext"
 import { apiClient } from "../../src/services/apiClient"
-import { PageSpinner } from "../LoadingStates"
+import { AgenticLoader } from "../AgenticLoader"
 
 export const AuthCallback: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { handleGoogleCallback } = useAuth()
+  const t = useTranslation()
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -96,14 +98,19 @@ export const AuthCallback: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="text-red-600 mb-4">{error}</div>
-          <p className="text-gray-600">Redirecting to login...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/40 px-6">
+        <div className="text-center max-w-sm">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-red-50 border border-red-200 mb-4">
+            <span className="text-red-600 text-xl font-bold">!</span>
+          </div>
+          <p className="text-sm font-medium text-slate-800">{error}</p>
+          <p className="mt-2 text-xs text-slate-500">{t.authCallback.redirecting}</p>
         </div>
       </div>
     )
   }
 
-  return <PageSpinner />
+  return (
+    <AgenticLoader variant="page" title={t.authCallback.verifying} detail={t.authCallback.detail} />
+  )
 }

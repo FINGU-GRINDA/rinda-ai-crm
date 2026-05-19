@@ -1,9 +1,11 @@
 import type React from "react"
 import { lazy, Suspense, useCallback, useEffect, useState } from "react"
 import { getSlackSettings } from "../../services/slackIntegrationService"
+import { useTranslation } from "../../src/i18n/LanguageContext"
 import { safeGetItem } from "../../src/utils/safeStorage"
 import type { SettingsTabType } from "../../types"
 import { IconLoader, IconSettings, IconX } from "../Icons"
+import { LanguageSwitcher } from "../LanguageSwitcher"
 import { SettingsTabBar } from "./SettingsTabBar"
 import { SettingsToastProvider } from "./SettingsToastContext"
 
@@ -47,6 +49,7 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
   onSettingsChange,
   existingCompanyNames = [],
 }) => {
+  const t = useTranslation()
   const [activeTab, setActiveTab] = useState<SettingsTabType>(initialTab)
   const [connectionStatus, setConnectionStatus] = useState({
     slack: false,
@@ -137,20 +140,25 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
                 <IconSettings className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg md:text-xl font-semibold text-slate-900">설정</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-slate-900">
+                  {t.settingsShell.title}
+                </h2>
                 <p className="text-xs text-slate-500 mt-0.5 hidden md:block">
-                  연동, 알림, 잠재고객 수집 설정을 관리합니다
+                  {t.settingsShell.subtitle}
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:scale-95 transition-[transform,background-color,color] duration-150 touch-target"
-              aria-label="닫기 (Esc)"
-              title="닫기 (Esc)"
-            >
-              <IconX className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <LanguageSwitcher variant="ghost" align="right" showLabel={false} />
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:scale-95 transition-[transform,background-color,color] duration-150 touch-target"
+                aria-label={`${t.common.close} (Esc)`}
+                title={`${t.common.close} (Esc)`}
+              >
+                <IconX className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Mobile Tab Bar */}
@@ -190,14 +198,12 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
 
           {/* Footer */}
           <div className="flex items-center justify-between gap-3 px-4 md:px-6 py-3 border-t border-slate-200 bg-slate-50/50 flex-shrink-0">
-            <p className="text-xs text-slate-500 hidden md:block">
-              변경 사항은 자동으로 저장됩니다
-            </p>
+            <p className="text-xs text-slate-500 hidden md:block">{t.settingsShell.autoSave}</p>
             <button
               onClick={onClose}
               className="ml-auto px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 active:scale-[0.98] rounded-lg transition-[transform,background-color,border-color] duration-150"
             >
-              닫기
+              {t.common.close}
             </button>
           </div>
         </SettingsToastProvider>
