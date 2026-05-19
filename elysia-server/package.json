@@ -45,7 +45,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.4",
+    "@biomejs/biome": "^2.4.15",
     "@elysiajs/eden": "^1.4.4",
     "@types/domhandler": "^3.1.0",
     "@types/marked": "^6.0.0",

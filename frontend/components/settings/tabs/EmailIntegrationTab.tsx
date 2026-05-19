@@ -1,21 +1,22 @@
-import React, { useState } from 'react';
-import { EmailSettings } from '../../../types';
-import { IconMail, IconLoader } from '../../Icons';
-import { useSettingsToast } from '../SettingsToastContext';
+import type React from "react"
+import { useState } from "react"
+import type { EmailSettings } from "../../../types"
+import { IconLoader, IconMail } from "../../Icons"
+import { useSettingsToast } from "../SettingsToastContext"
 import {
-  pageTitle,
-  pageDesc,
-  card,
-  sectionTitle,
-  sectionDesc,
-  infoNote,
-  toggle,
-  btnSecondary,
   btnGhost,
+  btnSecondary,
+  card,
+  infoNote,
   inputBase,
-} from '../tokens';
+  pageDesc,
+  pageTitle,
+  sectionDesc,
+  sectionTitle,
+  toggle,
+} from "../tokens"
 
-const EMAIL_SETTINGS_KEY = 'rinda_email_settings';
+const EMAIL_SETTINGS_KEY = "rinda_email_settings"
 
 const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
   provider: null,
@@ -23,59 +24,61 @@ const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
   autoSync: true,
   syncInterval: 300000,
   lastSyncAt: undefined,
-};
+}
 
 const getEmailSettings = (): EmailSettings => {
   try {
-    const stored = localStorage.getItem(EMAIL_SETTINGS_KEY);
+    const stored = localStorage.getItem(EMAIL_SETTINGS_KEY)
     if (stored) {
-      return { ...DEFAULT_EMAIL_SETTINGS, ...JSON.parse(stored) };
+      return { ...DEFAULT_EMAIL_SETTINGS, ...JSON.parse(stored) }
     }
   } catch (error) {
-    console.error('Failed to load email settings:', error);
+    console.error("Failed to load email settings:", error)
   }
-  return DEFAULT_EMAIL_SETTINGS;
-};
+  return DEFAULT_EMAIL_SETTINGS
+}
 
 const saveEmailSettings = (settings: EmailSettings): void => {
-  localStorage.setItem(EMAIL_SETTINGS_KEY, JSON.stringify(settings));
-};
+  localStorage.setItem(EMAIL_SETTINGS_KEY, JSON.stringify(settings))
+}
 
-const PROVIDER_LABEL: Record<NonNullable<EmailSettings['provider']>, string> = {
-  gmail: 'Gmail',
-  outlook: 'Outlook',
-};
+const PROVIDER_LABEL: Record<NonNullable<EmailSettings["provider"]>, string> = {
+  gmail: "Gmail",
+  outlook: "Outlook",
+}
 
-const PROVIDER_DESC: Record<NonNullable<EmailSettings['provider']>, string> = {
-  gmail: 'Google 계정으로 연결',
-  outlook: 'Microsoft 계정으로 연결',
-};
+const PROVIDER_DESC: Record<NonNullable<EmailSettings["provider"]>, string> = {
+  gmail: "Google 계정으로 연결",
+  outlook: "Microsoft 계정으로 연결",
+}
 
 interface EmailIntegrationTabProps {
-  onSettingsChange?: () => void;
+  onSettingsChange?: () => void
 }
 
 export const EmailIntegrationTab: React.FC<EmailIntegrationTabProps> = ({ onSettingsChange }) => {
-  const [settings, setSettings] = useState<EmailSettings>(() => getEmailSettings());
-  const [connectingProvider, setConnectingProvider] = useState<EmailSettings['provider'] | null>(null);
-  const toast = useSettingsToast();
+  const [settings, setSettings] = useState<EmailSettings>(() => getEmailSettings())
+  const [connectingProvider, setConnectingProvider] = useState<EmailSettings["provider"] | null>(
+    null,
+  )
+  const toast = useSettingsToast()
 
-  const persist = (next: EmailSettings, message = '저장되었습니다') => {
-    setSettings(next);
+  const persist = (next: EmailSettings, message = "저장되었습니다") => {
+    setSettings(next)
     try {
-      saveEmailSettings(next);
-      onSettingsChange?.();
-      toast.show('success', message);
+      saveEmailSettings(next)
+      onSettingsChange?.()
+      toast.show("success", message)
     } catch (error) {
-      console.error(error);
-      toast.show('error', '저장에 실패했습니다');
+      console.error(error)
+      toast.show("error", "저장에 실패했습니다")
     }
-  };
+  }
 
-  const handleConnect = async (provider: 'gmail' | 'outlook') => {
-    setConnectingProvider(provider);
+  const handleConnect = async (provider: "gmail" | "outlook") => {
+    setConnectingProvider(provider)
     // 시뮬레이션 — 실제 OAuth는 백엔드 라우트가 처리
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 1200))
     persist(
       {
         ...settings,
@@ -84,13 +87,13 @@ export const EmailIntegrationTab: React.FC<EmailIntegrationTabProps> = ({ onSett
         lastSyncAt: new Date().toISOString(),
       },
       `${PROVIDER_LABEL[provider]}이(가) 연동되었습니다`,
-    );
-    setConnectingProvider(null);
-  };
+    )
+    setConnectingProvider(null)
+  }
 
   const handleDisconnect = () => {
-    persist({ ...DEFAULT_EMAIL_SETTINGS }, '연동이 해제되었습니다');
-  };
+    persist({ ...DEFAULT_EMAIL_SETTINGS }, "연동이 해제되었습니다")
+  }
 
   return (
     <div className="space-y-6">
@@ -115,7 +118,7 @@ export const EmailIntegrationTab: React.FC<EmailIntegrationTabProps> = ({ onSett
           </div>
 
           <div className="space-y-2">
-            {(['gmail', 'outlook'] as const).map((provider) => (
+            {(["gmail", "outlook"] as const).map((provider) => (
               <ProviderTile
                 key={provider}
                 name={PROVIDER_LABEL[provider]}
@@ -137,19 +140,24 @@ export const EmailIntegrationTab: React.FC<EmailIntegrationTabProps> = ({ onSett
       )}
 
       <div className={infoNote}>
-        OAuth 연결은 시뮬레이션 모드입니다. 실제 연동은 운영 환경에서 OAuth 자격 증명을 구성한 후 사용할 수 있습니다.
+        OAuth 연결은 시뮬레이션 모드입니다. 실제 연동은 운영 환경에서 OAuth 자격 증명을 구성한 후
+        사용할 수 있습니다.
       </div>
     </div>
-  );
-};
-
-interface ConnectedCardProps {
-  providerLabel: string;
-  lastSyncAt?: string;
-  onDisconnect: () => void;
+  )
 }
 
-const ConnectedCard: React.FC<ConnectedCardProps> = ({ providerLabel, lastSyncAt, onDisconnect }) => (
+interface ConnectedCardProps {
+  providerLabel: string
+  lastSyncAt?: string
+  onDisconnect: () => void
+}
+
+const ConnectedCard: React.FC<ConnectedCardProps> = ({
+  providerLabel,
+  lastSyncAt,
+  onDisconnect,
+}) => (
   <section className={card}>
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3 min-w-0">
@@ -158,7 +166,7 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ providerLabel, lastSyncAt
           <p className="text-sm font-semibold text-slate-900">{providerLabel} 연동됨</p>
           {lastSyncAt && (
             <p className="text-xs text-slate-500 mt-0.5">
-              마지막 동기화: {new Date(lastSyncAt).toLocaleString('ko-KR')}
+              마지막 동기화: {new Date(lastSyncAt).toLocaleString("ko-KR")}
             </p>
           )}
         </div>
@@ -168,17 +176,23 @@ const ConnectedCard: React.FC<ConnectedCardProps> = ({ providerLabel, lastSyncAt
       </button>
     </div>
   </section>
-);
+)
 
 interface ProviderTileProps {
-  name: string;
-  description: string;
-  onClick: () => void;
-  isConnecting: boolean;
-  disabled: boolean;
+  name: string
+  description: string
+  onClick: () => void
+  isConnecting: boolean
+  disabled: boolean
 }
 
-const ProviderTile: React.FC<ProviderTileProps> = ({ name, description, onClick, isConnecting, disabled }) => (
+const ProviderTile: React.FC<ProviderTileProps> = ({
+  name,
+  description,
+  onClick,
+  isConnecting,
+  disabled,
+}) => (
   <button
     onClick={onClick}
     disabled={disabled}
@@ -193,11 +207,11 @@ const ProviderTile: React.FC<ProviderTileProps> = ({ name, description, onClick,
     </div>
     {isConnecting && <IconLoader className="w-4 h-4 text-slate-400 animate-spin flex-shrink-0" />}
   </button>
-);
+)
 
 interface SyncSettingsProps {
-  settings: EmailSettings;
-  onChange: (updates: Partial<EmailSettings>) => void;
+  settings: EmailSettings
+  onChange: (updates: Partial<EmailSettings>) => void
 }
 
 const SyncSettings: React.FC<SyncSettingsProps> = ({ settings, onChange }) => (
@@ -248,4 +262,4 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ settings, onChange }) => (
       </div>
     </div>
   </section>
-);
+)

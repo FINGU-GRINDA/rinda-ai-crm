@@ -1,50 +1,50 @@
-import React, { useEffect } from 'react';
-import { IconX } from '../Icons';
+import React, { useEffect } from "react"
+import { IconX } from "../Icons"
 
 interface ModalProps {
-  open: boolean;
-  onClose: () => void;
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  closeOnBackdrop?: boolean;
-  closeOnEscape?: boolean;
-  hideCloseButton?: boolean;
-  footer?: React.ReactNode;
-  children: React.ReactNode;
+  open: boolean
+  onClose: () => void
+  title?: React.ReactNode
+  description?: React.ReactNode
+  size?: "sm" | "md" | "lg" | "xl"
+  closeOnBackdrop?: boolean
+  closeOnEscape?: boolean
+  hideCloseButton?: boolean
+  footer?: React.ReactNode
+  children: React.ReactNode
 }
 
 const sizeStyles = {
-  sm: 'md:max-w-md',
-  md: 'md:max-w-lg',
-  lg: 'md:max-w-2xl',
-  xl: 'md:max-w-4xl',
-} as const;
+  sm: "md:max-w-md",
+  md: "md:max-w-lg",
+  lg: "md:max-w-2xl",
+  xl: "md:max-w-4xl",
+} as const
 
 export const Modal: React.FC<ModalProps> = ({
   open,
   onClose,
   title,
   description,
-  size = 'md',
+  size = "md",
   closeOnBackdrop = true,
   closeOnEscape = true,
   hideCloseButton = false,
   footer,
   children,
 }) => {
-  const titleId = React.useId();
+  const titleId = React.useId()
 
   useEffect(() => {
-    if (!open || !closeOnEscape) return;
+    if (!open || !closeOnEscape) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open, closeOnEscape, onClose]);
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [open, closeOnEscape, onClose])
 
-  if (!open) return null;
+  if (!open) return null
 
   return (
     <div
@@ -53,7 +53,7 @@ export const Modal: React.FC<ModalProps> = ({
       aria-labelledby={title ? titleId : undefined}
       className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
-        if (closeOnBackdrop && e.target === e.currentTarget) onClose();
+        if (closeOnBackdrop && e.target === e.currentTarget) onClose()
       }}
     >
       <div
@@ -79,9 +79,7 @@ export const Modal: React.FC<ModalProps> = ({
                 </h2>
               )}
               {description && (
-                <p className="mt-1 text-sm text-slate-500 leading-relaxed">
-                  {description}
-                </p>
+                <p className="mt-1 text-sm text-slate-500 leading-relaxed">{description}</p>
               )}
             </div>
             {!hideCloseButton && (
@@ -98,9 +96,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 md:px-6 py-5">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto px-5 md:px-6 py-5">{children}</div>
 
         {/* Footer */}
         {footer && (
@@ -110,5 +106,5 @@ export const Modal: React.FC<ModalProps> = ({
         )}
       </div>
     </div>
-  );
-};
+  )
+}

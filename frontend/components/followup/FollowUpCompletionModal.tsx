@@ -1,85 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { Customer, ScheduledFollowUp, FollowUpType } from '../../types';
-import { IconCheck, IconX, IconBuilding, IconMail, IconMessageSquare, IconCalendar } from '../Icons';
-import { Button } from '../Button';
+import type React from "react"
+import { useEffect, useState } from "react"
+import type { Customer, FollowUpType, ScheduledFollowUp } from "../../types"
+import { Button } from "../Button"
+import { IconBuilding, IconCalendar, IconCheck, IconMail, IconMessageSquare, IconX } from "../Icons"
 
 interface FollowUpCompletionModalProps {
-  followUp: ScheduledFollowUp;
-  customer: Customer | undefined;
-  onComplete: (note: string) => void;
-  onCancel: () => void;
-  isOpen: boolean;
+  followUp: ScheduledFollowUp
+  customer: Customer | undefined
+  onComplete: (note: string) => void
+  onCancel: () => void
+  isOpen: boolean
 }
 
 const getTypeLabel = (type: FollowUpType): string => {
   switch (type) {
-    case 'email':
-      return '이메일';
-    case 'call':
-      return '전화';
-    case 'meeting':
-      return '미팅';
-    case 'message':
-      return '메시지';
+    case "email":
+      return "이메일"
+    case "call":
+      return "전화"
+    case "meeting":
+      return "미팅"
+    case "message":
+      return "메시지"
     default:
-      return type;
+      return type
   }
-};
+}
 
 const getTypeIcon = (type: FollowUpType) => {
   switch (type) {
-    case 'email':
-      return <IconMail className="w-4 h-4 text-blue-600" />;
-    case 'call':
-      return <IconMessageSquare className="w-4 h-4 text-emerald-600" />;
-    case 'meeting':
-      return <IconCalendar className="w-4 h-4 text-amber-600" />;
-    case 'message':
-      return <IconMessageSquare className="w-4 h-4 text-slate-600" />;
+    case "email":
+      return <IconMail className="w-4 h-4 text-blue-600" />
+    case "call":
+      return <IconMessageSquare className="w-4 h-4 text-emerald-600" />
+    case "meeting":
+      return <IconCalendar className="w-4 h-4 text-amber-600" />
+    case "message":
+      return <IconMessageSquare className="w-4 h-4 text-slate-600" />
     default:
-      return <IconMail className="w-4 h-4 text-slate-600" />;
+      return <IconMail className="w-4 h-4 text-slate-600" />
   }
-};
+}
 
 export const FollowUpCompletionModal: React.FC<FollowUpCompletionModalProps> = ({
   followUp,
   customer,
   onComplete,
   onCancel,
-  isOpen
+  isOpen,
 }) => {
-  const [note, setNote] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [note, setNote] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setNote('');
-      setIsSubmitting(false);
+      setNote("")
+      setIsSubmitting(false)
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Handle Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onCancel();
+      if (e.key === "Escape" && isOpen) {
+        onCancel()
       }
-    };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onCancel]);
+    }
+    window.addEventListener("keydown", handleEscape)
+    return () => window.removeEventListener("keydown", handleEscape)
+  }, [isOpen, onCancel])
 
   const handleComplete = async () => {
-    setIsSubmitting(true);
+    setIsSubmitting(true)
     try {
-      await onComplete(note);
+      await onComplete(note)
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -108,21 +109,25 @@ export const FollowUpCompletionModal: React.FC<FollowUpCompletionModalProps> = (
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-800 truncate">
-                  {customer?.name || '알 수 없는 고객'}
+                  {customer?.name || "알 수 없는 고객"}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   {getTypeIcon(followUp.type)}
-                  <span className="text-sm text-slate-600">
-                    {getTypeLabel(followUp.type)}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    followUp.priority === 'high'
-                      ? 'bg-red-50 text-red-700'
-                      : followUp.priority === 'medium'
-                      ? 'bg-amber-50 text-amber-700'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}>
-                    {followUp.priority === 'high' ? '높음' : followUp.priority === 'medium' ? '보통' : '낮음'}
+                  <span className="text-sm text-slate-600">{getTypeLabel(followUp.type)}</span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      followUp.priority === "high"
+                        ? "bg-red-50 text-red-700"
+                        : followUp.priority === "medium"
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    {followUp.priority === "high"
+                      ? "높음"
+                      : followUp.priority === "medium"
+                        ? "보통"
+                        : "낮음"}
                   </span>
                 </div>
               </div>
@@ -130,9 +135,7 @@ export const FollowUpCompletionModal: React.FC<FollowUpCompletionModalProps> = (
 
             {/* Follow-up Reason */}
             {followUp.reason && (
-              <p className="text-sm text-slate-600 mt-3 pl-[52px]">
-                {followUp.reason}
-              </p>
+              <p className="text-sm text-slate-600 mt-3 pl-[52px]">{followUp.reason}</p>
             )}
           </div>
 
@@ -147,22 +150,14 @@ export const FollowUpCompletionModal: React.FC<FollowUpCompletionModalProps> = (
               className="w-full rounded-lg border border-slate-200 p-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
               rows={4}
               placeholder="통화 결과, 다음 액션 등을 기록하세요..."
-              autoFocus
             />
-            <p className="text-xs text-slate-400 mt-1">
-              이 메모는 고객 히스토리에 저장됩니다.
-            </p>
+            <p className="text-xs text-slate-400 mt-1">이 메모는 고객 히스토리에 저장됩니다.</p>
           </div>
         </div>
 
         {/* Actions */}
         <div className="px-6 py-4 border-t border-slate-200 flex gap-3">
-          <Button
-            variant="tertiary"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            fullWidth
-          >
+          <Button variant="tertiary" onClick={onCancel} disabled={isSubmitting} fullWidth>
             취소
           </Button>
           <Button
@@ -178,7 +173,7 @@ export const FollowUpCompletionModal: React.FC<FollowUpCompletionModalProps> = (
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default FollowUpCompletionModal;
+export default FollowUpCompletionModal

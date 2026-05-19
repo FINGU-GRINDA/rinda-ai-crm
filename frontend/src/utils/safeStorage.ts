@@ -10,13 +10,13 @@
  * @returns Parsed object or fallback value
  */
 export function safeJsonParse<T>(json: string | null, fallback: T): T {
-  if (!json) return fallback;
+  if (!json) return fallback
 
   try {
-    return JSON.parse(json) as T;
+    return JSON.parse(json) as T
   } catch (error) {
-    console.error('Failed to parse JSON from localStorage:', error);
-    return fallback;
+    console.error("Failed to parse JSON from localStorage:", error)
+    return fallback
   }
 }
 
@@ -28,11 +28,11 @@ export function safeJsonParse<T>(json: string | null, fallback: T): T {
  */
 export function safeGetItem<T>(key: string, fallback: T): T {
   try {
-    const item = localStorage.getItem(key);
-    return safeJsonParse(item, fallback);
+    const item = localStorage.getItem(key)
+    return safeJsonParse(item, fallback)
   } catch (error) {
-    console.error(`Failed to get ${key} from localStorage:`, error);
-    return fallback;
+    console.error(`Failed to get ${key} from localStorage:`, error)
+    return fallback
   }
 }
 
@@ -43,9 +43,9 @@ export function safeGetItem<T>(key: string, fallback: T): T {
  */
 export function safeSetItem(key: string, value: unknown): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(value))
   } catch (error) {
-    console.error(`Failed to save ${key} to localStorage:`, error);
+    console.error(`Failed to save ${key} to localStorage:`, error)
   }
 }
 
@@ -55,7 +55,7 @@ export function safeSetItem(key: string, value: unknown): void {
  * between a successful and a failed write.
  */
 export function setItemOrThrow(key: string, value: unknown): void {
-  localStorage.setItem(key, JSON.stringify(value));
+  localStorage.setItem(key, JSON.stringify(value))
 }
 
 /**
@@ -64,9 +64,9 @@ export function setItemOrThrow(key: string, value: unknown): void {
  */
 export function safeRemoveItem(key: string): void {
   try {
-    localStorage.removeItem(key);
+    localStorage.removeItem(key)
   } catch (error) {
-    console.error(`Failed to remove ${key} from localStorage:`, error);
+    console.error(`Failed to remove ${key} from localStorage:`, error)
   }
 }
 
@@ -75,8 +75,8 @@ export function safeRemoveItem(key: string): void {
  */
 export function safeClearStorage(): void {
   try {
-    localStorage.clear();
+    localStorage.clear()
   } catch (error) {
-    console.error('Failed to clear localStorage:', error);
+    console.error("Failed to clear localStorage:", error)
   }
 }

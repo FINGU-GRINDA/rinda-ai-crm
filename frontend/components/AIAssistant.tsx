@@ -1,123 +1,131 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { AIMessage, Customer } from '../types';
+import type React from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
-  processUserMessage,
+  clearConversationHistory,
   getConversationHistory,
-  clearConversationHistory
-} from '../services/aiAssistantService';
-import { IconMessageSquare, IconSend, IconX, IconLoader, IconBrain } from './Icons';
+  processUserMessage,
+} from "../services/aiAssistantService"
+import type { AIMessage, Customer } from "../types"
+import { IconBrain, IconLoader, IconSend, IconX } from "./Icons"
 
 interface AIAssistantProps {
-  customers: Customer[];
-  onAction?: (action: string, data: any) => void;
+  customers: Customer[]
+  onAction?: (action: string, data: Record<string, unknown>) => void
+}
+
+const getActionResultSuccess = (result: unknown): boolean | null => {
+  if (!result || typeof result !== "object" || !("success" in result)) return null
+  return Boolean((result as { success: unknown }).success)
 }
 
 export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<AIMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isOpen, setIsOpen] = useState(false)
+  const [messages, setMessages] = useState<AIMessage[]>([])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (isOpen) {
-      loadConversation();
-      inputRef.current?.focus();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const loadConversation = () => {
-    const history = getConversationHistory();
+  const loadConversation = useCallback(() => {
+    const history = getConversationHistory()
     if (history.length === 0) {
       // Add welcome message
       const welcomeMessage: AIMessage = {
-        id: 'welcome',
-        role: 'assistant',
-        content: '안녕하세요! RINDA CRM AI 어시스턴트입니다. 무엇을 도와드릴까요?\n\n예시:\n- "삼성전자 분석해줘"\n- "제안서 만들어줘"\n- "고객 통계 보여줘"',
-        timestamp: new Date().toISOString()
-      };
-      setMessages([welcomeMessage]);
+        id: "welcome",
+        role: "assistant",
+        content:
+          '안녕하세요! RINDA CRM AI 어시스턴트입니다. 무엇을 도와드릴까요?\n\n예시:\n- "삼성전자 분석해줘"\n- "제안서 만들어줘"\n- "고객 통계 보여줘"',
+        timestamp: new Date().toISOString(),
+      }
+      setMessages([welcomeMessage])
     } else {
-      setMessages(history);
+      setMessages(history)
     }
-  };
+  }, [])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  useEffect(() => {
+    if (isOpen) {
+      loadConversation()
+      inputRef.current?.focus()
+    }
+  }, [isOpen, loadConversation])
+
+  // Auto-scroll to the latest message whenever messages change. The effect doesn't
+  // read messages directly (only the ref) but must re-run on each messages update.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: messages is the scroll trigger
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading) return
 
-    const userInput = input.trim();
-    setInput('');
-    setIsLoading(true);
+    const userInput = input.trim()
+    setInput("")
+    setIsLoading(true)
 
     try {
-      const { userMessage, assistantMessage } = await processUserMessage(
-        userInput,
-        customers
-      );
+      const { userMessage, assistantMessage } = await processUserMessage(userInput, customers)
 
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
+      setMessages((prev) => [...prev, userMessage, assistantMessage])
 
-      // Handle action if needed
-      if (assistantMessage.metadata?.result?.success && onAction) {
-        const action = assistantMessage.metadata.action;
-        const data = assistantMessage.metadata.result.data;
+      const result = assistantMessage.metadata?.result
+      if (onAction && getActionResultSuccess(result) === true) {
+        const action = assistantMessage.metadata?.action
+        const dataValue = (result as { data?: unknown }).data
+        const data =
+          dataValue && typeof dataValue === "object" ? (dataValue as Record<string, unknown>) : null
 
-        if (action === 'enrich' && data) {
-          onAction('enrich_customer', data);
-        } else if (action === 'proposal' && data) {
-          onAction('save_proposal', data);
+        if (action === "enrich" && data) {
+          onAction("enrich_customer", data)
+        } else if (action === "proposal" && data) {
+          onAction("save_proposal", data)
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
       const errorMessage: AIMessage = {
         id: `error_${Math.random().toString(36).substr(2, 9)}`,
-        role: 'assistant',
-        content: `죄송합니다. 오류가 발생했습니다: ${error.message}`,
-        timestamp: new Date().toISOString()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+        role: "assistant",
+        content: `죄송합니다. 오류가 발생했습니다: ${message}`,
+        timestamp: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setIsLoading(false);
-      inputRef.current?.focus();
+      setIsLoading(false)
+      inputRef.current?.focus()
     }
-  };
+  }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
     }
-  };
+  }
 
   const handleClear = () => {
-    if (confirm('대화 기록을 모두 삭제하시겠습니까?')) {
-      clearConversationHistory();
-      setMessages([]);
+    if (confirm("대화 기록을 모두 삭제하시겠습니까?")) {
+      clearConversationHistory()
+      setMessages([])
       const welcomeMessage: AIMessage = {
-        id: 'welcome',
-        role: 'assistant',
-        content: '대화 기록이 삭제되었습니다. 무엇을 도와드릴까요?',
-        timestamp: new Date().toISOString()
-      };
-      setMessages([welcomeMessage]);
+        id: "welcome",
+        role: "assistant",
+        content: "대화 기록이 삭제되었습니다. 무엇을 도와드릴까요?",
+        timestamp: new Date().toISOString(),
+      }
+      setMessages([welcomeMessage])
     }
-  };
+  }
 
   return (
     <>
       {/* Floating Button - Left side on mobile to avoid overlap with FAB */}
-      <div className={`fixed bottom-20 md:bottom-6 left-4 md:left-auto md:right-6 z-40 transition-all duration-200 ${
-        isOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'
-      }`}>
+      <div
+        className={`fixed bottom-20 md:bottom-6 left-4 md:left-auto md:right-6 z-40 transition-all duration-200 ${
+          isOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100"
+        }`}
+      >
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="w-12 h-12 md:w-14 md:h-14 bg-violet-600 text-white rounded-full shadow-lg hover:bg-violet-700 hover:shadow-xl transition-all flex items-center justify-center touch-target"
@@ -164,28 +172,30 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map(message => (
+            {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
                   className={`max-w-[85%] md:max-w-[80%] rounded-lg px-4 py-2 ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-800'
+                    message.role === "user"
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-800"
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  {message.metadata?.result && (
-                    <div className="mt-2 pt-2 border-t border-opacity-20">
-                      {message.metadata.result.success ? (
-                        <span className="text-xs opacity-75">완료됐어요</span>
-                      ) : (
-                        <span className="text-xs opacity-75">처리하지 못했어요</span>
-                      )}
-                    </div>
-                  )}
+                  {(() => {
+                    const success = getActionResultSuccess(message.metadata?.result)
+                    if (success === null) return null
+                    return (
+                      <div className="mt-2 pt-2 border-t border-opacity-20">
+                        <span className="text-xs opacity-75">
+                          {success ? "완료됐어요" : "처리하지 못했어요"}
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             ))}
@@ -233,8 +243,5 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ customers, onAction })
         </div>
       )}
     </>
-  );
-};
-
-
-
+  )
+}

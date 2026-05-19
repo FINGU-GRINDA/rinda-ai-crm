@@ -1,59 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { CalendarEvent, Customer, MeetingPreparation } from '../types';
-import { generateMeetingPreparation } from '../services/calendarIntegrationService';
-import { IconCalendar, IconLoader, IconBrain, IconClock, IconTrendingUp, IconLightbulb, IconXClose, IconAlertCircle } from './Icons';
+import type React from "react"
+import { useCallback, useEffect, useState } from "react"
+import { generateMeetingPreparation } from "../services/calendarIntegrationService"
+import type { CalendarEvent, Customer, MeetingPreparation } from "../types"
+import {
+  IconAlertCircle,
+  IconBrain,
+  IconCalendar,
+  IconClock,
+  IconLightbulb,
+  IconLoader,
+  IconTrendingUp,
+  IconXClose,
+} from "./Icons"
 
 interface MeetingPrepProps {
-  customer: Customer;
-  event: CalendarEvent;
-  onClose?: () => void;
+  customer: Customer
+  event: CalendarEvent
+  onClose?: () => void
 }
 
 export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClose }) => {
-  const [preparation, setPreparation] = useState<MeetingPreparation | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [preparation, setPreparation] = useState<MeetingPreparation | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadPreparation = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const prep = await generateMeetingPreparation(customer, event)
+      setPreparation(prep)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "미팅 준비 자료 생성에 실패했습니다."
+      setError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [customer, event])
 
   useEffect(() => {
     if (event.meetingPrep) {
-      setPreparation(event.meetingPrep);
+      setPreparation(event.meetingPrep)
     } else {
-      loadPreparation();
+      loadPreparation()
     }
-  }, [event.id]);
-
-  const loadPreparation = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const prep = await generateMeetingPreparation(customer, event);
-      setPreparation(prep);
-    } catch (err: any) {
-      setError(err.message || '미팅 준비 자료 생성에 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [loadPreparation, event.meetingPrep])
 
   const formatTime = (timestamp: string | number) => {
-    return new Date(timestamp).toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+    return new Date(timestamp).toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
   if (isLoading) {
     return (
       <div className="bg-gradient-to-b from-slate-50 to-white border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
         <IconLoader className="w-8 h-8 text-blue-600 mx-auto mb-4 animate-spin" />
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">미팅 준비 자료를 만드는 중입니다</h4>
+        <h4 className="text-sm font-semibold text-slate-700 mb-2">
+          미팅 준비 자료를 만드는 중입니다
+        </h4>
         <p className="text-slate-500 text-sm">잠시만 기다려 주세요</p>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -71,7 +84,7 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
           다시 시도
         </button>
       </div>
-    );
+    )
   }
 
   if (!preparation) {
@@ -81,9 +94,7 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
           <IconCalendar className="w-8 h-8 text-blue-600" />
         </div>
         <h4 className="text-sm font-semibold text-slate-700 mb-2">아직 준비 자료가 없습니다</h4>
-        <p className="text-slate-500 text-sm mb-4">
-          AI가 미팅에 맞는 준비 자료를 만들어 드릴까요?
-        </p>
+        <p className="text-slate-500 text-sm mb-4">AI가 미팅에 맞는 준비 자료를 만들어 드릴까요?</p>
         <button
           onClick={loadPreparation}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
@@ -91,7 +102,7 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
           준비 자료 만들기
         </button>
       </div>
-    );
+    )
   }
 
   return (
@@ -175,6 +186,5 @@ export const MeetingPrep: React.FC<MeetingPrepProps> = ({ customer, event, onClo
         준비 자료 다시 만들기
       </button>
     </div>
-  );
-};
-
+  )
+}

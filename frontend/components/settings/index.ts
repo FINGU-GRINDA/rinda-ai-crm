@@ -1,8 +1,8 @@
-export { UnifiedSettings } from './UnifiedSettings';
-export { SettingsTabBar } from './SettingsTabBar';
-export { AISettingsTab } from './tabs/AISettingsTab';
-export { ProspectSettingsTab } from './tabs/ProspectSettingsTab';
-export { SlackIntegrationTab } from './tabs/SlackIntegrationTab';
-export { EmailIntegrationTab } from './tabs/EmailIntegrationTab';
-export { CalendarIntegrationTab } from './tabs/CalendarIntegrationTab';
-export { NotificationSettingsTab } from './tabs/NotificationSettingsTab';
+export { SettingsTabBar } from "./SettingsTabBar"
+export { AISettingsTab } from "./tabs/AISettingsTab"
+export { CalendarIntegrationTab } from "./tabs/CalendarIntegrationTab"
+export { EmailIntegrationTab } from "./tabs/EmailIntegrationTab"
+export { NotificationSettingsTab } from "./tabs/NotificationSettingsTab"
+export { ProspectSettingsTab } from "./tabs/ProspectSettingsTab"
+export { SlackIntegrationTab } from "./tabs/SlackIntegrationTab"
+export { UnifiedSettings } from "./UnifiedSettings"

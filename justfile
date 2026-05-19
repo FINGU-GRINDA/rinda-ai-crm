@@ -44,6 +44,21 @@ fe-build:
 fe-install:
     cd frontend && npm install
 
+fe-lint:
+    cd frontend && npm run lint
+
+fe-lint-check:
+    cd frontend && npm run lint:check
+
+fe-format:
+    cd frontend && npm run format
+
+fe-typecheck:
+    cd frontend && npm run type-check
+
+# lint + type-check (matches CLAUDE.md project rules)
+fe-check: fe-lint-check fe-typecheck
+
 # ---------- Backend (Elysia / Bun) ----------
 
 be-dev:
@@ -94,3 +109,6 @@ install: fe-install be-install
 # run backend + frontend together
 dev:
     just be-dev & just fe-dev
+
+# full quality gate (lint + type-check) for both packages
+check: be-check fe-check

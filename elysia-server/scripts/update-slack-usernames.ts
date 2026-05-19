@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Update Slack User Names Script
  *
@@ -11,8 +12,8 @@
  *   bun run scripts/update-slack-usernames.ts --limit 100
  */
 
-import { parseArgs } from "util"
 import { eq, isNotNull } from "drizzle-orm"
+import { parseArgs } from "util"
 import { db } from "../src/db"
 import { slackMessages } from "../src/db/schema"
 import { slackApiService } from "../src/services/slack-api.service"

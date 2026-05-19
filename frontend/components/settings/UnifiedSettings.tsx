@@ -1,106 +1,119 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { SettingsTabType } from '../../types';
-import { SettingsTabBar } from './SettingsTabBar';
-import { SettingsToastProvider } from './SettingsToastContext';
-import { IconX, IconSettings, IconLoader } from '../Icons';
-import { getSlackSettings } from '../../services/slackIntegrationService';
-import { safeGetItem } from '../../src/utils/safeStorage';
+import type React from "react"
+import { lazy, Suspense, useCallback, useEffect, useState } from "react"
+import { getSlackSettings } from "../../services/slackIntegrationService"
+import { safeGetItem } from "../../src/utils/safeStorage"
+import type { SettingsTabType } from "../../types"
+import { IconLoader, IconSettings, IconX } from "../Icons"
+import { SettingsTabBar } from "./SettingsTabBar"
+import { SettingsToastProvider } from "./SettingsToastContext"
 
-const AISettingsTab = lazy(() => import('./tabs/AISettingsTab').then(m => ({ default: m.AISettingsTab })));
-const ProspectSettingsTab = lazy(() => import('./tabs/ProspectSettingsTab').then(m => ({ default: m.ProspectSettingsTab })));
-const SlackIntegrationTab = lazy(() => import('./tabs/SlackIntegrationTab').then(m => ({ default: m.SlackIntegrationTab })));
-const EmailIntegrationTab = lazy(() => import('./tabs/EmailIntegrationTab').then(m => ({ default: m.EmailIntegrationTab })));
-const CalendarIntegrationTab = lazy(() => import('./tabs/CalendarIntegrationTab').then(m => ({ default: m.CalendarIntegrationTab })));
-const NotificationSettingsTab = lazy(() => import('./tabs/NotificationSettingsTab').then(m => ({ default: m.NotificationSettingsTab })));
+const AISettingsTab = lazy(() =>
+  import("./tabs/AISettingsTab").then((m) => ({ default: m.AISettingsTab })),
+)
+const ProspectSettingsTab = lazy(() =>
+  import("./tabs/ProspectSettingsTab").then((m) => ({ default: m.ProspectSettingsTab })),
+)
+const SlackIntegrationTab = lazy(() =>
+  import("./tabs/SlackIntegrationTab").then((m) => ({ default: m.SlackIntegrationTab })),
+)
+const EmailIntegrationTab = lazy(() =>
+  import("./tabs/EmailIntegrationTab").then((m) => ({ default: m.EmailIntegrationTab })),
+)
+const CalendarIntegrationTab = lazy(() =>
+  import("./tabs/CalendarIntegrationTab").then((m) => ({ default: m.CalendarIntegrationTab })),
+)
+const NotificationSettingsTab = lazy(() =>
+  import("./tabs/NotificationSettingsTab").then((m) => ({ default: m.NotificationSettingsTab })),
+)
 
 interface UnifiedSettingsProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialTab?: SettingsTabType;
-  onSettingsChange?: () => void;
-  existingCompanyNames?: string[];
+  isOpen: boolean
+  onClose: () => void
+  initialTab?: SettingsTabType
+  onSettingsChange?: () => void
+  existingCompanyNames?: string[]
 }
 
 const TabLoader: React.FC = () => (
   <div className="flex items-center justify-center h-64">
     <IconLoader className="w-6 h-6 text-slate-300 animate-spin" />
   </div>
-);
+)
 
 export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
   isOpen,
   onClose,
-  initialTab = 'ai',
+  initialTab = "ai",
   onSettingsChange,
   existingCompanyNames = [],
 }) => {
-  const [activeTab, setActiveTab] = useState<SettingsTabType>(initialTab);
+  const [activeTab, setActiveTab] = useState<SettingsTabType>(initialTab)
   const [connectionStatus, setConnectionStatus] = useState({
     slack: false,
     email: false,
     calendar: false,
-  });
+  })
 
-  const updateConnectionStatus = () => {
-    const emailSettings = safeGetItem<{ isConnected?: boolean }>('rinda_email_settings', {});
-    const calendarSettings = safeGetItem<{ isConnected?: boolean }>('rinda_calendar_settings', {});
+  const updateConnectionStatus = useCallback(() => {
+    const emailSettings = safeGetItem<{ isConnected?: boolean }>("rinda_email_settings", {})
+    const calendarSettings = safeGetItem<{ isConnected?: boolean }>("rinda_calendar_settings", {})
 
     setConnectionStatus({
       slack: getSlackSettings().isValidated,
       email: emailSettings.isConnected || false,
       calendar: calendarSettings.isConnected || false,
-    });
-  };
+    })
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
-      updateConnectionStatus();
+      updateConnectionStatus()
       if (initialTab) {
-        setActiveTab(initialTab);
+        setActiveTab(initialTab)
       }
     }
-  }, [isOpen, initialTab]);
+  }, [isOpen, initialTab, updateConnectionStatus])
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+      if (e.key === "Escape" && isOpen) {
+        onClose()
       }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose]);
+    }
+    window.addEventListener("keydown", handleEsc)
+    return () => window.removeEventListener("keydown", handleEsc)
+  }, [isOpen, onClose])
 
   const handleSettingsChange = () => {
-    updateConnectionStatus();
-    onSettingsChange?.();
-  };
+    updateConnectionStatus()
+    onSettingsChange?.()
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'ai':
-        return <AISettingsTab />;
-      case 'prospect':
+      case "ai":
+        return <AISettingsTab />
+      case "prospect":
         return (
           <ProspectSettingsTab
             onSettingsChange={handleSettingsChange}
             existingCompanyNames={existingCompanyNames}
           />
-        );
-      case 'slack':
-        return <SlackIntegrationTab onSettingsChange={handleSettingsChange} />;
-      case 'email':
-        return <EmailIntegrationTab onSettingsChange={handleSettingsChange} />;
-      case 'calendar':
-        return <CalendarIntegrationTab onSettingsChange={handleSettingsChange} />;
-      case 'notifications':
-        return <NotificationSettingsTab onSettingsChange={handleSettingsChange} />;
+        )
+      case "slack":
+        return <SlackIntegrationTab onSettingsChange={handleSettingsChange} />
+      case "email":
+        return <EmailIntegrationTab onSettingsChange={handleSettingsChange} />
+      case "calendar":
+        return <CalendarIntegrationTab onSettingsChange={handleSettingsChange} />
+      case "notifications":
+        return <NotificationSettingsTab onSettingsChange={handleSettingsChange} />
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   return (
     <div
@@ -181,5 +194,5 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
         </SettingsToastProvider>
       </div>
     </div>
-  );
-};
+  )
+}

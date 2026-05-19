@@ -1,33 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { ICPProfile } from '../../../types';
+import type React from "react"
+import { useEffect, useState } from "react"
 import {
-  getICPProfiles,
+  type CollectionSettings,
   getCollectionSettings,
-  CollectionSettings,
+  getICPProfiles,
   runProspectCollection,
-  STORAGE_KEY_ICPS,
   STORAGE_KEY_COLLECTION_SETTINGS,
-} from '../../../services/prospectService';
-import { setItemOrThrow } from '../../../src/utils/safeStorage';
-import { IconX, IconClock, IconLoader, IconSparkles } from '../../Icons';
-import { useSettingsToast } from '../SettingsToastContext';
+  STORAGE_KEY_ICPS,
+} from "../../../services/prospectService"
+import { setItemOrThrow } from "../../../src/utils/safeStorage"
+import type { ICPProfile } from "../../../types"
+import { IconClock, IconLoader, IconSparkles, IconX } from "../../Icons"
+import { useSettingsToast } from "../SettingsToastContext"
 import {
-  pageTitle,
-  pageDesc,
-  card,
-  sectionTitle,
-  sectionDesc,
-  toggle,
+  btnGhost,
   btnPrimary,
   btnSecondary,
-  btnGhost,
-  inputBase,
+  card,
   chip,
-} from '../tokens';
+  inputBase,
+  pageDesc,
+  pageTitle,
+  sectionDesc,
+  sectionTitle,
+  toggle,
+} from "../tokens"
 
 interface ProspectSettingsTabProps {
-  onSettingsChange?: () => void;
-  existingCompanyNames?: string[];
+  onSettingsChange?: () => void
+  existingCompanyNames?: string[]
 }
 
 const IconPlay: React.FC<{ className?: string }> = ({ className }) => (
@@ -42,122 +43,124 @@ const IconPlay: React.FC<{ className?: string }> = ({ className }) => (
   >
     <polygon points="5 3 19 12 5 21 5 3" />
   </svg>
-);
+)
 
 const formatInterval = (ms: number): string => {
-  const hours = ms / 3600000;
+  const hours = ms / 3600000
   if (hours < 1) {
-    const minutes = ms / 60000;
-    return `${minutes}분`;
+    const minutes = ms / 60000
+    return `${minutes}분`
   }
-  if (hours === 1) return '1시간';
-  if (hours < 24) return `${hours}시간`;
-  return `${hours / 24}일`;
-};
+  if (hours === 1) return "1시간"
+  if (hours < 24) return `${hours}시간`
+  return `${hours / 24}일`
+}
 
 export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
   onSettingsChange,
   existingCompanyNames = [],
 }) => {
-  const toast = useSettingsToast();
-  const [profiles, setProfiles] = useState<ICPProfile[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const toast = useSettingsToast()
+  const [profiles, setProfiles] = useState<ICPProfile[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<Partial<ICPProfile>>({
-    name: '',
+    name: "",
     industries: [],
     keywords: [],
-    companySize: '',
+    companySize: "",
     targetRegions: [],
-  });
-  const [keywordInput, setKeywordInput] = useState('');
-  const [industryInput, setIndustryInput] = useState('');
+  })
+  const [keywordInput, setKeywordInput] = useState("")
+  const [industryInput, setIndustryInput] = useState("")
 
   const [collectionSettings, setCollectionSettings] = useState<CollectionSettings>(() =>
     getCollectionSettings(),
-  );
-  const [isRunning, setIsRunning] = useState(false);
+  )
+  const [isRunning, setIsRunning] = useState(false)
   const [lastRunResult, setLastRunResult] = useState<{
-    newProspects: number;
-    totalArticles: number;
-  } | null>(null);
+    newProspects: number
+    totalArticles: number
+  } | null>(null)
 
   useEffect(() => {
-    setProfiles(getICPProfiles());
-    setCollectionSettings(getCollectionSettings());
-  }, []);
+    setProfiles(getICPProfiles())
+    setCollectionSettings(getCollectionSettings())
+  }, [])
 
-  const persistCollection = (updates: Partial<CollectionSettings>, message = '저장되었습니다') => {
-    const next = { ...collectionSettings, ...updates };
-    setCollectionSettings(next);
+  const persistCollection = (updates: Partial<CollectionSettings>, message = "저장되었습니다") => {
+    const next = { ...collectionSettings, ...updates }
+    setCollectionSettings(next)
     try {
-      setItemOrThrow(STORAGE_KEY_COLLECTION_SETTINGS, next);
-      toast.show('success', message);
+      setItemOrThrow(STORAGE_KEY_COLLECTION_SETTINGS, next)
+      toast.show("success", message)
     } catch {
-      toast.show('error', '저장에 실패했습니다');
+      toast.show("error", "저장에 실패했습니다")
     }
-  };
+  }
 
   const persistProfiles = (next: ICPProfile[], message: string) => {
-    setProfiles(next);
+    setProfiles(next)
     try {
-      setItemOrThrow(STORAGE_KEY_ICPS, next);
-      onSettingsChange?.();
-      toast.show('success', message);
+      setItemOrThrow(STORAGE_KEY_ICPS, next)
+      onSettingsChange?.()
+      toast.show("success", message)
     } catch {
-      toast.show('error', '저장에 실패했습니다');
+      toast.show("error", "저장에 실패했습니다")
     }
-  };
+  }
 
   const handleManualRun = async () => {
     if (profiles.length === 0) {
-      toast.show('error', 'ICP 프로필을 먼저 추가하세요');
-      return;
+      toast.show("error", "ICP 프로필을 먼저 추가하세요")
+      return
     }
 
-    setIsRunning(true);
-    setLastRunResult(null);
+    setIsRunning(true)
+    setLastRunResult(null)
     try {
-      const result = await runProspectCollection(existingCompanyNames);
+      const result = await runProspectCollection(existingCompanyNames)
       setLastRunResult({
         newProspects: result.newProspects.length,
         totalArticles: result.totalArticles,
-      });
-      onSettingsChange?.();
-      toast.show(
-        'success',
-        `${result.totalArticles}건 분석 · 신규 ${result.newProspects.length}건`,
-      );
+      })
+      onSettingsChange?.()
+      toast.show("success", `${result.totalArticles}건 분석 · 신규 ${result.newProspects.length}건`)
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '알 수 없는 오류';
-      toast.show('error', `수집 실패: ${message}`);
+      const message = error instanceof Error ? error.message : "알 수 없는 오류"
+      toast.show("error", `수집 실패: ${message}`)
     } finally {
-      setIsRunning(false);
+      setIsRunning(false)
     }
-  };
+  }
 
   const resetForm = () => {
-    setFormData({ name: '', industries: [], keywords: [], companySize: '', targetRegions: [] });
-    setKeywordInput('');
-    setIndustryInput('');
-    setEditingId(null);
-  };
+    setFormData({ name: "", industries: [], keywords: [], companySize: "", targetRegions: [] })
+    setKeywordInput("")
+    setIndustryInput("")
+    setEditingId(null)
+  }
 
   const handleSave = () => {
     if (!formData.name?.trim()) {
-      toast.show('error', '프로필 이름을 입력하세요');
-      return;
+      toast.show("error", "프로필 이름을 입력하세요")
+      return
     }
     if (!formData.industries?.length) {
-      toast.show('error', '산업을 1개 이상 추가하세요');
-      return;
+      toast.show("error", "산업을 1개 이상 추가하세요")
+      return
     }
     if (!formData.keywords?.length) {
-      toast.show('error', '키워드를 1개 이상 추가하세요');
-      return;
+      toast.show("error", "키워드를 1개 이상 추가하세요")
+      return
     }
 
-    const now = new Date().toISOString();
-    let updated: ICPProfile[];
+    const now = new Date().toISOString()
+    // After handleSave's early returns we have validated name/industries/keywords.
+    const name = formData.name ?? ""
+    const industries = formData.industries ?? []
+    const keywords = formData.keywords ?? []
+
+    let updated: ICPProfile[]
 
     if (editingId) {
       updated = profiles.map((p) =>
@@ -165,30 +168,30 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
           ? {
               ...p,
               ...formData,
-              name: formData.name!,
-              industries: formData.industries!,
-              keywords: formData.keywords!,
+              name,
+              industries,
+              keywords,
               updatedAt: now,
             }
           : p,
-      );
+      )
     } else {
       const newProfile: ICPProfile = {
         id: `icp_${now}_${Math.random().toString(36).slice(2, 11)}`,
-        name: formData.name!,
-        industries: formData.industries!,
-        keywords: formData.keywords!,
+        name,
+        industries,
+        keywords,
         companySize: formData.companySize,
         targetRegions: formData.targetRegions,
         createdAt: now,
         updatedAt: now,
-      };
-      updated = [...profiles, newProfile];
+      }
+      updated = [...profiles, newProfile]
     }
 
-    persistProfiles(updated, editingId ? '프로필이 수정되었습니다' : '프로필이 추가되었습니다');
-    resetForm();
-  };
+    persistProfiles(updated, editingId ? "프로필이 수정되었습니다" : "프로필이 추가되었습니다")
+    resetForm()
+  }
 
   const handleEdit = (profile: ICPProfile) => {
     setFormData({
@@ -197,49 +200,49 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
       keywords: [...profile.keywords],
       companySize: profile.companySize,
       targetRegions: profile.targetRegions,
-    });
-    setEditingId(profile.id);
-    setKeywordInput('');
-    setIndustryInput('');
-  };
+    })
+    setEditingId(profile.id)
+    setKeywordInput("")
+    setIndustryInput("")
+  }
 
   const handleDelete = (id: string) => {
-    if (!confirm('이 ICP 프로필을 삭제할까요?')) return;
-    const updated = profiles.filter((p) => p.id !== id);
-    persistProfiles(updated, '프로필이 삭제되었습니다');
-    if (editingId === id) resetForm();
-  };
+    if (!confirm("이 ICP 프로필을 삭제할까요?")) return
+    const updated = profiles.filter((p) => p.id !== id)
+    persistProfiles(updated, "프로필이 삭제되었습니다")
+    if (editingId === id) resetForm()
+  }
 
   const addKeywords = () => {
     const parts = keywordInput
-      .split(',')
+      .split(",")
       .map((k) => k.trim())
-      .filter(Boolean);
-    if (parts.length === 0) return;
-    setFormData((prev) => ({ ...prev, keywords: [...(prev.keywords || []), ...parts] }));
-    setKeywordInput('');
-  };
+      .filter(Boolean)
+    if (parts.length === 0) return
+    setFormData((prev) => ({ ...prev, keywords: [...(prev.keywords || []), ...parts] }))
+    setKeywordInput("")
+  }
 
   const removeKeyword = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       keywords: prev.keywords?.filter((_, i) => i !== index) || [],
-    }));
-  };
+    }))
+  }
 
   const addIndustry = () => {
-    const v = industryInput.trim();
-    if (!v) return;
-    setFormData((prev) => ({ ...prev, industries: [...(prev.industries || []), v] }));
-    setIndustryInput('');
-  };
+    const v = industryInput.trim()
+    if (!v) return
+    setFormData((prev) => ({ ...prev, industries: [...(prev.industries || []), v] }))
+    setIndustryInput("")
+  }
 
   const removeIndustry = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       industries: prev.industries?.filter((_, i) => i !== index) || [],
-    }));
-  };
+    }))
+  }
 
   return (
     <div className="space-y-6">
@@ -321,8 +324,11 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
             )}
             {lastRunResult && (
               <p className="text-xs text-slate-600 mt-3">
-                최근 결과: 기사 <span className="font-semibold text-slate-900">{lastRunResult.totalArticles}</span>건
-                분석 · 신규 잠재고객 <span className="font-semibold text-emerald-700">{lastRunResult.newProspects}</span>건
+                최근 결과: 기사{" "}
+                <span className="font-semibold text-slate-900">{lastRunResult.totalArticles}</span>
+                건 분석 · 신규 잠재고객{" "}
+                <span className="font-semibold text-emerald-700">{lastRunResult.newProspects}</span>
+                건
               </p>
             )}
           </div>
@@ -332,12 +338,8 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
       {/* ICP form */}
       <section>
         <div className="mb-3">
-          <h4 className={sectionTitle}>
-            {editingId ? 'ICP 프로필 수정' : 'ICP 프로필 추가'}
-          </h4>
-          <p className={sectionDesc}>
-            산업과 키워드를 조합해 찾고 싶은 기업 유형을 정의합니다
-          </p>
+          <h4 className={sectionTitle}>{editingId ? "ICP 프로필 수정" : "ICP 프로필 추가"}</h4>
+          <p className={sectionDesc}>산업과 키워드를 조합해 찾고 싶은 기업 유형을 정의합니다</p>
         </div>
 
         <div className={`${card} space-y-4`}>
@@ -347,7 +349,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
             </label>
             <input
               type="text"
-              value={formData.name || ''}
+              value={formData.name || ""}
               onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               className={inputBase}
               placeholder="예: SaaS 스타트업"
@@ -364,15 +366,19 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 value={industryInput}
                 onChange={(e) => setIndustryInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addIndustry();
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    addIndustry()
                   }
                 }}
                 className={inputBase}
                 placeholder="예: SaaS, 핀테크"
               />
-              <button type="button" onClick={addIndustry} className={btnSecondary + ' flex-shrink-0'}>
+              <button
+                type="button"
+                onClick={addIndustry}
+                className={`${btnSecondary} flex-shrink-0`}
+              >
                 추가
               </button>
             </div>
@@ -398,7 +404,9 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               키워드 <span className="text-red-500">*</span>
-              <span className="ml-1 text-xs font-normal text-slate-500">(쉼표로 여러 개 입력 가능)</span>
+              <span className="ml-1 text-xs font-normal text-slate-500">
+                (쉼표로 여러 개 입력 가능)
+              </span>
             </label>
             <div className="flex gap-2 mb-2">
               <input
@@ -406,15 +414,19 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addKeywords();
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    addKeywords()
                   }
                 }}
                 className={inputBase}
                 placeholder="예: AI, 자동화, 클라우드"
               />
-              <button type="button" onClick={addKeywords} className={btnSecondary + ' flex-shrink-0'}>
+              <button
+                type="button"
+                onClick={addKeywords}
+                className={`${btnSecondary} flex-shrink-0`}
+              >
                 추가
               </button>
             </div>
@@ -443,7 +455,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
             </label>
             <input
               type="text"
-              value={formData.companySize || ''}
+              value={formData.companySize || ""}
               onChange={(e) => setFormData((prev) => ({ ...prev, companySize: e.target.value }))}
               className={inputBase}
               placeholder="예: 50-200명"
@@ -453,7 +465,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={handleSave} className={btnPrimary}>
               <IconSparkles className="w-4 h-4" />
-              {editingId ? '수정 저장' : '프로필 추가'}
+              {editingId ? "수정 저장" : "프로필 추가"}
             </button>
             {editingId && (
               <button type="button" onClick={resetForm} className={btnGhost}>
@@ -470,9 +482,7 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
           <div>
             <h4 className={sectionTitle}>저장된 프로필</h4>
             <p className={sectionDesc}>
-              {profiles.length === 0
-                ? '아직 추가된 프로필이 없습니다'
-                : `총 ${profiles.length}개`}
+              {profiles.length === 0 ? "아직 추가된 프로필이 없습니다" : `총 ${profiles.length}개`}
             </p>
           </div>
         </div>
@@ -507,11 +517,11 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
                 <dl className="space-y-1 text-xs">
                   <div className="flex gap-2">
                     <dt className="text-slate-500 font-medium w-12 flex-shrink-0">산업</dt>
-                    <dd className="text-slate-700">{profile.industries.join(', ')}</dd>
+                    <dd className="text-slate-700">{profile.industries.join(", ")}</dd>
                   </div>
                   <div className="flex gap-2">
                     <dt className="text-slate-500 font-medium w-12 flex-shrink-0">키워드</dt>
-                    <dd className="text-slate-700">{profile.keywords.join(', ')}</dd>
+                    <dd className="text-slate-700">{profile.keywords.join(", ")}</dd>
                   </div>
                   {profile.companySize && (
                     <div className="flex gap-2">
@@ -526,5 +536,5 @@ export const ProspectSettingsTab: React.FC<ProspectSettingsTabProps> = ({
         )}
       </section>
     </div>
-  );
-};
+  )
+}

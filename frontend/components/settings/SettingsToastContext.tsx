@@ -1,61 +1,62 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { IconCheck, IconX } from '../Icons';
+import type React from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
+import { IconCheck, IconX } from "../Icons"
 
-type ToastKind = 'success' | 'error';
+type ToastKind = "success" | "error"
 
 interface ToastState {
-  id: number;
-  kind: ToastKind;
-  message: string;
+  id: number
+  kind: ToastKind
+  message: string
 }
 
 interface SettingsToastValue {
-  show: (kind: ToastKind, message: string) => void;
+  show: (kind: ToastKind, message: string) => void
 }
 
-const SettingsToastCtx = createContext<SettingsToastValue | null>(null);
+const SettingsToastCtx = createContext<SettingsToastValue | null>(null)
 
 export const useSettingsToast = (): SettingsToastValue => {
-  const v = useContext(SettingsToastCtx);
-  if (!v) throw new Error('useSettingsToast must be used inside SettingsToastProvider');
-  return v;
-};
-
-interface ProviderProps {
-  children: React.ReactNode;
+  const v = useContext(SettingsToastCtx)
+  if (!v) throw new Error("useSettingsToast must be used inside SettingsToastProvider")
+  return v
 }
 
-const TOAST_DURATION_MS = 2400;
+interface ProviderProps {
+  children: React.ReactNode
+}
+
+const TOAST_DURATION_MS = 2400
 
 export const SettingsToastProvider: React.FC<ProviderProps> = ({ children }) => {
-  const [toast, setToast] = useState<ToastState | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idRef = useRef(0);
+  const [toast, setToast] = useState<ToastState | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const idRef = useRef(0)
 
   const dismiss = useCallback(() => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+      clearTimeout(timerRef.current)
+      timerRef.current = null
     }
-    setToast(null);
-  }, []);
+    setToast(null)
+  }, [])
 
   const show = useCallback((kind: ToastKind, message: string) => {
-    idRef.current += 1;
-    const id = idRef.current;
-    setToast({ id, kind, message });
-    if (timerRef.current) clearTimeout(timerRef.current);
+    idRef.current += 1
+    const id = idRef.current
+    setToast({ id, kind, message })
+    if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
-      setToast((current) => (current?.id === id ? null : current));
-      timerRef.current = null;
-    }, TOAST_DURATION_MS);
-  }, []);
+      setToast((current) => (current?.id === id ? null : current))
+      timerRef.current = null
+    }, TOAST_DURATION_MS)
+  }, [])
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   return (
     <SettingsToastCtx.Provider value={{ show }}>
@@ -68,12 +69,12 @@ export const SettingsToastProvider: React.FC<ProviderProps> = ({ children }) => 
         >
           <div
             className={`pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg border text-sm font-medium animate-in fade-in slide-in-from-bottom-2 duration-200 ${
-              toast.kind === 'success'
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-red-600 text-white border-red-600'
+              toast.kind === "success"
+                ? "bg-slate-900 text-white border-slate-900"
+                : "bg-red-600 text-white border-red-600"
             }`}
           >
-            {toast.kind === 'success' ? (
+            {toast.kind === "success" ? (
               <IconCheck className="w-4 h-4 flex-shrink-0" />
             ) : (
               <IconX className="w-4 h-4 flex-shrink-0" />
@@ -91,5 +92,5 @@ export const SettingsToastProvider: React.FC<ProviderProps> = ({ children }) => 
         </div>
       )}
     </SettingsToastCtx.Provider>
-  );
-};
+  )
+}

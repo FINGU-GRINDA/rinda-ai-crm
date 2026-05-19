@@ -1,21 +1,22 @@
-import React, { useState } from 'react';
-import { CalendarSettings } from '../../../types';
-import { IconCalendar, IconLoader } from '../../Icons';
-import { useSettingsToast } from '../SettingsToastContext';
+import type React from "react"
+import { useState } from "react"
+import type { CalendarSettings } from "../../../types"
+import { IconCalendar, IconLoader } from "../../Icons"
+import { useSettingsToast } from "../SettingsToastContext"
 import {
-  pageTitle,
-  pageDesc,
-  card,
-  sectionTitle,
-  sectionDesc,
-  infoNote,
-  toggle,
-  btnSecondary,
   btnGhost,
+  btnSecondary,
+  card,
+  infoNote,
   inputBase,
-} from '../tokens';
+  pageDesc,
+  pageTitle,
+  sectionDesc,
+  sectionTitle,
+  toggle,
+} from "../tokens"
 
-const CALENDAR_SETTINGS_KEY = 'rinda_calendar_settings';
+const CALENDAR_SETTINGS_KEY = "rinda_calendar_settings"
 
 const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   provider: null,
@@ -24,58 +25,62 @@ const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   syncInterval: 300000,
   lastSyncAt: undefined,
   meetingPrepEnabled: true,
-};
+}
 
 const getCalendarSettings = (): CalendarSettings => {
   try {
-    const stored = localStorage.getItem(CALENDAR_SETTINGS_KEY);
+    const stored = localStorage.getItem(CALENDAR_SETTINGS_KEY)
     if (stored) {
-      return { ...DEFAULT_CALENDAR_SETTINGS, ...JSON.parse(stored) };
+      return { ...DEFAULT_CALENDAR_SETTINGS, ...JSON.parse(stored) }
     }
   } catch (error) {
-    console.error('Failed to load calendar settings:', error);
+    console.error("Failed to load calendar settings:", error)
   }
-  return DEFAULT_CALENDAR_SETTINGS;
-};
-
-const saveCalendarSettings = (settings: CalendarSettings): void => {
-  localStorage.setItem(CALENDAR_SETTINGS_KEY, JSON.stringify(settings));
-};
-
-const PROVIDER_LABEL: Record<NonNullable<CalendarSettings['provider']>, string> = {
-  google: 'Google Calendar',
-  outlook: 'Outlook Calendar',
-};
-
-const PROVIDER_DESC: Record<NonNullable<CalendarSettings['provider']>, string> = {
-  google: 'Google 계정으로 연결',
-  outlook: 'Microsoft 계정으로 연결',
-};
-
-interface CalendarIntegrationTabProps {
-  onSettingsChange?: () => void;
+  return DEFAULT_CALENDAR_SETTINGS
 }
 
-export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ onSettingsChange }) => {
-  const [settings, setSettings] = useState<CalendarSettings>(() => getCalendarSettings());
-  const [connectingProvider, setConnectingProvider] = useState<CalendarSettings['provider'] | null>(null);
-  const toast = useSettingsToast();
+const saveCalendarSettings = (settings: CalendarSettings): void => {
+  localStorage.setItem(CALENDAR_SETTINGS_KEY, JSON.stringify(settings))
+}
 
-  const persist = (next: CalendarSettings, message = '저장되었습니다') => {
-    setSettings(next);
+const PROVIDER_LABEL: Record<NonNullable<CalendarSettings["provider"]>, string> = {
+  google: "Google Calendar",
+  outlook: "Outlook Calendar",
+}
+
+const PROVIDER_DESC: Record<NonNullable<CalendarSettings["provider"]>, string> = {
+  google: "Google 계정으로 연결",
+  outlook: "Microsoft 계정으로 연결",
+}
+
+interface CalendarIntegrationTabProps {
+  onSettingsChange?: () => void
+}
+
+export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({
+  onSettingsChange,
+}) => {
+  const [settings, setSettings] = useState<CalendarSettings>(() => getCalendarSettings())
+  const [connectingProvider, setConnectingProvider] = useState<CalendarSettings["provider"] | null>(
+    null,
+  )
+  const toast = useSettingsToast()
+
+  const persist = (next: CalendarSettings, message = "저장되었습니다") => {
+    setSettings(next)
     try {
-      saveCalendarSettings(next);
-      onSettingsChange?.();
-      toast.show('success', message);
+      saveCalendarSettings(next)
+      onSettingsChange?.()
+      toast.show("success", message)
     } catch (error) {
-      console.error(error);
-      toast.show('error', '저장에 실패했습니다');
+      console.error(error)
+      toast.show("error", "저장에 실패했습니다")
     }
-  };
+  }
 
-  const handleConnect = async (provider: 'google' | 'outlook') => {
-    setConnectingProvider(provider);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+  const handleConnect = async (provider: "google" | "outlook") => {
+    setConnectingProvider(provider)
+    await new Promise((resolve) => setTimeout(resolve, 1200))
     persist(
       {
         ...settings,
@@ -84,13 +89,13 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
         lastSyncAt: Date.now(),
       },
       `${PROVIDER_LABEL[provider]}이(가) 연동되었습니다`,
-    );
-    setConnectingProvider(null);
-  };
+    )
+    setConnectingProvider(null)
+  }
 
   const handleDisconnect = () => {
-    persist({ ...DEFAULT_CALENDAR_SETTINGS }, '연동이 해제되었습니다');
-  };
+    persist({ ...DEFAULT_CALENDAR_SETTINGS }, "연동이 해제되었습니다")
+  }
 
   return (
     <div className="space-y-6">
@@ -112,7 +117,7 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
                 </p>
                 {settings.lastSyncAt && (
                   <p className="text-xs text-slate-500 mt-0.5">
-                    마지막 동기화: {new Date(settings.lastSyncAt).toLocaleString('ko-KR')}
+                    마지막 동기화: {new Date(settings.lastSyncAt).toLocaleString("ko-KR")}
                   </p>
                 )}
               </div>
@@ -130,7 +135,7 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
           </div>
 
           <div className="space-y-2">
-            {(['google', 'outlook'] as const).map((provider) => (
+            {(["google", "outlook"] as const).map((provider) => (
               <button
                 key={provider}
                 onClick={() => handleConnect(provider)}
@@ -197,10 +202,14 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
 
             {settings.autoSync && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">동기화 주기</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  동기화 주기
+                </label>
                 <select
                   value={settings.syncInterval}
-                  onChange={(e) => persist({ ...settings, syncInterval: parseInt(e.target.value, 10) })}
+                  onChange={(e) =>
+                    persist({ ...settings, syncInterval: parseInt(e.target.value, 10) })
+                  }
                   className={inputBase}
                 >
                   <option value={300000}>5분마다</option>
@@ -222,8 +231,9 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({ 
       )}
 
       <div className={infoNote}>
-        OAuth 연결은 시뮬레이션 모드입니다. 실제 연동은 운영 환경에서 OAuth 자격 증명을 구성한 후 사용할 수 있습니다.
+        OAuth 연결은 시뮬레이션 모드입니다. 실제 연동은 운영 환경에서 OAuth 자격 증명을 구성한 후
+        사용할 수 있습니다.
       </div>
     </div>
-  );
-};
+  )
+}

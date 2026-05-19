@@ -1,36 +1,36 @@
-import React, { useMemo } from 'react';
-import { Prospect } from '../types';
+import type React from "react"
+import { useMemo } from "react"
+import { type SignalKey, signalBadge, toneStyles } from "../styles/design-tokens"
+import type { Prospect } from "../types"
 import {
   IconBuilding,
-  IconTrendingUp,
+  IconCheck,
+  IconExternalLink,
   IconNews,
   IconSparkles,
-  IconExternalLink,
-  IconArrowRight,
-  IconCheck,
-  IconX
-} from './Icons';
-import { signalBadge, toneStyles, type SignalKey } from '../styles/design-tokens';
-import { StatusBadge } from './ui/StatusBadge';
+  IconTrendingUp,
+  IconX,
+} from "./Icons"
+import { StatusBadge } from "./ui/StatusBadge"
 
 interface ProspectsBoardProps {
-  prospects: Prospect[];
-  onSelectProspect: (prospectId: string) => void;
-  onConvertToCustomer: (prospectId: string) => void;
-  onDismissProspect: (prospectId: string) => void;
+  prospects: Prospect[]
+  onSelectProspect: (prospectId: string) => void
+  onConvertProspect: (prospectId: string) => void
+  onDismissProspect: (prospectId: string) => void
 }
 
 type SignalColumn = {
-  id: SignalKey;
-  title: string;
-  description: string;
-  surface: string;
-  text: string;
-  borderLeft: string;
-};
+  id: SignalKey
+  title: string
+  description: string
+  surface: string
+  text: string
+  borderLeft: string
+}
 
-const SIGNAL_COLUMNS: SignalColumn[] = (['high', 'medium', 'low'] as SignalKey[]).map(id => {
-  const tone = toneStyles[signalBadge[id].tone];
+const SIGNAL_COLUMNS: SignalColumn[] = (["high", "medium", "low"] as SignalKey[]).map((id) => {
+  const tone = toneStyles[signalBadge[id].tone]
   return {
     id,
     title: signalBadge[id].label,
@@ -38,41 +38,42 @@ const SIGNAL_COLUMNS: SignalColumn[] = (['high', 'medium', 'low'] as SignalKey[]
     surface: `${tone.bg} ${tone.border} border`,
     text: tone.text,
     borderLeft: tone.borderLeft,
-  };
-});
+  }
+})
 
 export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
   prospects,
   onSelectProspect,
-  onConvertToCustomer,
-  onDismissProspect
+  onConvertProspect,
+  onDismissProspect,
 }) => {
   // Group prospects by signal strength
   const groupedProspects = useMemo(() => {
-    return SIGNAL_COLUMNS.reduce((acc, column) => {
-      acc[column.id] = prospects.filter(
-        p => p.signalStrength === column.id
-      );
-      return acc;
-    }, {} as Record<string, Prospect[]>);
-  }, [prospects]);
+    return SIGNAL_COLUMNS.reduce(
+      (acc, column) => {
+        acc[column.id] = prospects.filter((p) => p.signalStrength === column.id)
+        return acc
+      },
+      {} as Record<string, Prospect[]>,
+    )
+  }, [prospects])
 
-  const totalProspects = prospects.length;
+  const totalProspects = prospects.length
 
   // Format date
   const formatDate = (timestamp: string | number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
 
-    if (diffMins < 60) return `${diffMins}분 전`;
-    if (diffHours < 24) return `${diffHours}시간 전`;
-    if (diffDays < 7) return `${diffDays}일 전`;
-    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-  };
+    if (diffMins < 60) return `${diffMins}분 전`
+    if (diffHours < 24) return `${diffHours}시간 전`
+    if (diffDays < 7) return `${diffDays}일 전`
+    return date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
+  }
 
   // Prospect Card Component
   const ProspectCard: React.FC<{ prospect: Prospect }> = ({ prospect }) => {
@@ -103,7 +104,7 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
               <IconNews className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                  {prospect.sourceArticle.title || '뉴스 기사'}
+                  {prospect.sourceArticle.title || "뉴스 기사"}
                 </p>
                 {prospect.sourceArticle.uri && (
                   <a
@@ -125,9 +126,7 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
         {/* Notes */}
         {prospect.notes && (
           <div className="mb-3">
-            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-              {prospect.notes}
-            </p>
+            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{prospect.notes}</p>
           </div>
         )}
 
@@ -141,8 +140,8 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
           <div className="flex gap-2">
             <button
               onClick={(e) => {
-                e.stopPropagation();
-                onConvertToCustomer(prospect.id);
+                e.stopPropagation()
+                onConvertProspect(prospect.id)
               }}
               className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 hover:border-blue-700 transition-all group-hover:scale-105"
             >
@@ -151,8 +150,8 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
             </button>
             <button
               onClick={(e) => {
-                e.stopPropagation();
-                onDismissProspect(prospect.id);
+                e.stopPropagation()
+                onDismissProspect(prospect.id)
               }}
               className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 hover:border-slate-300 transition-all group-hover:scale-105"
             >
@@ -173,13 +172,13 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
               className="text-xs text-slate-500 hover:text-blue-600 hover:underline inline-flex items-center gap-1"
             >
               <IconExternalLink className="w-3 h-3" />
-              {prospect.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+              {prospect.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
             </a>
           </div>
         )}
       </div>
-    );
-  };
+    )
+  }
 
   if (totalProspects === 0) {
     return (
@@ -196,7 +195,7 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
           설정 메뉴에서 ICP 프로필을 추가해 보세요.
         </p>
       </div>
-    );
+    )
   }
 
   return (
@@ -209,9 +208,7 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
               <IconSparkles className="w-6 h-6 text-blue-600" />
               잠재 고객 ({totalProspects})
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              AI가 자동으로 발굴한 관심 기업입니다
-            </p>
+            <p className="text-sm text-slate-500 mt-1">AI가 자동으로 발굴한 관심 기업입니다</p>
           </div>
         </div>
       </div>
@@ -219,25 +216,24 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
       {/* Columns */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex gap-4 h-full min-w-max pb-4">
-          {SIGNAL_COLUMNS.map(column => {
-            const columnProspects = groupedProspects[column.id] || [];
+          {SIGNAL_COLUMNS.map((column) => {
+            const columnProspects = groupedProspects[column.id] || []
 
             return (
-              <div
-                key={column.id}
-                className="flex flex-col w-80 flex-shrink-0"
-              >
+              <div key={column.id} className="flex flex-col w-80 flex-shrink-0">
                 {/* Column Header */}
-                <div className={`bg-white border border-slate-200 border-l-4 ${column.borderLeft} rounded-lg p-3 mb-3 shadow-sm`}>
+                <div
+                  className={`bg-white border border-slate-200 border-l-4 ${column.borderLeft} rounded-lg p-3 mb-3 shadow-sm`}
+                >
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-sm text-slate-800">
-                      {column.title}
-                    </h3>
+                    <h3 className="font-semibold text-sm text-slate-800">{column.title}</h3>
                     <StatusBadge kind="signal" value={column.id} showDot={false} />
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-slate-500">{column.description}</p>
-                    <span className="text-xs text-slate-400 font-medium">{columnProspects.length}건</span>
+                    <span className="text-xs text-slate-400 font-medium">
+                      {columnProspects.length}건
+                    </span>
                   </div>
                 </div>
 
@@ -245,21 +241,19 @@ export const ProspectsBoard: React.FC<ProspectsBoardProps> = ({
                 <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                   {columnProspects.length === 0 ? (
                     <div className="bg-gradient-to-b from-slate-50 to-white border border-dashed border-slate-300 rounded-lg p-4 text-center">
-                      <p className="text-xs text-slate-500">
-                        이 단계에 속한 잠재 고객이 없습니다
-                      </p>
+                      <p className="text-xs text-slate-500">이 단계에 속한 잠재 고객이 없습니다</p>
                     </div>
                   ) : (
-                    columnProspects.map(prospect => (
+                    columnProspects.map((prospect) => (
                       <ProspectCard key={prospect.id} prospect={prospect} />
                     ))
                   )}
                 </div>
               </div>
-            );
+            )
           })}
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

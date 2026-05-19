@@ -1,36 +1,37 @@
-import React, { useState } from 'react';
-import { IconX } from './Icons';
+import type React from "react"
+import { useState } from "react"
+import { IconX } from "./Icons"
 
 interface LostDealModalProps {
-  customerName: string;
-  onConfirm: (reason: string) => void;
-  onCancel: () => void;
+  customerName: string
+  onConfirm: (reason: string) => void
+  onCancel: () => void
 }
 
 export const LostDealModal: React.FC<LostDealModalProps> = ({
   customerName,
   onConfirm,
-  onCancel
+  onCancel,
 }) => {
-  const [reason, setReason] = useState('');
-  const [selectedReason, setSelectedReason] = useState<string>('');
+  const [reason, setReason] = useState("")
+  const [selectedReason, setSelectedReason] = useState<string>("")
 
   const commonReasons = [
-    '가격 경쟁력 부족',
-    '경쟁사 선택',
-    '예산 부족',
-    '타이밍 부적절',
-    '기능/솔루션 미흡',
-    '의사결정 지연',
-    '기타'
-  ];
+    "가격 경쟁력 부족",
+    "경쟁사 선택",
+    "예산 부족",
+    "타이밍 부적절",
+    "기능/솔루션 미흡",
+    "의사결정 지연",
+    "기타",
+  ]
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (reason.trim() || selectedReason) {
-      onConfirm(reason || selectedReason);
+      onConfirm(reason || selectedReason)
     }
-  };
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50 p-0 md:p-4 animate-in fade-in duration-200">
@@ -53,7 +54,8 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
 
         <div className="mb-4">
           <p className="text-sm text-slate-600 mb-4">
-            <span className="font-semibold text-slate-800">{customerName}</span>건을 실주로 처리합니다.
+            <span className="font-semibold text-slate-800">{customerName}</span>건을 실주로
+            처리합니다.
             <br />
             실주 사유를 입력해 주세요. AI가 재접촉 전략을 세울 때 활용합니다.
           </p>
@@ -71,19 +73,19 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
                   key={commonReason}
                   type="button"
                   onClick={() => {
-                    setSelectedReason(commonReason);
-                    if (commonReason !== '기타') {
-                      setReason(commonReason);
+                    setSelectedReason(commonReason)
+                    if (commonReason !== "기타") {
+                      setReason(commonReason)
                     } else {
-                      setReason('');
+                      setReason("")
                     }
                   }}
                   className={`
                     px-3 py-2 text-sm rounded-lg border transition-all
                     ${
                       selectedReason === commonReason
-                        ? 'bg-blue-50 border-blue-500 text-blue-700'
-                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                        ? "bg-blue-50 border-blue-500 text-blue-700"
+                        : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
                     }
                   `}
                 >
@@ -95,16 +97,14 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
 
           {/* 상세 사유 입력 */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              상세 사유 *
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">상세 사유 *</label>
             <textarea
               required
               value={reason}
               onChange={(e) => {
-                setReason(e.target.value);
+                setReason(e.target.value)
                 if (e.target.value) {
-                  setSelectedReason('기타');
+                  setSelectedReason("기타")
                 }
               }}
               placeholder="실주에 이른 구체적인 사유를 입력해 주세요"
@@ -114,9 +114,9 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
           </div>
 
           <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200">
-            <button 
-              type="button" 
-              onClick={onCancel} 
+            <button
+              type="button"
+              onClick={onCancel}
               className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
             >
               취소
@@ -132,8 +132,5 @@ export const LostDealModal: React.FC<LostDealModalProps> = ({
         </form>
       </div>
     </div>
-  );
-};
-
-
-
+  )
+}

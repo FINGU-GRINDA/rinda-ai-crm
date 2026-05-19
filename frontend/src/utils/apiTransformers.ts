@@ -10,7 +10,7 @@ import type {
   ApiMeetingSummary,
   ApiProposal,
   ApiProspect,
-} from '../../../elysia-server/src/types/api'
+} from "../../../elysia-server/src/types/api"
 import type {
   Customer,
   CustomerContact,
@@ -19,8 +19,8 @@ import type {
   MeetingSummary,
   Proposal,
   Prospect,
-} from '../../types'
-import { safeJsonParse } from './safeStorage'
+} from "../../types"
+import { safeJsonParse } from "./safeStorage"
 
 // Extended API customer type with relations (returned from backend)
 interface ApiCustomerWithRelations extends ApiCustomer {
@@ -31,16 +31,18 @@ interface ApiCustomerWithRelations extends ApiCustomer {
 /**
  * Transform API enrichment to frontend EnrichedData type
  */
-function transformApiEnrichment(apiEnrichment: ApiCustomerEnrichment | null | undefined): EnrichedData | undefined {
+function transformApiEnrichment(
+  apiEnrichment: ApiCustomerEnrichment | null | undefined,
+): EnrichedData | undefined {
   if (!apiEnrichment) return undefined
 
   return {
-    summary: apiEnrichment.summary || '',
-    ceo: apiEnrichment.ceo || '',
-    foundedYear: apiEnrichment.foundedYear || '',
+    summary: apiEnrichment.summary || "",
+    ceo: apiEnrichment.ceo || "",
+    foundedYear: apiEnrichment.foundedYear || "",
     recentNews: safeJsonParse(apiEnrichment.recentNews, []),
     competitors: safeJsonParse(apiEnrichment.competitors, []),
-    salesOpportunity: apiEnrichment.salesOpportunity || '',
+    salesOpportunity: apiEnrichment.salesOpportunity || "",
     sources: safeJsonParse(apiEnrichment.sources, []),
   }
 }
@@ -48,16 +50,18 @@ function transformApiEnrichment(apiEnrichment: ApiCustomerEnrichment | null | un
 /**
  * Transform API enrichment follow-up strategy fields to frontend FollowUpStrategy type
  */
-function transformApiFollowUpStrategy(apiEnrichment: ApiCustomerEnrichment | null | undefined): FollowUpStrategy | undefined {
+function transformApiFollowUpStrategy(
+  apiEnrichment: ApiCustomerEnrichment | null | undefined,
+): FollowUpStrategy | undefined {
   if (!apiEnrichment?.followUpApproach) return undefined
 
   return {
-    recommendedTiming: apiEnrichment.followUpRecommendedTiming || '',
-    approach: apiEnrichment.followUpApproach || '',
-    messageTone: apiEnrichment.followUpMessageTone || '',
+    recommendedTiming: apiEnrichment.followUpRecommendedTiming || "",
+    approach: apiEnrichment.followUpApproach || "",
+    messageTone: apiEnrichment.followUpMessageTone || "",
     keyPoints: safeJsonParse(apiEnrichment.followUpKeyPoints, []),
-    probability: (apiEnrichment.followUpProbability as 'high' | 'medium' | 'low') || 'medium',
-    reasoning: apiEnrichment.followUpReasoning || '',
+    probability: (apiEnrichment.followUpProbability as "high" | "medium" | "low") || "medium",
+    reasoning: apiEnrichment.followUpReasoning || "",
   }
 }
 
@@ -65,16 +69,18 @@ function transformApiFollowUpStrategy(apiEnrichment: ApiCustomerEnrichment | nul
  * Transform API customer to frontend Customer type
  * Handles both simple ApiCustomer and ApiCustomerWithRelations
  */
-export function transformApiCustomer(apiCustomer: ApiCustomer | ApiCustomerWithRelations): Customer {
+export function transformApiCustomer(
+  apiCustomer: ApiCustomer | ApiCustomerWithRelations,
+): Customer {
   // Check if this customer has enrichment/proposals attached
   const withRelations = apiCustomer as ApiCustomerWithRelations
 
   return {
     id: apiCustomer.id,
     name: apiCustomer.name,
-    website: apiCustomer.website || '',
-    industry: apiCustomer.industry || '미분류',
-    notes: apiCustomer.notes || '',
+    website: apiCustomer.website || "",
+    industry: apiCustomer.industry || "미분류",
+    notes: apiCustomer.notes || "",
     status: apiCustomer.status,
     enrichedData: transformApiEnrichment(withRelations.enrichment),
     proposals: withRelations.proposals?.map(transformApiProposal) || [],
@@ -82,10 +88,10 @@ export function transformApiCustomer(apiCustomer: ApiCustomer | ApiCustomerWithR
     lostReason: apiCustomer.lostReason || undefined,
     lostAt: apiCustomer.lostAt || undefined,
     lastFollowUpAt: apiCustomer.lastFollowUpAt || undefined,
-    followUpHistory: [],  // Loaded separately
+    followUpHistory: [], // Loaded separately
     followUpStrategy: transformApiFollowUpStrategy(withRelations.enrichment),
-    contacts: [],  // Loaded separately
-    meetingSummaries: [],  // Loaded separately
+    contacts: [], // Loaded separately
+    meetingSummaries: [], // Loaded separately
   }
 }
 
@@ -96,12 +102,12 @@ export function transformApiProspect(apiProspect: ApiProspect): Prospect {
   return {
     id: apiProspect.id,
     companyName: apiProspect.companyName,
-    website: apiProspect.website || '',
-    industry: apiProspect.industry || '미분류',
+    website: apiProspect.website || "",
+    industry: apiProspect.industry || "미분류",
     sourceArticle: {
-      title: apiProspect.sourceArticle.title || '',
-      uri: apiProspect.sourceArticle.uri || '',
-      publishedAt: apiProspect.sourceArticle.publishedAt,
+      title: apiProspect.sourceArticle.title || "",
+      uri: apiProspect.sourceArticle.uri || "",
+      publishedAt: apiProspect.sourceArticle.publishedAt ?? undefined,
     },
     signalStrength: apiProspect.signalStrength,
     detectedAt: apiProspect.detectedAt,
@@ -134,8 +140,8 @@ export function transformApiContact(apiContact: ApiCustomerContact): CustomerCon
     title: apiContact.title || undefined,
     email: apiContact.email || undefined,
     phone: apiContact.phone || undefined,
-    isPrimary: apiContact.isPrimary === 1,  // Convert SQLite 0/1 to boolean
-    source: (apiContact.source as 'manual' | 'business_card' | 'import') || undefined,
+    isPrimary: apiContact.isPrimary === 1, // Convert SQLite 0/1 to boolean
+    source: (apiContact.source as "manual" | "business_card" | "import") || undefined,
     businessCardImageUrl: apiContact.businessCardImageUrl || undefined,
     createdAt: apiContact.createdAt,
     updatedAt: apiContact.updatedAt,
@@ -153,7 +159,7 @@ export function transformApiMeeting(apiMeeting: ApiMeetingSummary): MeetingSumma
     meetingDate: apiMeeting.meetingDate,
     audioFileUrl: apiMeeting.audioFileUrl || undefined,
     duration: apiMeeting.duration || undefined,
-    summary: apiMeeting.summary || '',
+    summary: apiMeeting.summary || "",
     keyDiscussions: safeJsonParse(apiMeeting.keyDiscussions, []),
     actionItems: safeJsonParse(apiMeeting.actionItems, []),
     customerNeeds: safeJsonParse(apiMeeting.customerNeeds, []),
@@ -175,12 +181,12 @@ export function transformApiMeeting(apiMeeting: ApiMeetingSummary): MeetingSumma
  * Example: "2024-01-20T10:30:00.000Z" -> "2024년 1월 20일"
  */
 export function formatDate(isoString: string | undefined | null): string {
-  if (!isoString) return ''
+  if (!isoString) return ""
 
-  return new Date(isoString).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return new Date(isoString).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   })
 }
 
@@ -189,15 +195,15 @@ export function formatDate(isoString: string | undefined | null): string {
  * Example: "2024-01-15T10:30:00.000Z" -> "5일 전"
  */
 export function formatRelativeTime(isoString: string | undefined | null): string {
-  if (!isoString) return ''
+  if (!isoString) return ""
 
   const date = new Date(isoString)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffDays === 0) return '오늘'
-  if (diffDays === 1) return '어제'
+  if (diffDays === 0) return "오늘"
+  if (diffDays === 1) return "어제"
   if (diffDays < 7) return `${diffDays}일 전`
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`
   if (diffDays < 365) return `${Math.floor(diffDays / 30)}개월 전`
@@ -208,12 +214,12 @@ export function formatRelativeTime(isoString: string | undefined | null): string
  * Format date for input fields (YYYY-MM-DD)
  */
 export function formatDateForInput(isoString: string | undefined | null): string {
-  if (!isoString) return ''
+  if (!isoString) return ""
 
   const date = new Date(isoString)
   const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
 
   return `${year}-${month}-${day}`
 }

@@ -1,25 +1,26 @@
-import React, { useState, useMemo } from 'react';
-import { IconArrowUp, IconArrowDown, IconCheck, IconTrash } from './Icons';
+import type React from "react"
+import { useMemo, useState } from "react"
+import { IconArrowDown, IconArrowUp, IconCheck } from "./Icons"
 
 export interface TableColumn<T> {
-  id: string;
-  label: string;
-  width: number | string;
-  sortable?: boolean;
-  render: (row: T) => React.ReactNode;
+  id: string
+  label: string
+  width: number | string
+  sortable?: boolean
+  render: (row: T) => React.ReactNode
 }
 
 interface DataTableProps<T> {
-  data: T[];
-  columns: TableColumn<T>[];
-  keyExtractor: (row: T) => string;
-  onRowClick?: (row: T) => void;
-  selectedRows?: Set<string>;
-  onSelectionChange?: (selectedIds: Set<string>) => void;
-  emptyMessage?: string;
+  data: T[]
+  columns: TableColumn<T>[]
+  keyExtractor: (row: T) => string
+  onRowClick?: (row: T) => void
+  selectedRows?: Set<string>
+  onSelectionChange?: (selectedIds: Set<string>) => void
+  emptyMessage?: string
 }
 
-type SortDirection = 'asc' | 'desc' | null;
+type SortDirection = "asc" | "desc" | null
 
 export function DataTable<T>({
   data,
@@ -28,65 +29,65 @@ export function DataTable<T>({
   onRowClick,
   selectedRows = new Set(),
   onSelectionChange,
-  emptyMessage = '데이터가 없습니다',
+  emptyMessage = "데이터가 없습니다",
 }: DataTableProps<T>) {
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
 
   const sortedData = useMemo(() => {
-    if (!sortColumn || !sortDirection) return data;
+    if (!sortColumn || !sortDirection) return data
 
     return [...data].sort((a, b) => {
       // Simple string comparison for now
-      const aVal = String(keyExtractor(a));
-      const bVal = String(keyExtractor(b));
+      const aVal = String(keyExtractor(a))
+      const bVal = String(keyExtractor(b))
 
-      if (sortDirection === 'asc') {
-        return aVal.localeCompare(bVal);
+      if (sortDirection === "asc") {
+        return aVal.localeCompare(bVal)
       } else {
-        return bVal.localeCompare(aVal);
+        return bVal.localeCompare(aVal)
       }
-    });
-  }, [data, sortColumn, sortDirection, keyExtractor]);
+    })
+  }, [data, sortColumn, sortDirection, keyExtractor])
 
   const handleSort = (columnId: string) => {
     if (sortColumn === columnId) {
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else if (sortDirection === 'desc') {
-        setSortColumn(null);
-        setSortDirection(null);
+      if (sortDirection === "asc") {
+        setSortDirection("desc")
+      } else if (sortDirection === "desc") {
+        setSortColumn(null)
+        setSortDirection(null)
       }
     } else {
-      setSortColumn(columnId);
-      setSortDirection('asc');
+      setSortColumn(columnId)
+      setSortDirection("asc")
     }
-  };
+  }
 
   const handleSelectAll = () => {
-    if (!onSelectionChange) return;
+    if (!onSelectionChange) return
 
     if (selectedRows.size === data.length) {
-      onSelectionChange(new Set());
+      onSelectionChange(new Set())
     } else {
-      onSelectionChange(new Set(data.map(keyExtractor)));
+      onSelectionChange(new Set(data.map(keyExtractor)))
     }
-  };
+  }
 
   const handleSelectRow = (rowId: string) => {
-    if (!onSelectionChange) return;
+    if (!onSelectionChange) return
 
-    const newSelection = new Set(selectedRows);
+    const newSelection = new Set(selectedRows)
     if (newSelection.has(rowId)) {
-      newSelection.delete(rowId);
+      newSelection.delete(rowId)
     } else {
-      newSelection.add(rowId);
+      newSelection.add(rowId)
     }
-    onSelectionChange(newSelection);
-  };
+    onSelectionChange(newSelection)
+  }
 
-  const isAllSelected = data.length > 0 && selectedRows.size === data.length;
-  const isSomeSelected = selectedRows.size > 0 && selectedRows.size < data.length;
+  const isAllSelected = data.length > 0 && selectedRows.size === data.length
+  const isSomeSelected = selectedRows.size > 0 && selectedRows.size < data.length
 
   return (
     <div className="w-full h-full flex flex-col bg-white rounded-lg border border-neutral-200 overflow-hidden">
@@ -102,10 +103,10 @@ export function DataTable<T>({
                     onClick={handleSelectAll}
                     className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                       isAllSelected
-                        ? 'bg-blue-600 border-blue-600'
+                        ? "bg-blue-600 border-blue-600"
                         : isSomeSelected
-                        ? 'bg-blue-600 border-blue-600 opacity-50'
-                        : 'border-neutral-300 hover:border-blue-600'
+                          ? "bg-blue-600 border-blue-600 opacity-50"
+                          : "border-neutral-300 hover:border-blue-600"
                     }`}
                     aria-label="전체 선택"
                   >
@@ -134,7 +135,7 @@ export function DataTable<T>({
                         aria-label={`${column.label} 정렬`}
                       >
                         {sortColumn === column.id ? (
-                          sortDirection === 'asc' ? (
+                          sortDirection === "asc" ? (
                             <IconArrowUp className="w-4 h-4" />
                           ) : (
                             <IconArrowDown className="w-4 h-4" />
@@ -162,29 +163,29 @@ export function DataTable<T>({
               </tr>
             ) : (
               sortedData.map((row) => {
-                const rowId = keyExtractor(row);
-                const isSelected = selectedRows.has(rowId);
+                const rowId = keyExtractor(row)
+                const isSelected = selectedRows.has(rowId)
 
                 return (
                   <tr
                     key={rowId}
                     onClick={() => onRowClick?.(row)}
                     className={`border-b border-neutral-100 transition-colors ${
-                      onRowClick ? 'cursor-pointer hover:bg-neutral-50' : ''
-                    } ${isSelected ? 'bg-blue-50' : ''}`}
+                      onRowClick ? "cursor-pointer hover:bg-neutral-50" : ""
+                    } ${isSelected ? "bg-blue-50" : ""}`}
                   >
                     {/* Selection Column */}
                     {onSelectionChange && (
                       <td className="px-4 py-3">
                         <button
                           onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectRow(rowId);
+                            e.stopPropagation()
+                            handleSelectRow(rowId)
                           }}
                           className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                             isSelected
-                              ? 'bg-blue-600 border-blue-600'
-                              : 'border-neutral-300 hover:border-blue-600'
+                              ? "bg-blue-600 border-blue-600"
+                              : "border-neutral-300 hover:border-blue-600"
                           }`}
                           aria-label="행 선택"
                         >
@@ -200,12 +201,12 @@ export function DataTable<T>({
                       </td>
                     ))}
                   </tr>
-                );
+                )
               })
             )}
           </tbody>
         </table>
       </div>
     </div>
-  );
+  )
 }

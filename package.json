@@ -1,0 +1,11 @@
+{
+  "name": "rinda-ai-crm",
+  "private": true,
+  "description": "Monorepo root — hosts lefthook for unified git hooks across frontend (npm) and backend (bun).",
+  "scripts": {
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "lefthook": "^1.7.0"
+  }
+}
