@@ -1,6 +1,7 @@
 import { ChevronDown, CreditCard, LogOut, Mic, User } from "lucide-react"
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
+import { Link } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import type { Customer } from "../types"
 import { FollowUpSchedulerHeader } from "./followup"
@@ -173,6 +174,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <h1 className="font-bold text-slate-800 text-lg tracking-tight">RINDA CRM</h1>
             <p className="text-xs text-slate-500">AI가 함께하는 스마트 영업 관리</p>
           </div>
+
+          <nav className="ml-6 flex items-center gap-1 text-sm">
+            <Link
+              to="/dashboard"
+              className="px-3 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
+            >
+              Customers
+            </Link>
+            <Link
+              to="/deals"
+              className="px-3 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors font-medium"
+            >
+              Deals
+            </Link>
+          </nav>
         </div>
 
         <div className="flex flex-row items-center gap-3">

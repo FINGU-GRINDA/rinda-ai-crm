@@ -1,4 +1,5 @@
 import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { workspaces } from "./workspaces"
 
 export const customerStatusEnum = pgEnum("customer_status", [
   "prospect",
@@ -13,6 +14,8 @@ export const customers = pgTable(
   "customers",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    // Nullable during Phase 0 backfill; future migration enforces NOT NULL.
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     website: text("website"),
     industry: text("industry"),
@@ -31,6 +34,10 @@ export const customers = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    index("idx_customers_workspace").on(table.workspaceId),
+    index("idx_customers_workspace_status").on(table.workspaceId, table.status),
+    index("idx_customers_workspace_industry").on(table.workspaceId, table.industry),
+    index("idx_customers_workspace_created").on(table.workspaceId, table.createdAt),
     index("idx_customers_status").on(table.status),
     index("idx_customers_name").on(table.name),
     index("idx_customers_industry").on(table.industry),
@@ -42,6 +49,7 @@ export const customerEnrichments = pgTable(
   "customer_enrichments",
   {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
@@ -61,13 +69,17 @@ export const customerEnrichments = pgTable(
     followUpReasoning: text("followup_reasoning"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("idx_enrichments_customer").on(table.customerId)],
+  (table) => [
+    index("idx_enrichments_customer").on(table.customerId),
+    index("idx_enrichments_workspace").on(table.workspaceId),
+  ],
 )
 
 export const proposals = pgTable(
   "proposals",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
@@ -80,7 +92,10 @@ export const proposals = pgTable(
     feedbackReceivedAt: timestamp("feedback_received_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("idx_proposals_customer").on(table.customerId)],
+  (table) => [
+    index("idx_proposals_customer").on(table.customerId),
+    index("idx_proposals_workspace").on(table.workspaceId),
+  ],
 )
 
 export type Customer = typeof customers.$inferSelect

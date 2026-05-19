@@ -1,5 +1,6 @@
 import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
+import { workspaces } from "./workspaces"
 
 export const contactSourceEnum = pgEnum("contact_source", ["manual", "business_card", "import"])
 
@@ -7,6 +8,7 @@ export const customerContacts = pgTable(
   "customer_contacts",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
@@ -24,6 +26,7 @@ export const customerContacts = pgTable(
     index("idx_contacts_customer").on(table.customerId),
     index("idx_contacts_email").on(table.email),
     index("idx_contacts_primary").on(table.isPrimary),
+    index("idx_contacts_workspace").on(table.workspaceId),
   ],
 )
 

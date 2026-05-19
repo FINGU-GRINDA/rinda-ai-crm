@@ -1,10 +1,12 @@
 import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { customers } from "./customers"
+import { workspaces } from "./workspaces"
 
 export const meetingSummaries = pgTable(
   "meeting_summaries",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
@@ -32,6 +34,8 @@ export const meetingSummaries = pgTable(
     index("idx_meetings_customer").on(table.customerId),
     index("idx_meetings_date").on(table.meetingDate),
     index("idx_meetings_slack_ts").on(table.slackTs),
+    index("idx_meetings_workspace").on(table.workspaceId),
+    index("idx_meetings_workspace_date").on(table.workspaceId, table.meetingDate),
   ],
 )
 

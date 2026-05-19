@@ -7,6 +7,9 @@ import { AuthProvider, useAuth } from "../contexts/AuthContext"
 
 // Lazy load the dashboard for better performance
 const AppDashboard = lazy(() => import("../App").then((m) => ({ default: m.AppDashboard })))
+const DealsPage = lazy(() =>
+  import("../components/deal/DealsPage").then((m) => ({ default: m.DealsPage })),
+)
 
 // Loading fallback component
 function LoadingFallback() {
@@ -90,6 +93,17 @@ export const router = createBrowserRouter([
           <ProtectedRoute>
             <Suspense fallback={<LoadingFallback />}>
               <AppDashboard />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      // Phase 1 — Deal pipeline (workspace-scoped Kanban)
+      {
+        path: "deals",
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <DealsPage />
             </Suspense>
           </ProtectedRoute>
         ),

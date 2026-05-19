@@ -1,4 +1,5 @@
 import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { workspaces } from "./workspaces"
 
 // Entity types that can have attachments
 export const attachmentEntityTypeEnum = pgEnum("attachment_entity_type", [
@@ -10,12 +11,14 @@ export const attachmentEntityTypeEnum = pgEnum("attachment_entity_type", [
   "contact",
   "prospect",
   "enrichment",
+  "deal",
 ])
 
 export const attachments = pgTable(
   "attachments",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     fileName: text("file_name").notNull(),
     fileType: text("file_type"), // MIME type: application/pdf, image/jpeg, etc.
     fileSize: integer("file_size"), // Size in bytes
@@ -32,6 +35,7 @@ export const attachments = pgTable(
     index("idx_attachments_entity").on(table.entityType, table.entityId),
     index("idx_attachments_entity_id").on(table.entityId),
     index("idx_attachments_created_at").on(table.createdAt),
+    index("idx_attachments_workspace").on(table.workspaceId),
   ],
 )
 

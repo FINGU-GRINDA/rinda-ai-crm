@@ -2,6 +2,7 @@ import { index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-
 import { customers } from "./customers"
 import { priorityEnum } from "./followups"
 import { prospects } from "./prospects"
+import { workspaces } from "./workspaces"
 
 export const notificationTypeEnum = pgEnum("notification_type", [
   "news",
@@ -18,6 +19,7 @@ export const notifications = pgTable(
   "notifications",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     type: notificationTypeEnum("type").notNull(),
     title: text("title").notNull(),
     message: text("message").notNull(),
@@ -33,6 +35,8 @@ export const notifications = pgTable(
     index("idx_notifications_read").on(table.read),
     index("idx_notifications_created").on(table.createdAt),
     index("idx_notifications_type").on(table.type),
+    index("idx_notifications_workspace").on(table.workspaceId, table.read),
+    index("idx_notifications_workspace_created").on(table.workspaceId, table.createdAt),
   ],
 )
 
