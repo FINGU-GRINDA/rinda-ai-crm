@@ -145,8 +145,9 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors touch-target"
-              aria-label="닫기"
+              className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:scale-95 transition-[transform,background-color,color] duration-150 touch-target"
+              aria-label="닫기 (Esc)"
+              title="닫기 (Esc)"
             >
               <IconX className="w-5 h-5" />
             </button>
@@ -175,7 +176,15 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
             </div>
 
             <div className="flex-1 px-4 py-5 md:px-6 md:py-6 overflow-y-auto">
-              <Suspense fallback={<TabLoader />}>{renderTabContent()}</Suspense>
+              <Suspense fallback={<TabLoader />}>
+                {/* key={activeTab} re-mounts on tab change so the fade-in plays. */}
+                <div
+                  key={activeTab}
+                  className="animate-in fade-in slide-in-from-right-1 duration-200 motion-reduce:animate-none"
+                >
+                  {renderTabContent()}
+                </div>
+              </Suspense>
             </div>
           </div>
 
@@ -186,7 +195,7 @@ export const UnifiedSettings: React.FC<UnifiedSettingsProps> = ({
             </p>
             <button
               onClick={onClose}
-              className="ml-auto px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className="ml-auto px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 active:scale-[0.98] rounded-lg transition-[transform,background-color,border-color] duration-150"
             >
               닫기
             </button>

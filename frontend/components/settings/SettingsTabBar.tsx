@@ -12,6 +12,7 @@ const IconSlack: React.FC<{ className?: string }> = ({ className }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <rect x="13" y="2" width="3" height="8" rx="1.5" />
     <path d="M19 8.5V10a1.5 1.5 0 0 0 3 0V8.5a1.5 1.5 0 0 0-3 0z" />
@@ -63,6 +64,21 @@ const isConnected = (tabId: SettingsTabType, status: ConnectionStatus): boolean 
 const isConnectable = (tabId: SettingsTabType): boolean =>
   tabId === "slack" || tabId === "email" || tabId === "calendar"
 
+const StatusDot: React.FC<{ active: boolean }> = ({ active }) => (
+  // Soft halo behind the dot when on a non-active tab; on the active tab the
+  // dot is brighter and skips the halo so the active state stays clean.
+  <span className="relative inline-flex w-1.5 h-1.5" aria-label="연결됨" title="연결됨">
+    {!active && (
+      <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-40 motion-safe:animate-ping motion-reduce:animate-none" />
+    )}
+    <span
+      className={`relative inline-block w-1.5 h-1.5 rounded-full ${
+        active ? "bg-emerald-300" : "bg-emerald-500"
+      }`}
+    />
+  </span>
+)
+
 export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
   activeTab,
   onTabChange,
@@ -81,23 +97,18 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
           return (
             <button
               key={tab.id}
+              type="button"
+              aria-current={isActive ? "page" : undefined}
               onClick={() => onTabChange(tab.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.97] ${
                 isActive
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300"
               }`}
             >
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
-              {connected && (
-                <span
-                  className={`inline-block w-1.5 h-1.5 rounded-full ${
-                    isActive ? "bg-emerald-300" : "bg-emerald-500"
-                  }`}
-                  aria-label="연결됨"
-                />
-              )}
+              {connected && <StatusDot active={isActive} />}
             </button>
           )
         })}
@@ -116,28 +127,32 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
         return (
           <button
             key={tab.id}
+            type="button"
+            aria-current={isActive ? "page" : undefined}
             onClick={() => onTabChange(tab.id)}
-            className={`group flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+            className={`group relative flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-[background-color,color] duration-150 ${
               isActive ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100"
             }`}
           >
+            {/* Active indicator bar — slides in via opacity for a soft cue. */}
+            <span
+              className={`absolute left-0 top-2 bottom-2 w-0.5 rounded-r bg-blue-600 transition-opacity duration-150 ${
+                isActive ? "opacity-100" : "opacity-0"
+              }`}
+              aria-hidden="true"
+            />
             <Icon
-              className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+              className={`w-4 h-4 mt-0.5 flex-shrink-0 transition-colors duration-150 ${
                 isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
               }`}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium truncate">{tab.label}</span>
-                {connected && (
-                  <span
-                    className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"
-                    aria-label="연결됨"
-                  />
-                )}
+                {connected && <StatusDot active={false} />}
               </div>
               <p
-                className={`text-xs mt-0.5 truncate ${
+                className={`text-xs mt-0.5 truncate transition-colors duration-150 ${
                   isActive ? "text-blue-500" : "text-slate-500"
                 }`}
               >

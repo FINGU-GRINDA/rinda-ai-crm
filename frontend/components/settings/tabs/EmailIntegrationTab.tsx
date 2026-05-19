@@ -13,6 +13,7 @@ import {
   pageTitle,
   sectionDesc,
   sectionTitle,
+  tile,
   toggle,
 } from "../tokens"
 
@@ -193,11 +194,7 @@ const ProviderTile: React.FC<ProviderTileProps> = ({
   isConnecting,
   disabled,
 }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className="w-full flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
-  >
+  <button type="button" onClick={onClick} disabled={disabled} className={tile}>
     <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
       <IconMail className="w-5 h-5 text-slate-600" />
     </div>
