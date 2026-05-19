@@ -3,6 +3,7 @@ import { ROLE_WRITE, requireRole, workspaceMiddleware } from "../middleware/work
 import { dealRepository } from "../repositories/deal.repository"
 import { pipelineRepository } from "../repositories/pipeline.repository"
 import { workspaceRepository } from "../repositories/workspace.repository"
+import { parseAmountToMinor } from "../utils/currency"
 import { ErrorCode, error, success, successList } from "../utils/response"
 
 const FORECAST_CATEGORIES = ["pipeline", "best_case", "commit", "closed", "omitted"] as const
@@ -87,10 +88,28 @@ export const dealRoutes = new Elysia({ prefix: "/api/deals" })
       }
 
       const humanId = await workspaceRepository.nextDealHumanId(workspace.workspaceId)
-      const currency = body.currency ?? workspace.baseCurrency
-      const amountMinor = body.amountMinor ? BigInt(body.amountMinor) : 0n
+      const currency = (body.currency ?? workspace.baseCurrency).toUpperCase()
+      let amountMinor: bigint
+      try {
+        // Accept either pre-computed minor units or a human "amount" string
+        if (body.amountMinor !== undefined) {
+          amountMinor = BigInt(body.amountMinor)
+          if (amountMinor < 0n) throw new Error("amountMinor must be non-negative")
+        } else if (body.amount !== undefined) {
+          amountMinor = parseAmountToMinor(body.amount, currency)
+          if (amountMinor < 0n) throw new Error("amount must be non-negative")
+        } else {
+          amountMinor = 0n
+        }
+      } catch (err) {
+        set.status = 400
+        return error(
+          err instanceof Error ? err.message : "Invalid amount",
+          ErrorCode.INVALID_REQUEST,
+        )
+      }
       // Phase 0 stores base amount as-is; Phase 2 will multiply by live FX rate
-      const baseAmountMinor = currency === workspace.baseCurrency ? amountMinor : amountMinor
+      const baseAmountMinor = amountMinor
 
       const created = await dealRepository.create({
         workspaceId: workspace.workspaceId,
@@ -123,7 +142,10 @@ export const dealRoutes = new Elysia({ prefix: "/api/deals" })
         description: t.Optional(t.String({ maxLength: 5000 })),
         customerId: t.Optional(t.String()),
         ownerId: t.Optional(t.String()),
+        // Either provide pre-computed minor units OR a human "amount" string;
+        // server resolves to the canonical minor value based on currency.
         amountMinor: t.Optional(t.String()),
+        amount: t.Optional(t.String({ maxLength: 32 })),
         currency: t.Optional(t.String({ minLength: 3, maxLength: 3 })),
         probability: t.Optional(t.String()),
         forecastCategory: t.Optional(t.Union(FORECAST_CATEGORIES.map((v) => t.Literal(v)))),
@@ -140,13 +162,33 @@ export const dealRoutes = new Elysia({ prefix: "/api/deals" })
     "/:id",
     async ({ workspace, params, body, set }) => {
       requireRole(workspace, ROLE_WRITE)
+
+      let amountMinor: bigint | undefined
+      try {
+        if (body.amountMinor !== undefined) {
+          amountMinor = BigInt(body.amountMinor)
+          if (amountMinor < 0n) throw new Error("amountMinor must be non-negative")
+        } else if (body.amount !== undefined) {
+          const existing = await dealRepository.findById(workspace.workspaceId, params.id)
+          const cur = (body.currency ?? existing?.currency ?? workspace.baseCurrency).toUpperCase()
+          amountMinor = parseAmountToMinor(body.amount, cur)
+          if (amountMinor < 0n) throw new Error("amount must be non-negative")
+        }
+      } catch (err) {
+        set.status = 400
+        return error(
+          err instanceof Error ? err.message : "Invalid amount",
+          ErrorCode.INVALID_REQUEST,
+        )
+      }
+
       const updated = await dealRepository.update(workspace.workspaceId, params.id, {
         title: body.title,
         description: body.description,
         customerId: body.customerId,
         ownerId: body.ownerId,
-        amountMinor: body.amountMinor ? BigInt(body.amountMinor) : undefined,
-        currency: body.currency,
+        amountMinor,
+        currency: body.currency?.toUpperCase(),
         probability: body.probability,
         forecastCategory: body.forecastCategory,
         expectedCloseDate: body.expectedCloseDate,
@@ -167,6 +209,7 @@ export const dealRoutes = new Elysia({ prefix: "/api/deals" })
         customerId: t.Optional(t.String()),
         ownerId: t.Optional(t.String()),
         amountMinor: t.Optional(t.String()),
+        amount: t.Optional(t.String({ maxLength: 32 })),
         currency: t.Optional(t.String({ minLength: 3, maxLength: 3 })),
         probability: t.Optional(t.String()),
         forecastCategory: t.Optional(t.Union(FORECAST_CATEGORIES.map((v) => t.Literal(v)))),

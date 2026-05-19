@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import { bigint, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core"
 import { workspaces } from "./workspaces"
 
@@ -15,7 +16,7 @@ export const sequences = pgTable(
     key: text("key").notNull(),
     // Optional scope (e.g. year) — generally null
     scope: text("scope"),
-    nextValue: bigint("next_value", { mode: "bigint" }).notNull().default(1n),
+    nextValue: bigint("next_value", { mode: "bigint" }).notNull().default(sql`1`),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

@@ -737,6 +737,138 @@ ${messageText}
   }
 
   /**
+   * Discover potential export buyer prospects using Gemini.
+   * Generates a curated list of overseas companies that match the given ICP profiles
+   * and are not already in the seller's pipeline.
+   */
+  async discoverExportProspects(
+    icpProfiles: Array<{
+      id: string
+      name: string
+      industries?: string[]
+      keywords?: string[]
+      companySize?: string
+      targetRegions?: string[]
+    }>,
+    existingCompanyNames: string[] = [],
+    desiredCount: number = 10,
+  ): Promise<{
+    prospects: Array<{
+      companyName: string
+      website?: string
+      industry?: string
+      region?: string
+      country?: string
+      signalStrength: "high" | "medium" | "low"
+      sourceTitle?: string
+      sourceUri?: string
+      notes?: string
+      icpMatchId?: string
+      icpMatchName?: string
+    }>
+    summary: string
+  } | null> {
+    this.initialize()
+    if (!this.model) {
+      logger.warn("Gemini model not available for discoverExportProspects")
+      return null
+    }
+
+    if (icpProfiles.length === 0) {
+      return { prospects: [], summary: "ICP 프로필이 없어 수집을 건너뛰었습니다." }
+    }
+
+    const profileSummary = icpProfiles
+      .map((p, i) => {
+        const lines = [`#${i + 1} ${p.name} (id: ${p.id})`]
+        if (p.industries?.length) lines.push(`  - 산업: ${p.industries.join(", ")}`)
+        if (p.keywords?.length) lines.push(`  - 키워드: ${p.keywords.join(", ")}`)
+        if (p.companySize) lines.push(`  - 회사 규모: ${p.companySize}`)
+        if (p.targetRegions?.length) lines.push(`  - 타겟 국가/지역: ${p.targetRegions.join(", ")}`)
+        return lines.join("\n")
+      })
+      .join("\n\n")
+
+    const exclusionList =
+      existingCompanyNames.length > 0 ? existingCompanyNames.slice(0, 200).join(", ") : "(없음)"
+
+    const prompt = `당신은 한국 수출 기업을 위한 해외 바이어 발굴 전문 애널리스트입니다.
+아래 ICP(Ideal Customer Profile) 기준에 부합하는 해외 잠재 바이어/구매처 기업을 찾아주세요.
+
+[ICP 프로필]
+${profileSummary}
+
+[이미 파이프라인에 있는 기업 (반드시 제외)]
+${exclusionList}
+
+[수집 가이드]
+1. 실제로 존재할 법한, 또는 잘 알려진 해외 기업명을 우선합니다. 가능하면 실제 글로벌 또는 지역(타겟 국가) 기업명을 사용하세요.
+2. 각 기업이 왜 해당 ICP에 부합하는지를 한국어 한 문장으로 메모(notes)에 작성하세요. 수출 관점 (구매 가능성, 시장 진입 신호, 최근 동향)을 강조하세요.
+3. 가능한 경우 회사 공식 도메인(website)을 추정해서 채워주세요. (확신이 없으면 비워두세요)
+4. signalStrength는 다음 기준입니다:
+   - high: 명확한 구매/수입 신호가 있거나 빠르게 접촉 가치가 큼
+   - medium: ICP에 잘 맞지만 즉시성은 낮음
+   - low: 장기 모니터링 가치
+5. region에는 도시/광역 (예: "Ho Chi Minh, Vietnam"), country에는 국가 영문/한글명을 채워주세요.
+6. sourceTitle은 발견 근거 한 줄 (예: "베트남 의류 OEM 시장 확대 보도", "기업 채용 공고 - 한국어 가능 구매 매니저"), sourceUri는 알려진 공개 URL이 있다면 그것, 아니면 비워두세요.
+7. icpMatchId, icpMatchName에는 가장 잘 맞는 ICP 프로필의 id/name을 정확히 복사하세요.
+8. 정확히 ${desiredCount}개 정도의 항목을 반환하세요 (충분치 않으면 더 적어도 됩니다).
+9. exclusion list에 있는 회사명은 절대 포함하지 마세요. 대소문자 무관하게 비교합니다.
+
+다음 JSON 형식으로만 응답해주세요 (마크다운 없음):
+{
+  "summary": "이번 수집 라운드 요약 (1-2문장, 한국어)",
+  "prospects": [
+    {
+      "companyName": "회사명",
+      "website": "https://... (없으면 빈 문자열)",
+      "industry": "산업 (한국어)",
+      "country": "국가",
+      "region": "지역/도시, 국가",
+      "signalStrength": "high|medium|low",
+      "sourceTitle": "발견 근거 한 줄",
+      "sourceUri": "출처 URL (없으면 빈 문자열)",
+      "notes": "왜 이 회사가 ICP에 부합하는지 (한국어, 수출 관점)",
+      "icpMatchId": "매칭된 ICP 프로필 id",
+      "icpMatchName": "매칭된 ICP 프로필 이름"
+    }
+  ]
+}`
+
+    const result = await this.generateJSON<{
+      summary: string
+      prospects: Array<{
+        companyName: string
+        website?: string
+        industry?: string
+        country?: string
+        region?: string
+        signalStrength: "high" | "medium" | "low"
+        sourceTitle?: string
+        sourceUri?: string
+        notes?: string
+        icpMatchId?: string
+        icpMatchName?: string
+      }>
+    }>(prompt)
+
+    if (!result || !Array.isArray(result.prospects)) {
+      return null
+    }
+
+    // Defensive client-side filtering: drop any companies that match exclusion list (case-insensitive)
+    const excludeSet = new Set(existingCompanyNames.map((n) => n.trim().toLowerCase()))
+    const filtered = result.prospects.filter(
+      (p) => p.companyName && !excludeSet.has(p.companyName.trim().toLowerCase()),
+    )
+
+    return {
+      summary: result.summary || "",
+      prospects: filtered,
+    }
+  }
+
+  /**
    * Analyze an image using Gemini Vision API
    * Used as fallback when Tesseract OCR confidence is low
    */

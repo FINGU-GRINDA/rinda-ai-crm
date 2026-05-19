@@ -59,10 +59,10 @@ export const deals = pgTable(
     title: text("title").notNull(),
     description: text("description"),
     // Store money as minor units (cents/won/yen) to avoid float rounding errors
-    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull().default(0n),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull().default(sql`0`),
     currency: text("currency").notNull().default("USD"),
     // Snapshot of amount converted to workspace base currency at create/close time
-    baseAmountMinor: bigint("base_amount_minor", { mode: "bigint" }).notNull().default(0n),
+    baseAmountMinor: bigint("base_amount_minor", { mode: "bigint" }).notNull().default(sql`0`),
     fxRateAtClose: numeric("fx_rate_at_close", { precision: 18, scale: 8 }),
     // Override of stage default probability (0-100)
     probability: numeric("probability", { precision: 5, scale: 2 }),

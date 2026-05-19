@@ -26,7 +26,7 @@ export const products = pgTable(
     description: text("description"),
     defaultUnitPriceMinor: bigint("default_unit_price_minor", { mode: "bigint" })
       .notNull()
-      .default(0n),
+      .default(sql`0`),
     currency: text("currency").notNull().default("USD"),
     isActive: integer("is_active").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

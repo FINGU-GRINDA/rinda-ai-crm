@@ -1,52 +1,54 @@
-import React, { useState } from 'react';
-import { apiClient } from '../../src/services/apiClient';
-import { IconLoader } from '../Icons';
+import type React from "react"
+import { useState } from "react"
+import { apiClient } from "../../src/services/apiClient"
+import { getErrorMessage } from "../../src/utils/typeGuards"
+import { IconLoader } from "../Icons"
 
 interface WorkspaceBootstrapProps {
-  onCreated: () => void;
+  onCreated: () => void
 }
 
-type PipelineTemplate = 'b2b-saas' | 'agency' | 'ecommerce';
+type PipelineTemplate = "b2b-saas" | "agency" | "ecommerce"
 
 const TEMPLATE_OPTIONS: Array<{ value: PipelineTemplate; label: string; description: string }> = [
   {
-    value: 'b2b-saas',
-    label: 'B2B SaaS Sales',
-    description: 'Lead → Qualified → Demo → Proposal → Negotiation → Won/Lost',
+    value: "b2b-saas",
+    label: "B2B SaaS Sales",
+    description: "Lead → Qualified → Demo → Proposal → Negotiation → Won/Lost",
   },
   {
-    value: 'agency',
-    label: 'Agency',
-    description: 'Inquiry → Discovery → Proposal Sent → Contract → Won/Lost',
+    value: "agency",
+    label: "Agency",
+    description: "Inquiry → Discovery → Proposal Sent → Contract → Won/Lost",
   },
   {
-    value: 'ecommerce',
-    label: 'E-commerce / Wholesale',
-    description: 'New → Sample Sent → Negotiation → PO Received → Won/Lost',
+    value: "ecommerce",
+    label: "E-commerce / Wholesale",
+    description: "New → Sample Sent → Negotiation → PO Received → Won/Lost",
   },
-];
+]
 
-const CURRENCY_OPTIONS = ['USD', 'KRW', 'JPY', 'EUR', 'GBP'];
-const LOCALE_OPTIONS = ['en-US', 'ko-KR', 'ja-JP'];
+const CURRENCY_OPTIONS = ["USD", "KRW", "JPY", "EUR", "GBP"]
+const LOCALE_OPTIONS = ["en-US", "ko-KR", "ja-JP"]
 
 export const WorkspaceBootstrap: React.FC<WorkspaceBootstrapProps> = ({ onCreated }) => {
-  const [organizationName, setOrganizationName] = useState('');
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [baseCurrency, setBaseCurrency] = useState('USD');
-  const [locale, setLocale] = useState('en-US');
+  const [organizationName, setOrganizationName] = useState("")
+  const [workspaceName, setWorkspaceName] = useState("")
+  const [baseCurrency, setBaseCurrency] = useState("USD")
+  const [locale, setLocale] = useState("en-US")
   const [timezone, setTimezone] = useState(
-    Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-  );
-  const [pipelineTemplate, setPipelineTemplate] = useState<PipelineTemplate>('b2b-saas');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+  )
+  const [pipelineTemplate, setPipelineTemplate] = useState<PipelineTemplate>("b2b-saas")
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!organizationName.trim()) return;
+    e.preventDefault()
+    if (!organizationName.trim()) return
 
-    setSubmitting(true);
-    setError(null);
+    setSubmitting(true)
+    setError(null)
     try {
       const response = await apiClient.createWorkspace({
         organizationName: organizationName.trim(),
@@ -55,18 +57,24 @@ export const WorkspaceBootstrap: React.FC<WorkspaceBootstrapProps> = ({ onCreate
         locale,
         timezone,
         pipelineTemplate,
-      });
-      if (!response.success) {
-        setError(response.error);
-        return;
+      })
+      const errMsg = getErrorMessage(response)
+      if (errMsg !== undefined) {
+        setError(errMsg)
+        return
       }
-      onCreated();
+      // Pin subsequent requests to the brand-new workspace immediately so the
+      // user doesn't accidentally get an empty default workspace if they had one.
+      if (response.success && response.data.workspace?.id) {
+        apiClient.setWorkspaceOverride(response.data.workspace.id)
+      }
+      onCreated()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create workspace');
+      setError(err instanceof Error ? err.message : "Failed to create workspace")
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
@@ -167,8 +175,8 @@ export const WorkspaceBootstrap: React.FC<WorkspaceBootstrapProps> = ({ onCreate
                 key={opt.value}
                 className={`flex items-start gap-3 p-3 border rounded-md cursor-pointer transition-colors ${
                   pipelineTemplate === opt.value
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 hover:bg-slate-50'
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-slate-200 hover:bg-slate-50"
                 }`}
               >
                 <input
@@ -204,5 +212,5 @@ export const WorkspaceBootstrap: React.FC<WorkspaceBootstrapProps> = ({ onCreate
         </button>
       </form>
     </div>
-  );
-};
+  )
+}

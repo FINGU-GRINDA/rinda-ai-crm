@@ -1,140 +1,157 @@
-import React, { useState, useEffect } from 'react';
-import { Notification, Customer } from '../types';
+import type React from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
-  getNotifications,
-  markNotificationAsRead,
-  markAllAsRead,
   deleteNotification,
+  getNotifications,
   getUnreadCount,
-  runNotificationChecks
-} from '../services/notificationService';
-import { IconBell, IconX, IconCheck, IconMail, IconCalendar, IconTrendingUp, IconAlertCircle, IconNews } from './Icons';
+  markAllAsRead,
+  markNotificationAsRead,
+  runNotificationChecks,
+} from "../services/notificationService"
+import type { Customer, Notification } from "../types"
+import {
+  IconAlertCircle,
+  IconBell,
+  IconCalendar,
+  IconMail,
+  IconNews,
+  IconTrendingUp,
+  IconX,
+} from "./Icons"
 
 interface NotificationCenterProps {
-  customers: Customer[];
-  onNotificationClick?: (notification: Notification) => void;
+  customers: Customer[]
+  onNotificationClick?: (notification: Notification) => void
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   customers,
-  onNotificationClick
+  onNotificationClick,
 }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
 
-  // Load notifications on mount
+  const loadNotifications = useCallback(() => {
+    const all = getNotifications()
+    setNotifications(all)
+    setUnreadCount(getUnreadCount())
+  }, [])
+
+  // Keep a ref to the latest customers so the interval callback always sees fresh data
+  // without having to re-create the interval each time the customers list changes.
+  const customersRef = useRef(customers)
   useEffect(() => {
-    loadNotifications();
-  }, []);
+    customersRef.current = customers
+  }, [customers])
+
+  const checkNotifications = useCallback(async () => {
+    setIsChecking(true)
+    try {
+      await runNotificationChecks(customersRef.current)
+      loadNotifications()
+    } catch (error) {
+      console.error("Notification check failed:", error)
+    } finally {
+      setIsChecking(false)
+    }
+  }, [loadNotifications])
+
+  // Load notifications on mount and reload when customers change.
+  // `customers` is intentionally in the deps so a new customer list re-reads the
+  // local notification store (loadNotifications doesn't reference customers directly).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: customers is the trigger, not a value read
+  useEffect(() => {
+    loadNotifications()
+  }, [loadNotifications, customers])
 
   // Check for new notifications every 5 minutes (independent of customers)
   useEffect(() => {
-    const interval = setInterval(() => {
-      checkNotifications();
-    }, 5 * 60 * 1000);
+    const interval = setInterval(
+      () => {
+        checkNotifications()
+      },
+      5 * 60 * 1000,
+    )
 
-    return () => clearInterval(interval);
-  }, []);
-
-  // Reload notifications when customers change
-  useEffect(() => {
-    loadNotifications();
-  }, [customers]);
-
-  const loadNotifications = () => {
-    const all = getNotifications();
-    setNotifications(all);
-    setUnreadCount(getUnreadCount());
-  };
-
-  const checkNotifications = async () => {
-    setIsChecking(true);
-    try {
-      await runNotificationChecks(customers);
-      loadNotifications();
-    } catch (error) {
-      console.error('Notification check failed:', error);
-    } finally {
-      setIsChecking(false);
-    }
-  };
+    return () => clearInterval(interval)
+  }, [checkNotifications])
 
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {
-      markNotificationAsRead(notification.id);
-      loadNotifications();
+      markNotificationAsRead(notification.id)
+      loadNotifications()
     }
-    
+
     if (onNotificationClick) {
-      onNotificationClick(notification);
+      onNotificationClick(notification)
     }
-  };
+  }
 
   const handleMarkAllRead = () => {
-    markAllAsRead();
-    loadNotifications();
-  };
+    markAllAsRead()
+    loadNotifications()
+  }
 
   const handleDelete = (notificationId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    deleteNotification(notificationId);
-    loadNotifications();
-  };
+    e.stopPropagation()
+    deleteNotification(notificationId)
+    loadNotifications()
+  }
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'email':
-        return <IconMail className="w-4 h-4" />;
-      case 'meeting':
-        return <IconCalendar className="w-4 h-4" />;
-      case 'followup':
-        return <IconTrendingUp className="w-4 h-4" />;
-      case 'news':
-        return <IconNews className="w-4 h-4" />;
-      case 'risk':
-        return <IconAlertCircle className="w-4 h-4" />;
+      case "email":
+        return <IconMail className="w-4 h-4" />
+      case "meeting":
+        return <IconCalendar className="w-4 h-4" />
+      case "followup":
+        return <IconTrendingUp className="w-4 h-4" />
+      case "news":
+        return <IconNews className="w-4 h-4" />
+      case "risk":
+        return <IconAlertCircle className="w-4 h-4" />
       default:
-        return <IconBell className="w-4 h-4" />;
+        return <IconBell className="w-4 h-4" />
     }
-  };
+  }
 
   const getNotificationColor = (type: string, priority: string) => {
-    if (priority === 'high') {
-      return 'bg-red-50 border-red-200';
+    if (priority === "high") {
+      return "bg-red-50 border-red-200"
     }
-    
+
     switch (type) {
-      case 'meeting':
-        return 'bg-blue-50 border-blue-200';
-      case 'followup':
-        return 'bg-indigo-50 border-indigo-200';
-      case 'news':
-        return 'bg-emerald-50 border-emerald-200';
-      case 'risk':
-        return 'bg-red-50 border-red-200';
+      case "meeting":
+        return "bg-blue-50 border-blue-200"
+      case "followup":
+        return "bg-amber-50 border-amber-200"
+      case "news":
+        return "bg-emerald-50 border-emerald-200"
+      case "risk":
+        return "bg-red-50 border-red-200"
       default:
-        return 'bg-slate-50 border-slate-200';
+        return "bg-slate-50 border-slate-200"
     }
-  };
+  }
 
   const formatTime = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
+    const now = Date.now()
+    const diff = now - timestamp
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return '방금 전';
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
-    return new Date(timestamp).toLocaleDateString('ko-KR');
-  };
+    if (minutes < 1) return "방금 전"
+    if (minutes < 60) return `${minutes}분 전`
+    if (hours < 24) return `${hours}시간 전`
+    if (days < 7) return `${days}일 전`
+    return new Date(timestamp).toLocaleDateString("ko-KR")
+  }
 
-  const unreadNotifications = notifications.filter(n => !n.read);
-  const readNotifications = notifications.filter(n => n.read).slice(0, 10);
+  const unreadNotifications = notifications.filter((n) => !n.read)
+  const readNotifications = notifications.filter((n) => n.read).slice(0, 10)
 
   return (
     <>
@@ -147,7 +164,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         <IconBell className="w-5 h-5" />
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -191,7 +208,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               disabled={isChecking}
               className="w-full text-xs text-slate-600 hover:text-slate-800 py-1 disabled:opacity-50"
             >
-              {isChecking ? '확인 중...' : '새 알림 확인'}
+              {isChecking ? "확인하는 중입니다" : "새 알림 확인"}
             </button>
           </div>
 
@@ -205,19 +222,21 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             ) : (
               <div className="divide-y divide-slate-100">
                 {/* Unread Notifications */}
-                {unreadNotifications.map(notification => {
+                {unreadNotifications.map((notification) => {
                   const customer = notification.customerId
-                    ? customers.find(c => c.id === notification.customerId)
-                    : null;
+                    ? customers.find((c) => c.id === notification.customerId)
+                    : null
 
                   return (
                     <div
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
                       className={`p-4 cursor-pointer hover:bg-slate-50 transition-colors border-l-4 ${
-                        notification.priority === 'high' ? 'border-red-500' : 
-                        notification.priority === 'medium' ? 'border-yellow-500' : 
-                        'border-blue-500'
+                        notification.priority === "high"
+                          ? "border-red-500"
+                          : notification.priority === "medium"
+                            ? "border-amber-500"
+                            : "border-blue-500"
                       } ${getNotificationColor(notification.type, notification.priority)}`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -229,17 +248,17 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                             <h4 className="font-semibold text-sm text-slate-800 truncate">
                               {notification.title}
                             </h4>
-                            {notification.priority === 'high' && (
+                            {notification.priority === "high" && (
                               <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded">
                                 중요
                               </span>
                             )}
                           </div>
                           <p className="text-sm text-slate-700 mb-1">{notification.message}</p>
-                          {customer && (
-                            <p className="text-xs text-slate-500">{customer.name}</p>
-                          )}
-                          <p className="text-xs text-slate-400 mt-1">{formatTime(new Date(notification.createdAt).getTime())}</p>
+                          {customer && <p className="text-xs text-slate-500">{customer.name}</p>}
+                          <p className="text-xs text-slate-400 mt-1">
+                            {formatTime(new Date(notification.createdAt).getTime())}
+                          </p>
                         </div>
                         <button
                           onClick={(e) => handleDelete(notification.id, e)}
@@ -249,7 +268,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                         </button>
                       </div>
                     </div>
-                  );
+                  )
                 })}
 
                 {/* Read Notifications */}
@@ -259,10 +278,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   </div>
                 )}
 
-                {readNotifications.map(notification => {
+                {readNotifications.map((notification) => {
                   const customer = notification.customerId
-                    ? customers.find(c => c.id === notification.customerId)
-                    : null;
+                    ? customers.find((c) => c.id === notification.customerId)
+                    : null
 
                   return (
                     <div
@@ -281,10 +300,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                             </h4>
                           </div>
                           <p className="text-sm text-slate-600 mb-1">{notification.message}</p>
-                          {customer && (
-                            <p className="text-xs text-slate-400">{customer.name}</p>
-                          )}
-                          <p className="text-xs text-slate-400 mt-1">{formatTime(new Date(notification.createdAt).getTime())}</p>
+                          {customer && <p className="text-xs text-slate-400">{customer.name}</p>}
+                          <p className="text-xs text-slate-400 mt-1">
+                            {formatTime(new Date(notification.createdAt).getTime())}
+                          </p>
                         </div>
                         <button
                           onClick={(e) => handleDelete(notification.id, e)}
@@ -294,7 +313,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                         </button>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             )}
@@ -302,8 +321,5 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         </div>
       )}
     </>
-  );
-};
-
-
-
+  )
+}

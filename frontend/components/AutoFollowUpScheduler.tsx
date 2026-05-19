@@ -1,160 +1,180 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Customer, ScheduledFollowUp, FollowUpFilterOptions } from '../types';
+import type React from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
-  getScheduledFollowUps,
-  getDueFollowUps,
-  getUpcomingFollowUps,
-  scheduleFollowUp,
-  deleteScheduledFollowUp,
   autoScheduleFollowUps,
   completeScheduledFollowUp,
-  filterFollowUps
-} from '../services/autoFollowUpService';
-import { notifyFollowUpCompleted } from '../services/notificationService';
-import { IconClock, IconLoader, IconX, IconCheck, IconTrendingUp, IconCalendar, IconAlertCircle, IconTrash, IconDashboard } from './Icons';
-import { FollowUpCompletionModal, FollowUpFilterBar, FollowUpCalendarView, FollowUpStatsDashboard } from './followup';
+  deleteScheduledFollowUp,
+  filterFollowUps,
+  getDueFollowUps,
+  getScheduledFollowUps,
+  getUpcomingFollowUps,
+  scheduleFollowUp,
+} from "../services/autoFollowUpService"
+import { notifyFollowUpCompleted } from "../services/notificationService"
+import type { Customer, FollowUpFilterOptions, ScheduledFollowUp } from "../types"
+import {
+  FollowUpCalendarView,
+  FollowUpCompletionModal,
+  FollowUpFilterBar,
+  FollowUpStatsDashboard,
+} from "./followup"
+import {
+  IconAlertCircle,
+  IconCalendar,
+  IconCheck,
+  IconClock,
+  IconDashboard,
+  IconLoader,
+  IconTrash,
+  IconTrendingUp,
+} from "./Icons"
 
 interface AutoFollowUpSchedulerProps {
-  customers: Customer[];
-  onFollowUpScheduled?: (followUp: ScheduledFollowUp) => void;
+  customers: Customer[]
+  onFollowUpScheduled?: (followUp: ScheduledFollowUp) => void
 }
 
 export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
   customers,
-  onFollowUpScheduled
+  onFollowUpScheduled,
 }) => {
-  const [scheduledFollowUps, setScheduledFollowUps] = useState<ScheduledFollowUp[]>([]);
-  const [dueFollowUps, setDueFollowUps] = useState<ScheduledFollowUp[]>([]);
-  const [upcomingFollowUps, setUpcomingFollowUps] = useState<ScheduledFollowUp[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [autoScheduling, setAutoScheduling] = useState(false);
-  const [completingFollowUp, setCompletingFollowUp] = useState<ScheduledFollowUp | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [showStats, setShowStats] = useState(true);
-  const [filters, setFilters] = useState<FollowUpFilterOptions>({});
+  const [scheduledFollowUps, setScheduledFollowUps] = useState<ScheduledFollowUp[]>([])
+  const [dueFollowUps, setDueFollowUps] = useState<ScheduledFollowUp[]>([])
+  const [upcomingFollowUps, setUpcomingFollowUps] = useState<ScheduledFollowUp[]>([])
+  const [_isLoading, setIsLoading] = useState(false)
+  const [autoScheduling, setAutoScheduling] = useState(false)
+  const [completingFollowUp, setCompletingFollowUp] = useState<ScheduledFollowUp | null>(null)
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
+  const [showStats, setShowStats] = useState(true)
+  const [filters, setFilters] = useState<FollowUpFilterOptions>({})
 
   // Apply filters to follow-ups
   const filteredFollowUps = useMemo(() => {
-    const pending = scheduledFollowUps.filter(f => f.status === 'pending');
-    if (Object.keys(filters).length === 0 || (!filters.searchQuery && !filters.status && !filters.priority && !filters.type)) {
-      return pending;
+    const pending = scheduledFollowUps.filter((f) => f.status === "pending")
+    if (
+      Object.keys(filters).length === 0 ||
+      (!filters.searchQuery && !filters.status && !filters.priority && !filters.type)
+    ) {
+      return pending
     }
-    return filterFollowUps(pending, filters, customers);
-  }, [scheduledFollowUps, filters, customers]);
+    return filterFollowUps(pending, filters, customers)
+  }, [scheduledFollowUps, filters, customers])
+
+  const loadFollowUps = useCallback(() => {
+    const all = getScheduledFollowUps()
+    setScheduledFollowUps(all)
+    setDueFollowUps(getDueFollowUps())
+    setUpcomingFollowUps(getUpcomingFollowUps(7))
+  }, [])
 
   useEffect(() => {
-    loadFollowUps();
-    
-    // Refresh every minute
-    const interval = setInterval(loadFollowUps, 60000);
-    return () => clearInterval(interval);
-  }, [customers]);
+    loadFollowUps()
 
-  const loadFollowUps = () => {
-    const all = getScheduledFollowUps();
-    setScheduledFollowUps(all);
-    setDueFollowUps(getDueFollowUps());
-    setUpcomingFollowUps(getUpcomingFollowUps(7));
-  };
+    // Refresh every minute
+    const interval = setInterval(loadFollowUps, 60000)
+    return () => clearInterval(interval)
+  }, [loadFollowUps])
 
   const handleAutoSchedule = async () => {
-    setAutoScheduling(true);
+    setAutoScheduling(true)
     try {
-      const newFollowUps = await autoScheduleFollowUps(customers);
-      loadFollowUps();
-      
+      const newFollowUps = await autoScheduleFollowUps(customers)
+      loadFollowUps()
+
       if (onFollowUpScheduled) {
-        newFollowUps.forEach(f => onFollowUpScheduled(f));
+        newFollowUps.forEach((f) => {
+          onFollowUpScheduled(f)
+        })
       }
     } catch (error) {
-      console.error('Auto-scheduling failed:', error);
+      console.error("Auto-scheduling failed:", error)
     } finally {
-      setAutoScheduling(false);
+      setAutoScheduling(false)
     }
-  };
+  }
 
-  const handleScheduleForCustomer = async (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    if (!customer) return;
+  const _handleScheduleForCustomer = async (customerId: string) => {
+    const customer = customers.find((c) => c.id === customerId)
+    if (!customer) return
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const followUp = await scheduleFollowUp(customer);
-      loadFollowUps();
-      
+      const followUp = await scheduleFollowUp(customer)
+      loadFollowUps()
+
       if (onFollowUpScheduled) {
-        onFollowUpScheduled(followUp);
+        onFollowUpScheduled(followUp)
       }
     } catch (error) {
-      console.error('Scheduling failed:', error);
+      console.error("Scheduling failed:", error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleDelete = (followUpId: string) => {
-    deleteScheduledFollowUp(followUpId);
-    loadFollowUps();
-  };
+    deleteScheduledFollowUp(followUpId)
+    loadFollowUps()
+  }
 
   const handleComplete = async (note: string) => {
-    if (!completingFollowUp) return;
+    if (!completingFollowUp) return
 
-    const customer = customers.find(c => c.id === completingFollowUp.customerId);
-    const completed = completeScheduledFollowUp(completingFollowUp.id, note);
+    const customer = customers.find((c) => c.id === completingFollowUp.customerId)
+    const completed = completeScheduledFollowUp(completingFollowUp.id, note)
 
     // Send Slack notification if customer found and follow-up was completed
     if (customer && completed) {
-      await notifyFollowUpCompleted(completed, customer, note);
+      await notifyFollowUpCompleted(completed, customer, note)
     }
 
-    setCompletingFollowUp(null);
-    loadFollowUps();
-  };
+    setCompletingFollowUp(null)
+    loadFollowUps()
+  }
 
   const formatDateTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffDays = Math.floor((timestamp - now.getTime()) / (1000 * 60 * 60 * 24));
-    
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffDays = Math.floor((timestamp - now.getTime()) / (1000 * 60 * 60 * 24))
+
     if (diffDays === 0) {
-      return `오늘 ${date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+      return `오늘 ${date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`
     } else if (diffDays === 1) {
-      return `내일 ${date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+      return `내일 ${date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`
     } else if (diffDays < 0) {
-      return `${Math.abs(diffDays)}일 전 (지연됨)`;
+      return `${Math.abs(diffDays)}일 전 (지연됨)`
     } else {
-      return `${date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} ${date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+      return `${date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" })} ${date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`
     }
-  };
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-700 border-red-200';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'low':
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+      case "high":
+        return "bg-red-50 text-red-700 border-red-200"
+      case "medium":
+        return "bg-amber-50 text-amber-700 border-amber-200"
+      case "low":
+        return "bg-slate-100 text-slate-700 border-slate-200"
       default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return "bg-slate-100 text-slate-700 border-slate-200"
     }
-  };
+  }
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'email':
-        return '이메일';
-      case 'call':
-        return '전화';
-      case 'meeting':
-        return '미팅';
-      case 'message':
-        return '메시지';
+      case "email":
+        return "이메일"
+      case "call":
+        return "전화"
+      case "meeting":
+        return "미팅"
+      case "message":
+        return "메시지"
       default:
-        return type;
+        return type
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -162,27 +182,27 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <IconClock className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-bold text-slate-800">자동 Follow-up 스케줄</h3>
+          <h3 className="text-lg font-bold text-slate-800">자동 후속 액션 스케줄</h3>
         </div>
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
           <div className="flex border border-slate-200 rounded-lg overflow-hidden">
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => setViewMode("list")}
               className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-50'
+                viewMode === "list"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50"
               }`}
             >
               목록
             </button>
             <button
-              onClick={() => setViewMode('calendar')}
+              onClick={() => setViewMode("calendar")}
               className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === 'calendar'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-50'
+                viewMode === "calendar"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50"
               }`}
             >
               캘린더
@@ -192,9 +212,12 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
           <button
             onClick={() => setShowStats(!showStats)}
             className={`p-2 rounded-lg transition-colors ${
-              showStats ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              showStats
+                ? "bg-blue-100 text-blue-700"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
-            title="통계 표시/숨기기"
+            title="통계 표시 전환"
+            aria-label="통계 표시 전환"
           >
             <IconDashboard className="w-4 h-4" />
           </button>
@@ -207,7 +230,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
             {autoScheduling ? (
               <>
                 <IconLoader className="w-4 h-4 animate-spin" />
-                <span>스케줄링 중...</span>
+                <span>스케줄을 만드는 중입니다</span>
               </>
             ) : (
               <>
@@ -226,7 +249,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
       <FollowUpFilterBar filters={filters} onFilterChange={setFilters} />
 
       {/* Calendar View */}
-      {viewMode === 'calendar' && (
+      {viewMode === "calendar" && (
         <FollowUpCalendarView
           followUps={filteredFollowUps}
           customers={customers}
@@ -235,7 +258,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
       )}
 
       {/* List View */}
-      {viewMode === 'list' && (
+      {viewMode === "list" && (
         <>
           {/* Due Follow-ups */}
           {dueFollowUps.length > 0 && (
@@ -245,8 +268,8 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                 지금 실행해야 할 Follow-up ({dueFollowUps.length})
               </h4>
               <div className="space-y-2">
-                {dueFollowUps.map(followUp => {
-                  const customer = customers.find(c => c.id === followUp.customerId);
+                {dueFollowUps.map((followUp) => {
+                  const customer = customers.find((c) => c.id === followUp.customerId)
                   return (
                     <div
                       key={followUp.id}
@@ -256,10 +279,16 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-slate-800">
-                              {customer?.name || '알 수 없음'}
+                              {customer?.name || "알 수 없음"}
                             </span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getPriorityColor(followUp.priority)}`}>
-                              {followUp.priority === 'high' ? '높음' : followUp.priority === 'medium' ? '보통' : '낮음'}
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium border ${getPriorityColor(followUp.priority)}`}
+                            >
+                              {followUp.priority === "high"
+                                ? "높음"
+                                : followUp.priority === "medium"
+                                  ? "보통"
+                                  : "낮음"}
                             </span>
                             <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
                               {getTypeLabel(followUp.type)}
@@ -267,7 +296,9 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                           </div>
                           <p className="text-sm text-slate-700 mb-2">{followUp.reason}</p>
                           {followUp.content && (
-                            <p className="text-xs text-slate-600 italic line-clamp-2">{followUp.content}</p>
+                            <p className="text-xs text-slate-600 italic line-clamp-2">
+                              {followUp.content}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -288,7 +319,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                         </button>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             </div>
@@ -302,8 +333,8 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                 다가오는 Follow-up ({upcomingFollowUps.length})
               </h4>
               <div className="space-y-2">
-                {upcomingFollowUps.map(followUp => {
-                  const customer = customers.find(c => c.id === followUp.customerId);
+                {upcomingFollowUps.map((followUp) => {
+                  const customer = customers.find((c) => c.id === followUp.customerId)
                   return (
                     <div
                       key={followUp.id}
@@ -313,10 +344,16 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-slate-800">
-                              {customer?.name || '알 수 없음'}
+                              {customer?.name || "알 수 없음"}
                             </span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getPriorityColor(followUp.priority)}`}>
-                              {followUp.priority === 'high' ? '높음' : followUp.priority === 'medium' ? '보통' : '낮음'}
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium border ${getPriorityColor(followUp.priority)}`}
+                            >
+                              {followUp.priority === "high"
+                                ? "높음"
+                                : followUp.priority === "medium"
+                                  ? "보통"
+                                  : "낮음"}
                             </span>
                             <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
                               {getTypeLabel(followUp.type)}
@@ -346,7 +383,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                         </button>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             </div>
@@ -358,7 +395,9 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <IconClock className="w-8 h-8 text-blue-600" />
               </div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">스케줄된 Follow-up이 없습니다</h4>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                스케줄된 Follow-up이 없습니다
+              </h4>
               <p className="text-slate-500 text-sm mb-4">
                 자동 스케줄링을 실행하여 고객별 Follow-up을 생성하세요.
               </p>
@@ -367,7 +406,7 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
                 disabled={autoScheduling}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {autoScheduling ? '스케줄링 중...' : '자동 스케줄링 시작'}
+                {autoScheduling ? "스케줄링 중..." : "자동 스케줄링 시작"}
               </button>
             </div>
           )}
@@ -375,14 +414,15 @@ export const AutoFollowUpScheduler: React.FC<AutoFollowUpSchedulerProps> = ({
       )}
 
       {/* Completion Modal */}
-      <FollowUpCompletionModal
-        followUp={completingFollowUp!}
-        customer={completingFollowUp ? customers.find(c => c.id === completingFollowUp.customerId) : undefined}
-        onComplete={handleComplete}
-        onCancel={() => setCompletingFollowUp(null)}
-        isOpen={completingFollowUp !== null}
-      />
+      {completingFollowUp && (
+        <FollowUpCompletionModal
+          followUp={completingFollowUp}
+          customer={customers.find((c) => c.id === completingFollowUp.customerId)}
+          onComplete={handleComplete}
+          onCancel={() => setCompletingFollowUp(null)}
+          isOpen={completingFollowUp !== null}
+        />
+      )}
     </div>
-  );
-};
-
+  )
+}

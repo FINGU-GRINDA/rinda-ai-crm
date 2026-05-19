@@ -1,13 +1,15 @@
-import { lazy, Suspense } from 'react'
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import { AuthProvider, useAuth } from '../contexts/AuthContext'
-import { ErrorBoundary } from '../components/ErrorBoundary'
-import { LoginForm } from '../components/auth/LoginForm'
-import { AuthCallback } from '../components/auth/AuthCallback'
+import { lazy, Suspense } from "react"
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom"
+import { AuthCallback } from "../components/auth/AuthCallback"
+import { LoginForm } from "../components/auth/LoginForm"
+import { ErrorBoundary } from "../components/ErrorBoundary"
+import { AuthProvider, useAuth } from "../contexts/AuthContext"
 
 // Lazy load the dashboard for better performance
-const AppDashboard = lazy(() => import('../App').then(m => ({ default: m.AppDashboard })))
-const DealsPage = lazy(() => import('../components/deal/DealsPage').then(m => ({ default: m.DealsPage })))
+const AppDashboard = lazy(() => import("../App").then((m) => ({ default: m.AppDashboard })))
+const DealsPage = lazy(() =>
+  import("../components/deal/DealsPage").then((m) => ({ default: m.DealsPage })),
+)
 
 // Loading fallback component
 function LoadingFallback() {
@@ -62,7 +64,7 @@ function AppWrapper() {
 
 export const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <AppWrapper />,
     children: [
       // Root redirects to dashboard
@@ -72,7 +74,7 @@ export const router = createBrowserRouter([
       },
       // Login page (public only)
       {
-        path: 'login',
+        path: "login",
         element: (
           <PublicOnlyRoute>
             <LoginForm />
@@ -81,12 +83,12 @@ export const router = createBrowserRouter([
       },
       // OAuth callback
       {
-        path: 'auth',
+        path: "auth",
         element: <AuthCallback />,
       },
       // Main app (protected)
       {
-        path: 'dashboard',
+        path: "dashboard",
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingFallback />}>
@@ -97,7 +99,7 @@ export const router = createBrowserRouter([
       },
       // Phase 1 — Deal pipeline (workspace-scoped Kanban)
       {
-        path: 'deals',
+        path: "deals",
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingFallback />}>

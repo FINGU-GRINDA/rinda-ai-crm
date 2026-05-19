@@ -1,286 +1,291 @@
-import React, { useState, useEffect } from 'react';
-import { IconCheck, IconX, IconLoader, IconExternalLink, IconRefresh } from '../../Icons';
+import type React from "react"
+import { useCallback, useEffect, useState } from "react"
+import { IconCheck, IconExternalLink, IconLoader, IconRefresh, IconX } from "../../Icons"
 
 interface MixpanelSettings {
-  isEnabled: boolean;
-  trackedEvents: string[];
-  autoCreateProspect: boolean;
-  defaultSignalStrength: 'high' | 'medium' | 'low';
-  enrichWithAI: boolean;
-  syncInterval: 'hourly' | 'every_4_hours' | 'daily';
-  lastSyncAt: string | null;
+  isEnabled: boolean
+  trackedEvents: string[]
+  autoCreateProspect: boolean
+  defaultSignalStrength: "high" | "medium" | "low"
+  enrichWithAI: boolean
+  syncInterval: "hourly" | "every_4_hours" | "daily"
+  lastSyncAt: string | null
 }
 
 interface ConnectionStatus {
   data: {
-    configured: boolean;
-    authType: 'project_secret' | 'service_account' | null;
-    projectId: string | null;
-    message: string;
+    configured: boolean
+    authType: "project_secret" | "service_account" | null
+    projectId: string | null
+    message: string
   }
-  success: boolean;
+  success: boolean
 }
 
 export interface MixpanelFormState {
-  isDirty: boolean;
-  isSaving: boolean;
-  onSave: () => Promise<void>;
-  onReset: () => void;
+  isDirty: boolean
+  isSaving: boolean
+  onSave: () => Promise<void>
+  onReset: () => void
 }
 
 interface MixpanelIntegrationTabProps {
-  onSettingsChange?: () => void;
-  onFormStateChange?: (state: MixpanelFormState | null) => void;
+  onSettingsChange?: () => void
+  onFormStateChange?: (state: MixpanelFormState | null) => void
 }
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = "http://localhost:3001/api"
 
 const DEFAULT_SETTINGS: MixpanelSettings = {
   isEnabled: false,
-  trackedEvents: ['$signup', 'sign_up', 'user_signup', 'registration', 'account_created'],
+  trackedEvents: ["$signup", "sign_up", "user_signup", "registration", "account_created"],
   autoCreateProspect: true,
-  defaultSignalStrength: 'medium',
+  defaultSignalStrength: "medium",
   enrichWithAI: true,
-  syncInterval: 'hourly',
-  lastSyncAt: null
-};
+  syncInterval: "hourly",
+  lastSyncAt: null,
+}
 
-export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ onSettingsChange, onFormStateChange }) => {
+export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({
+  onSettingsChange,
+  onFormStateChange,
+}) => {
   // Form state (local edits)
-  const [formData, setFormData] = useState<MixpanelSettings>(DEFAULT_SETTINGS);
+  const [formData, setFormData] = useState<MixpanelSettings>(DEFAULT_SETTINGS)
   // Server state (last saved)
-  const [originalData, setOriginalData] = useState<MixpanelSettings>(DEFAULT_SETTINGS);
+  const [originalData, setOriginalData] = useState<MixpanelSettings>(DEFAULT_SETTINGS)
   // Track unsaved changes
-  const [isDirty, setIsDirty] = useState(false);
+  const [isDirty, setIsDirty] = useState(false)
 
   // Connection status from backend (env var check)
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus | null>(null)
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [newEvent, setNewEvent] = useState('');
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
+  const [newEvent, setNewEvent] = useState("")
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/mixpanel/settings`)
+      if (response.ok) {
+        const data = await response.json()
+        const mergedData = {
+          ...DEFAULT_SETTINGS,
+          ...data,
+          trackedEvents: data.trackedEvents || DEFAULT_SETTINGS.trackedEvents,
+        }
+        setFormData(mergedData)
+        setOriginalData(mergedData)
+      }
+    } catch (error) {
+      console.error("Failed to fetch Mixpanel settings:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const fetchConnectionStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/mixpanel/connection-status`)
+      if (response.ok) {
+        const data = await response.json()
+        setConnectionStatus(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch connection status:", error)
+    }
+  }, [])
 
   // Load settings on mount
   useEffect(() => {
-    fetchSettings();
-    fetchConnectionStatus();
-  }, []);
+    fetchSettings()
+    fetchConnectionStatus()
+  }, [fetchConnectionStatus, fetchSettings])
 
   // Check if form is dirty whenever formData changes
   useEffect(() => {
-    const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
-    setIsDirty(hasChanges);
-  }, [formData, originalData]);
-
-  const fetchSettings = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/mixpanel/settings`);
-      if (response.ok) {
-        const data = await response.json();
-        const mergedData = {
-          ...DEFAULT_SETTINGS,
-          ...data,
-          trackedEvents: data.trackedEvents || DEFAULT_SETTINGS.trackedEvents,
-        };
-        setFormData(mergedData);
-        setOriginalData(mergedData);
-      }
-    } catch (error) {
-      console.error('Failed to fetch Mixpanel settings:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchConnectionStatus = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/mixpanel/connection-status`);
-      if (response.ok) {
-        const data = await response.json();
-        setConnectionStatus(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch connection status:', error);
-    }
-  };
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData)
+    setIsDirty(hasChanges)
+  }, [formData, originalData])
 
   // Submit all form changes
-  const handleSubmit = async () => {
-    setIsSaving(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+  const handleSubmit = useCallback(async () => {
+    setIsSaving(true)
+    setErrorMessage("")
+    setSuccessMessage("")
 
     try {
       const response = await fetch(`${API_BASE}/mixpanel/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json()
         const mergedData = {
           ...DEFAULT_SETTINGS,
           ...data,
           trackedEvents: data.trackedEvents || DEFAULT_SETTINGS.trackedEvents,
-        };
-        setFormData(mergedData);
-        setOriginalData(mergedData);
-        setSuccessMessage('설정이 저장되었습니다.');
-        onSettingsChange?.();
+        }
+        setFormData(mergedData)
+        setOriginalData(mergedData)
+        setSuccessMessage("설정이 저장되었습니다.")
+        onSettingsChange?.()
       } else {
-        const error = await response.json();
-        setErrorMessage(error.error || '설정 저장에 실패했습니다.');
+        const error = await response.json()
+        setErrorMessage(error.error || "설정 저장에 실패했습니다.")
       }
-    } catch (error) {
-      setErrorMessage('설정 저장 중 오류가 발생했습니다.');
+    } catch (_error) {
+      setErrorMessage("설정 저장 중 오류가 발생했습니다.")
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }, [formData, onSettingsChange])
 
   // Reset form to original state
-  const handleReset = () => {
-    setFormData(originalData);
-    setErrorMessage('');
-    setSuccessMessage('');
-  };
+  const handleReset = useCallback(() => {
+    setFormData(originalData)
+    setErrorMessage("")
+    setSuccessMessage("")
+  }, [originalData])
 
   // Field handlers - only update local state
   const handleToggleEnabled = (enabled: boolean) => {
-    setFormData(prev => ({ ...prev, isEnabled: enabled }));
-  };
+    setFormData((prev) => ({ ...prev, isEnabled: enabled }))
+  }
 
   const handleToggleAutoCreate = (autoCreate: boolean) => {
-    setFormData(prev => ({ ...prev, autoCreateProspect: autoCreate }));
-  };
+    setFormData((prev) => ({ ...prev, autoCreateProspect: autoCreate }))
+  }
 
   const handleToggleAIEnrich = (enrichWithAI: boolean) => {
-    setFormData(prev => ({ ...prev, enrichWithAI }));
-  };
+    setFormData((prev) => ({ ...prev, enrichWithAI }))
+  }
 
   const handleAddEvent = () => {
-    if (!newEvent.trim()) return;
-    const currentEvents = formData.trackedEvents || [];
+    if (!newEvent.trim()) return
+    const currentEvents = formData.trackedEvents || []
     if (currentEvents.includes(newEvent.trim())) {
-      setErrorMessage('이미 추가된 이벤트입니다.');
-      return;
+      setErrorMessage("이미 추가된 이벤트입니다.")
+      return
     }
 
-    const updatedEvents = [...currentEvents, newEvent.trim()];
-    setFormData(prev => ({ ...prev, trackedEvents: updatedEvents }));
-    setNewEvent('');
-    setErrorMessage('');
-  };
+    const updatedEvents = [...currentEvents, newEvent.trim()]
+    setFormData((prev) => ({ ...prev, trackedEvents: updatedEvents }))
+    setNewEvent("")
+    setErrorMessage("")
+  }
 
   const handleRemoveEvent = (eventToRemove: string) => {
-    const updatedEvents = (formData.trackedEvents || []).filter(e => e !== eventToRemove);
-    setFormData(prev => ({ ...prev, trackedEvents: updatedEvents }));
-  };
+    const updatedEvents = (formData.trackedEvents || []).filter((e) => e !== eventToRemove)
+    setFormData((prev) => ({ ...prev, trackedEvents: updatedEvents }))
+  }
 
-  const handleSignalStrengthChange = (strength: 'high' | 'medium' | 'low') => {
-    setFormData(prev => ({ ...prev, defaultSignalStrength: strength }));
-  };
+  const handleSignalStrengthChange = (strength: "high" | "medium" | "low") => {
+    setFormData((prev) => ({ ...prev, defaultSignalStrength: strength }))
+  }
 
-  const handleSyncIntervalChange = (interval: 'hourly' | 'every_4_hours' | 'daily') => {
-    setFormData(prev => ({ ...prev, syncInterval: interval }));
-  };
+  const handleSyncIntervalChange = (interval: "hourly" | "every_4_hours" | "daily") => {
+    setFormData((prev) => ({ ...prev, syncInterval: interval }))
+  }
 
   const handleTestConnection = async () => {
-    setIsTesting(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+    setIsTesting(true)
+    setErrorMessage("")
+    setSuccessMessage("")
 
     try {
       const response = await fetch(`${API_BASE}/mixpanel/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (response.ok && data.success) {
-        setSuccessMessage('연결 성공! Mixpanel API에 정상적으로 접속되었습니다.');
+        setSuccessMessage("연결 성공! Mixpanel API에 정상적으로 접속되었습니다.")
       } else {
-        setErrorMessage(data.error || '연결 테스트에 실패했습니다.');
+        setErrorMessage(data.error || "연결 테스트에 실패했습니다.")
       }
-    } catch (error) {
-      setErrorMessage('연결 테스트 중 오류가 발생했습니다.');
+    } catch (_error) {
+      setErrorMessage("연결 테스트 중 오류가 발생했습니다.")
     } finally {
-      setIsTesting(false);
+      setIsTesting(false)
     }
-  };
+  }
 
   const handleSyncNow = async () => {
-    setIsSyncing(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+    setIsSyncing(true)
+    setErrorMessage("")
+    setSuccessMessage("")
 
     try {
       const response = await fetch(`${API_BASE}/mixpanel/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (response.ok && data.success) {
-        const message = data.created > 0 || data.updated > 0
-          ? `동기화 완료: ${data.created}개 생성, ${data.updated}개 업데이트`
-          : '동기화 완료: 새로운 이벤트가 없습니다.';
-        setSuccessMessage(message);
+        const message =
+          data.created > 0 || data.updated > 0
+            ? `동기화 완료: ${data.created}개 생성, ${data.updated}개 업데이트`
+            : "동기화 완료: 새로운 이벤트가 없습니다."
+        setSuccessMessage(message)
         // Refresh settings to get updated lastSyncAt
-        await fetchSettings();
+        await fetchSettings()
       } else {
-        setErrorMessage(data.error || '동기화에 실패했습니다.');
+        setErrorMessage(data.error || "동기화에 실패했습니다.")
       }
-    } catch (error) {
-      setErrorMessage('동기화 중 오류가 발생했습니다.');
+    } catch (_error) {
+      setErrorMessage("동기화 중 오류가 발생했습니다.")
     } finally {
-      setIsSyncing(false);
+      setIsSyncing(false)
     }
-  };
+  }
 
   const handleTestEvent = async () => {
-    setIsTesting(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+    setIsTesting(true)
+    setErrorMessage("")
+    setSuccessMessage("")
 
     try {
       const response = await fetch(`${API_BASE}/mixpanel/test-event`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          event: '$signup',
-          email: 'test@example.com',
-          name: 'Test User',
-          company: 'Test Company Inc.'
-        })
-      });
+          event: "$signup",
+          email: "test@example.com",
+          name: "Test User",
+          company: "Test Company Inc.",
+        }),
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (response.ok && data.success) {
-        if (data.result.action === 'prospect_created') {
-          setSuccessMessage('테스트 성공! 새로운 Prospect가 생성되었습니다.');
-        } else if (data.result.action?.includes('updated')) {
-          setSuccessMessage('테스트 성공! 기존 데이터가 업데이트되었습니다.');
+        if (data.result.action === "prospect_created") {
+          setSuccessMessage("테스트 성공! 새로운 Prospect가 생성되었습니다.")
+        } else if (data.result.action?.includes("updated")) {
+          setSuccessMessage("테스트 성공! 기존 데이터가 업데이트되었습니다.")
         } else {
-          setSuccessMessage(`테스트 완료: ${data.result.reason || '처리됨'}`);
+          setSuccessMessage(`테스트 완료: ${data.result.reason || "처리됨"}`)
         }
       } else {
-        setErrorMessage(data.error || '테스트에 실패했습니다.');
+        setErrorMessage(data.error || "테스트에 실패했습니다.")
       }
-    } catch (error) {
-      setErrorMessage('테스트 중 오류가 발생했습니다.');
+    } catch (_error) {
+      setErrorMessage("테스트 중 오류가 발생했습니다.")
     } finally {
-      setIsTesting(false);
+      setIsTesting(false)
     }
-  };
+  }
 
   // Report form state to parent component
   useEffect(() => {
@@ -291,48 +296,50 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
           isSaving,
           onSave: handleSubmit,
           onReset: handleReset,
-        });
+        })
       } else {
-        onFormStateChange(null);
+        onFormStateChange(null)
       }
     }
-  }, [isDirty, isSaving, onFormStateChange]);
+  }, [isDirty, isSaving, onFormStateChange, handleSubmit, handleReset])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      onFormStateChange?.(null);
-    };
-  }, [onFormStateChange]);
+      onFormStateChange?.(null)
+    }
+  }, [onFormStateChange])
 
   const formatLastSyncTime = (isoString: string | null) => {
-    if (!isoString) return null;
+    if (!isoString) return null
     try {
-      return new Date(isoString).toLocaleString('ko-KR', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return new Date(isoString).toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     } catch {
-      return isoString;
+      return isoString
     }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <IconLoader className="w-6 h-6 animate-spin text-indigo-600" />
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-slate-900 mb-1">Mixpanel 연동</h3>
-        <p className="text-sm text-slate-500">Mixpanel에서 이벤트 데이터를 가져와 자동으로 CRM에 등록합니다.</p>
+        <p className="text-sm text-slate-500">
+          Mixpanel에서 이벤트 데이터를 가져와 자동으로 CRM에 등록합니다.
+        </p>
       </div>
 
       {/* Connection Status */}
@@ -341,12 +348,14 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
           <div className="flex items-center gap-2">
             <IconCheck className="w-5 h-5 text-emerald-600" />
             <div>
-              <span className="text-sm font-semibold text-emerald-900">
-                Mixpanel API 연결됨
-              </span>
+              <span className="text-sm font-semibold text-emerald-900">Mixpanel API 연결됨</span>
               <p className="text-xs text-emerald-700">
-                인증 방식: {connectionStatus.data.authType === 'service_account' ? 'Service Account' : 'Project Secret'}
-                {connectionStatus?.data.projectId && ` (Project ID: ${connectionStatus.data.projectId})`}
+                인증 방식:{" "}
+                {connectionStatus.data.authType === "service_account"
+                  ? "Service Account"
+                  : "Project Secret"}
+                {connectionStatus?.data.projectId &&
+                  ` (Project ID: ${connectionStatus.data.projectId})`}
               </p>
             </div>
           </div>
@@ -356,12 +365,8 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
           <div className="flex items-center gap-2">
             <IconX className="w-5 h-5 text-amber-600" />
             <div>
-              <span className="text-sm font-semibold text-amber-900">
-                API 자격 증명 필요
-              </span>
-              <p className="text-xs text-amber-700">
-                서버 관리자가 환경 변수를 설정해야 합니다.
-              </p>
+              <span className="text-sm font-semibold text-amber-900">API 자격 증명 필요</span>
+              <p className="text-xs text-amber-700">서버 관리자가 환경 변수를 설정해야 합니다.</p>
             </div>
           </div>
         </div>
@@ -380,13 +385,11 @@ export const MixpanelIntegrationTab: React.FC<MixpanelIntegrationTabProps> = ({ 
                 <li>서버의 .env 파일에 다음 추가:</li>
               </ol>
               <pre className="mt-2 p-2 bg-blue-100 rounded text-xs font-mono overflow-x-auto">
-{`MIXPANEL_PROJECT_ID=your_project_id
+                {`MIXPANEL_PROJECT_ID=your_project_id
 MIXPANEL_PROJECT_SECRET=your_project_secret
 MIXPANEL_SYNC_ENABLED=true`}
               </pre>
-              <p className="mt-2 text-xs text-blue-700">
-                4. 서버 재시작 후 이 페이지 새로고침
-              </p>
+              <p className="mt-2 text-xs text-blue-700">4. 서버 재시작 후 이 페이지 새로고침</p>
               <a
                 href="https://docs.mixpanel.com/docs/orgs-and-projects/managing-projects#find-your-project-tokens"
                 target="_blank"
@@ -417,7 +420,7 @@ MIXPANEL_SYNC_ENABLED=true`}
                   테스트 중...
                 </>
               ) : (
-                '연결 테스트'
+                "연결 테스트"
               )}
             </button>
             <span className="text-xs text-slate-500">
@@ -430,7 +433,9 @@ MIXPANEL_SYNC_ENABLED=true`}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h4 className="text-sm font-medium text-slate-900">Mixpanel 연동 활성화</h4>
-                <p className="text-xs text-slate-500">활성화하면 Mixpanel에서 이벤트를 자동으로 가져옵니다.</p>
+                <p className="text-xs text-slate-500">
+                  활성화하면 Mixpanel에서 이벤트를 자동으로 가져옵니다.
+                </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -446,12 +451,12 @@ MIXPANEL_SYNC_ENABLED=true`}
 
           {/* Sync Interval */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              동기화 주기
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">동기화 주기</label>
             <select
-              value={formData.syncInterval ?? 'hourly'}
-              onChange={(e) => handleSyncIntervalChange(e.target.value as 'hourly' | 'every_4_hours' | 'daily')}
+              value={formData.syncInterval ?? "hourly"}
+              onChange={(e) =>
+                handleSyncIntervalChange(e.target.value as "hourly" | "every_4_hours" | "daily")
+              }
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="hourly">매시간 (권장)</option>
@@ -459,7 +464,8 @@ MIXPANEL_SYNC_ENABLED=true`}
               <option value="daily">하루에 한 번</option>
             </select>
             <p className="mt-1.5 text-xs text-slate-500">
-              Mixpanel에서 이벤트를 가져오는 주기입니다. 서버 환경 변수(MIXPANEL_SYNC_CRON)로 더 세밀하게 조정할 수 있습니다.
+              Mixpanel에서 이벤트를 가져오는 주기입니다. 서버 환경 변수(MIXPANEL_SYNC_CRON)로 더
+              세밀하게 조정할 수 있습니다.
             </p>
           </div>
 
@@ -471,7 +477,7 @@ MIXPANEL_SYNC_ENABLED=true`}
                 <p className="text-xs text-slate-500">
                   {formData.lastSyncAt
                     ? formatLastSyncTime(formData.lastSyncAt)
-                    : '아직 동기화된 적 없음'}
+                    : "아직 동기화된 적 없음"}
                 </p>
               </div>
               <button
@@ -502,7 +508,9 @@ MIXPANEL_SYNC_ENABLED=true`}
           {/* Tracked Events */}
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-slate-900">추적할 이벤트</h4>
-            <p className="text-xs text-slate-500">이 이벤트가 발생하면 CRM에 자동으로 Prospect를 생성합니다.</p>
+            <p className="text-xs text-slate-500">
+              이 이벤트가 발생하면 CRM에 자동으로 Prospect를 생성합니다.
+            </p>
 
             <div className="flex flex-wrap gap-2">
               {(formData.trackedEvents || []).map((event) => (
@@ -528,7 +536,7 @@ MIXPANEL_SYNC_ENABLED=true`}
                 onChange={(e) => setNewEvent(e.target.value)}
                 placeholder="새 이벤트명 (예: user_registered)"
                 className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddEvent()}
+                onKeyDown={(e) => e.key === "Enter" && handleAddEvent()}
               />
               <button
                 onClick={handleAddEvent}
@@ -544,7 +552,9 @@ MIXPANEL_SYNC_ENABLED=true`}
             <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
               <div>
                 <span className="text-sm font-medium text-slate-700">자동 Prospect 생성</span>
-                <p className="text-xs text-slate-500">신규 유저가 감지되면 자동으로 Prospect 생성</p>
+                <p className="text-xs text-slate-500">
+                  신규 유저가 감지되면 자동으로 Prospect 생성
+                </p>
               </div>
               <input
                 type="checkbox"
@@ -574,8 +584,10 @@ MIXPANEL_SYNC_ENABLED=true`}
               기본 Signal Strength
             </label>
             <select
-              value={formData.defaultSignalStrength ?? 'medium'}
-              onChange={(e) => handleSignalStrengthChange(e.target.value as 'high' | 'medium' | 'low')}
+              value={formData.defaultSignalStrength ?? "medium"}
+              onChange={(e) =>
+                handleSignalStrengthChange(e.target.value as "high" | "medium" | "low")
+              }
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="high">High - 높은 관심 고객</option>
@@ -600,12 +612,12 @@ MIXPANEL_SYNC_ENABLED=true`}
                   테스트 중...
                 </>
               ) : (
-                '테스트 이벤트 처리'
+                "테스트 이벤트 처리"
               )}
             </button>
             <p className="mt-1.5 text-xs text-slate-500">
               테스트 Prospect를 생성하여 이벤트 처리가 정상 작동하는지 확인합니다.
-              {!originalData.isEnabled && ' (먼저 설정을 저장하고 활성화하세요)'}
+              {!originalData.isEnabled && " (먼저 설정을 저장하고 활성화하세요)"}
             </p>
           </div>
         </>
@@ -633,15 +645,34 @@ MIXPANEL_SYNC_ENABLED=true`}
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
         <p className="text-sm font-semibold text-slate-900 mb-2">지원되는 Mixpanel 속성</p>
         <div className="text-xs text-slate-600 space-y-1">
-          <p><code className="bg-slate-200 px-1 rounded">$email</code>, <code className="bg-slate-200 px-1 rounded">email</code> - 이메일 주소</p>
-          <p><code className="bg-slate-200 px-1 rounded">$name</code>, <code className="bg-slate-200 px-1 rounded">name</code> - 사용자 이름</p>
-          <p><code className="bg-slate-200 px-1 rounded">$company</code>, <code className="bg-slate-200 px-1 rounded">company</code> - 회사명</p>
-          <p><code className="bg-slate-200 px-1 rounded">$phone</code>, <code className="bg-slate-200 px-1 rounded">phone</code> - 전화번호</p>
-          <p><code className="bg-slate-200 px-1 rounded">industry</code> - 산업 분야</p>
-          <p><code className="bg-slate-200 px-1 rounded">company_size</code> - 회사 규모</p>
-          <p><code className="bg-slate-200 px-1 rounded">utm_source</code>, <code className="bg-slate-200 px-1 rounded">utm_campaign</code> - 유입 경로</p>
+          <p>
+            <code className="bg-slate-200 px-1 rounded">$email</code>,{" "}
+            <code className="bg-slate-200 px-1 rounded">email</code> - 이메일 주소
+          </p>
+          <p>
+            <code className="bg-slate-200 px-1 rounded">$name</code>,{" "}
+            <code className="bg-slate-200 px-1 rounded">name</code> - 사용자 이름
+          </p>
+          <p>
+            <code className="bg-slate-200 px-1 rounded">$company</code>,{" "}
+            <code className="bg-slate-200 px-1 rounded">company</code> - 회사명
+          </p>
+          <p>
+            <code className="bg-slate-200 px-1 rounded">$phone</code>,{" "}
+            <code className="bg-slate-200 px-1 rounded">phone</code> - 전화번호
+          </p>
+          <p>
+            <code className="bg-slate-200 px-1 rounded">industry</code> - 산업 분야
+          </p>
+          <p>
+            <code className="bg-slate-200 px-1 rounded">company_size</code> - 회사 규모
+          </p>
+          <p>
+            <code className="bg-slate-200 px-1 rounded">utm_source</code>,{" "}
+            <code className="bg-slate-200 px-1 rounded">utm_campaign</code> - 유입 경로
+          </p>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,58 +1,59 @@
-import React, { useEffect } from 'react';
-import { IconCheck, IconX, IconClock, IconLightbulb } from './Icons';
+import type React from "react"
+import { useEffect } from "react"
+import { IconCheck, IconClock, IconLightbulb, IconX } from "./Icons"
 
 /**
  * Toast Notification System
  */
 
 interface ToastProps {
-  type: 'success' | 'error' | 'warning' | 'info';
-  message: string;
-  duration?: number;
-  position?: 'top-right' | 'top-center' | 'bottom-right' | 'bottom-center';
-  onClose?: () => void;
-  action?: () => void;
-  actionText?: string;
+  type: "success" | "error" | "warning" | "info"
+  message: string
+  duration?: number
+  position?: "top-right" | "top-center" | "bottom-right" | "bottom-center"
+  onClose?: () => void
+  action?: () => void
+  actionText?: string
 }
 
 export const Toast: React.FC<ToastProps> = ({
   type,
   message,
   duration = 3000,
-  position = 'top-right',
+  position = "top-right",
   onClose,
   action,
-  actionText
+  actionText,
 }) => {
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => {
-        onClose?.();
-      }, duration);
-      return () => clearTimeout(timer);
+        onClose?.()
+      }, duration)
+      return () => clearTimeout(timer)
     }
-  }, [duration, onClose]);
+  }, [duration, onClose])
 
   const positionStyles = {
-    'top-right': 'top-4 right-4',
-    'top-center': 'top-4 left-1/2 -translate-x-1/2',
-    'bottom-right': 'bottom-4 right-4',
-    'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2'
-  };
+    "top-right": "top-4 right-4",
+    "top-center": "top-4 left-1/2 -translate-x-1/2",
+    "bottom-right": "bottom-4 right-4",
+    "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
+  }
 
   const typeStyles = {
-    success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800'
-  };
+    success: "bg-emerald-50 border-emerald-200 text-emerald-800",
+    error: "bg-red-50 border-red-200 text-red-800",
+    warning: "bg-amber-50 border-amber-200 text-amber-800",
+    info: "bg-blue-50 border-blue-200 text-blue-800",
+  }
 
   const icons = {
     success: <IconCheck className="w-5 h-5 text-emerald-600" />,
     error: <IconX className="w-5 h-5 text-red-600" />,
-    warning: <IconClock className="w-5 h-5 text-yellow-600" />,
-    info: <IconLightbulb className="w-5 h-5 text-blue-600" />
-  };
+    warning: <IconClock className="w-5 h-5 text-amber-600" />,
+    info: <IconLightbulb className="w-5 h-5 text-blue-600" />,
+  }
 
   return (
     <div
@@ -76,12 +77,12 @@ export const Toast: React.FC<ToastProps> = ({
         </button>
       )}
     </div>
-  );
-};
+  )
+}
 
 // Toast container for multiple toasts
 interface ToastContainerProps {
-  toasts: (ToastProps & { id: string })[];
+  toasts: (ToastProps & { id: string })[]
 }
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts }) => (
@@ -92,4 +93,4 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts }) => (
       </div>
     ))}
   </>
-);
+)

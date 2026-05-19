@@ -1,25 +1,30 @@
-import React from 'react';
-import { FollowUpFilterOptions, FollowUpStatus, FollowUpPriority, FollowUpType } from '../../types';
-import { IconSearch, IconX } from '../Icons';
+import type React from "react"
+import type {
+  FollowUpFilterOptions,
+  FollowUpPriority,
+  FollowUpStatus,
+  FollowUpType,
+} from "../../types"
+import { IconSearch, IconX } from "../Icons"
 
 interface FollowUpFilterBarProps {
-  filters: FollowUpFilterOptions;
-  onFilterChange: (filters: FollowUpFilterOptions) => void;
+  filters: FollowUpFilterOptions
+  onFilterChange: (filters: FollowUpFilterOptions) => void
 }
 
 export const FollowUpFilterBar: React.FC<FollowUpFilterBarProps> = ({
   filters,
-  onFilterChange
+  onFilterChange,
 }) => {
   const hasActiveFilters =
     (filters.status && filters.status.length > 0) ||
     (filters.priority && filters.priority.length > 0) ||
     (filters.type && filters.type.length > 0) ||
-    (filters.searchQuery && filters.searchQuery.trim().length > 0);
+    (filters.searchQuery && filters.searchQuery.trim().length > 0)
 
   const handleClearFilters = () => {
-    onFilterChange({});
-  };
+    onFilterChange({})
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -30,7 +35,7 @@ export const FollowUpFilterBar: React.FC<FollowUpFilterBarProps> = ({
           <input
             type="text"
             placeholder="고객명, 내용으로 검색..."
-            value={filters.searchQuery || ''}
+            value={filters.searchQuery || ""}
             onChange={(e) => onFilterChange({ ...filters, searchQuery: e.target.value })}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
           />
@@ -39,11 +44,13 @@ export const FollowUpFilterBar: React.FC<FollowUpFilterBarProps> = ({
 
       {/* Status Filter */}
       <select
-        value={filters.status?.[0] || ''}
-        onChange={(e) => onFilterChange({
-          ...filters,
-          status: e.target.value ? [e.target.value as FollowUpStatus] : undefined
-        })}
+        value={filters.status?.[0] || ""}
+        onChange={(e) =>
+          onFilterChange({
+            ...filters,
+            status: e.target.value ? [e.target.value as FollowUpStatus] : undefined,
+          })
+        }
         className="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
       >
         <option value="">모든 상태</option>
@@ -54,11 +61,13 @@ export const FollowUpFilterBar: React.FC<FollowUpFilterBarProps> = ({
 
       {/* Priority Filter */}
       <select
-        value={filters.priority?.[0] || ''}
-        onChange={(e) => onFilterChange({
-          ...filters,
-          priority: e.target.value ? [e.target.value as FollowUpPriority] : undefined
-        })}
+        value={filters.priority?.[0] || ""}
+        onChange={(e) =>
+          onFilterChange({
+            ...filters,
+            priority: e.target.value ? [e.target.value as FollowUpPriority] : undefined,
+          })
+        }
         className="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
       >
         <option value="">모든 우선순위</option>
@@ -69,11 +78,13 @@ export const FollowUpFilterBar: React.FC<FollowUpFilterBarProps> = ({
 
       {/* Type Filter */}
       <select
-        value={filters.type?.[0] || ''}
-        onChange={(e) => onFilterChange({
-          ...filters,
-          type: e.target.value ? [e.target.value as FollowUpType] : undefined
-        })}
+        value={filters.type?.[0] || ""}
+        onChange={(e) =>
+          onFilterChange({
+            ...filters,
+            type: e.target.value ? [e.target.value as FollowUpType] : undefined,
+          })
+        }
         className="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
       >
         <option value="">모든 유형</option>
@@ -94,7 +105,7 @@ export const FollowUpFilterBar: React.FC<FollowUpFilterBarProps> = ({
         </button>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default FollowUpFilterBar;
+export default FollowUpFilterBar

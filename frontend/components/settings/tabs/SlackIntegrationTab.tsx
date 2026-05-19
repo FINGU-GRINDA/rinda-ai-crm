@@ -1,27 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { SlackSettings } from '../../../types';
+import type React from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   getSlackSettings,
   saveSlackSettings,
+  sendTestMessage,
   validateWebhookUrl,
-  sendTestMessage
-} from '../../../services/slackIntegrationService';
-import { IconCheck, IconX, IconLoader, IconExternalLink } from '../../Icons';
+} from "../../../services/slackIntegrationService"
+import type { SlackSettings } from "../../../types"
+import { IconCheck, IconExternalLink, IconLoader, IconX } from "../../Icons"
 
 export interface SlackFormState {
-  isDirty: boolean;
-  isSaving: boolean;
-  onSave: () => Promise<void>;
-  onReset: () => void;
+  isDirty: boolean
+  isSaving: boolean
+  onSave: () => Promise<void>
+  onReset: () => void
 }
 
 interface SlackIntegrationTabProps {
-  onSettingsChange?: () => void;
-  onFormStateChange?: (state: SlackFormState | null) => void;
+  onSettingsChange?: () => void
+  onFormStateChange?: (state: SlackFormState | null) => void
 }
 
 const DEFAULT_SETTINGS: SlackSettings = {
-  webhookUrl: '',
+  webhookUrl: "",
   isEnabled: false,
   notifications: {
     newProspect: true,
@@ -32,66 +33,69 @@ const DEFAULT_SETTINGS: SlackSettings = {
     dealLost: false,
   },
   isValidated: false,
-};
+}
 
-export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSettingsChange, onFormStateChange }) => {
+export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({
+  onSettingsChange,
+  onFormStateChange,
+}) => {
   // Form state (local edits)
-  const [formData, setFormData] = useState<SlackSettings>(() => getSlackSettings());
+  const [formData, setFormData] = useState<SlackSettings>(() => getSlackSettings())
   // Server state (last saved)
-  const [originalData, setOriginalData] = useState<SlackSettings>(() => getSlackSettings());
+  const [originalData, setOriginalData] = useState<SlackSettings>(() => getSlackSettings())
   // Track unsaved changes
-  const [isDirty, setIsDirty] = useState(false);
+  const [isDirty, setIsDirty] = useState(false)
 
-  const [webhookUrl, setWebhookUrl] = useState(formData.webhookUrl);
-  const [isValidating, setIsValidating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSendingTest, setIsSendingTest] = useState(false);
-  const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>(
-    formData.isValidated ? 'valid' : 'idle'
-  );
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState(formData.webhookUrl)
+  const [isValidating, setIsValidating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSendingTest, setIsSendingTest] = useState(false)
+  const [validationStatus, setValidationStatus] = useState<
+    "idle" | "validating" | "valid" | "invalid"
+  >(formData.isValidated ? "valid" : "idle")
+  const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
 
   // Check if form is dirty
   useEffect(() => {
-    const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
-    setIsDirty(hasChanges);
-  }, [formData, originalData]);
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData)
+    setIsDirty(hasChanges)
+  }, [formData, originalData])
 
   // URL 변경 감지
   useEffect(() => {
     if (webhookUrl !== formData.webhookUrl) {
-      setValidationStatus('idle');
-      setFormData(prev => ({ ...prev, isValidated: false, webhookUrl }));
+      setValidationStatus("idle")
+      setFormData((prev) => ({ ...prev, isValidated: false, webhookUrl }))
     }
-  }, [webhookUrl]);
+  }, [webhookUrl, formData.webhookUrl])
 
   // Submit all form changes
-  const handleSubmit = async () => {
-    setIsSaving(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+  const handleSubmit = useCallback(async () => {
+    setIsSaving(true)
+    setErrorMessage("")
+    setSuccessMessage("")
 
     try {
-      saveSlackSettings(formData);
-      setOriginalData(formData);
-      setSuccessMessage('설정이 저장되었습니다.');
-      onSettingsChange?.();
-    } catch (error) {
-      setErrorMessage('설정 저장 중 오류가 발생했습니다.');
+      saveSlackSettings(formData)
+      setOriginalData(formData)
+      setSuccessMessage("설정이 저장되었습니다.")
+      onSettingsChange?.()
+    } catch (_error) {
+      setErrorMessage("설정 저장 중 오류가 발생했습니다.")
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }, [formData, onSettingsChange])
 
   // Reset form to original state
-  const handleReset = () => {
-    setFormData(originalData);
-    setWebhookUrl(originalData.webhookUrl);
-    setValidationStatus(originalData.isValidated ? 'valid' : 'idle');
-    setErrorMessage('');
-    setSuccessMessage('');
-  };
+  const handleReset = useCallback(() => {
+    setFormData(originalData)
+    setWebhookUrl(originalData.webhookUrl)
+    setValidationStatus(originalData.isValidated ? "valid" : "idle")
+    setErrorMessage("")
+    setSuccessMessage("")
+  }, [originalData])
 
   // Report form state to parent component
   useEffect(() => {
@@ -102,93 +106,93 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
           isSaving,
           onSave: handleSubmit,
           onReset: handleReset,
-        });
+        })
       } else {
-        onFormStateChange(null);
+        onFormStateChange(null)
       }
     }
-  }, [isDirty, isSaving, onFormStateChange]);
+  }, [isDirty, isSaving, onFormStateChange, handleSubmit, handleReset])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      onFormStateChange?.(null);
-    };
-  }, [onFormStateChange]);
+      onFormStateChange?.(null)
+    }
+  }, [onFormStateChange])
 
   const handleValidateWebhook = async () => {
     if (!webhookUrl) {
-      setErrorMessage('Webhook URL을 입력해주세요.');
-      return;
+      setErrorMessage("Webhook URL을 입력해주세요.")
+      return
     }
 
-    if (!webhookUrl.startsWith('https://hooks.slack.com/')) {
-      setErrorMessage('올바른 Slack Webhook URL 형식이 아닙니다. (https://hooks.slack.com/...)');
-      setValidationStatus('invalid');
-      return;
+    if (!webhookUrl.startsWith("https://hooks.slack.com/")) {
+      setErrorMessage("올바른 Slack Webhook URL 형식이 아닙니다. (https://hooks.slack.com/...)")
+      setValidationStatus("invalid")
+      return
     }
 
-    setIsValidating(true);
-    setValidationStatus('validating');
-    setErrorMessage('');
-    setSuccessMessage('');
+    setIsValidating(true)
+    setValidationStatus("validating")
+    setErrorMessage("")
+    setSuccessMessage("")
 
-    const result = await validateWebhookUrl(webhookUrl);
+    const result = await validateWebhookUrl(webhookUrl)
 
     if (result.success) {
-      setValidationStatus('valid');
-      setFormData(prev => ({ ...prev, webhookUrl, isValidated: true }));
-      setSuccessMessage('Webhook URL이 확인되었습니다!');
+      setValidationStatus("valid")
+      setFormData((prev) => ({ ...prev, webhookUrl, isValidated: true }))
+      setSuccessMessage("Webhook URL이 확인되었습니다!")
     } else {
-      setValidationStatus('invalid');
-      setErrorMessage(result.error || 'Webhook URL 검증에 실패했습니다.');
+      setValidationStatus("invalid")
+      setErrorMessage(result.error || "Webhook URL 검증에 실패했습니다.")
     }
 
-    setIsValidating(false);
-  };
+    setIsValidating(false)
+  }
 
   const handleSendTest = async () => {
     if (!originalData.isValidated || !originalData.webhookUrl) {
-      setErrorMessage('먼저 Webhook URL을 검증하고 저장해주세요.');
-      return;
+      setErrorMessage("먼저 Webhook URL을 검증하고 저장해주세요.")
+      return
     }
 
-    setIsSendingTest(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+    setIsSendingTest(true)
+    setErrorMessage("")
+    setSuccessMessage("")
 
-    const result = await sendTestMessage(originalData.webhookUrl);
+    const result = await sendTestMessage(originalData.webhookUrl)
 
     if (result.success) {
-      setSuccessMessage('테스트 메시지가 Slack으로 전송되었습니다!');
-      const newSettings = { ...formData, lastTestAt: new Date().toISOString() };
-      setFormData(newSettings);
+      setSuccessMessage("테스트 메시지가 Slack으로 전송되었습니다!")
+      const newSettings = { ...formData, lastTestAt: new Date().toISOString() }
+      setFormData(newSettings)
       // Also update original since this is a side effect
-      setOriginalData(prev => ({ ...prev, lastTestAt: new Date().toISOString() }));
-      saveSlackSettings({ ...originalData, lastTestAt: new Date().toISOString() });
+      setOriginalData((prev) => ({ ...prev, lastTestAt: new Date().toISOString() }))
+      saveSlackSettings({ ...originalData, lastTestAt: new Date().toISOString() })
     } else {
-      setErrorMessage(result.error || '테스트 메시지 전송에 실패했습니다.');
+      setErrorMessage(result.error || "테스트 메시지 전송에 실패했습니다.")
     }
 
-    setIsSendingTest(false);
-  };
+    setIsSendingTest(false)
+  }
 
   const handleToggleEnabled = (enabled: boolean) => {
-    setFormData(prev => ({ ...prev, isEnabled: enabled }));
-  };
+    setFormData((prev) => ({ ...prev, isEnabled: enabled }))
+  }
 
-  const handleToggleNotification = (key: keyof SlackSettings['notifications'], value: boolean) => {
-    setFormData(prev => ({
+  const handleToggleNotification = (key: keyof SlackSettings["notifications"], value: boolean) => {
+    setFormData((prev) => ({
       ...prev,
-      notifications: { ...prev.notifications, [key]: value }
-    }));
-  };
+      notifications: { ...prev.notifications, [key]: value },
+    }))
+  }
 
   const handleDisconnect = () => {
-    setFormData(DEFAULT_SETTINGS);
-    setWebhookUrl('');
-    setValidationStatus('idle');
-  };
+    setFormData(DEFAULT_SETTINGS)
+    setWebhookUrl("")
+    setValidationStatus("idle")
+  }
 
   return (
     <div className="space-y-6">
@@ -207,7 +211,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
                 <span className="text-sm font-semibold text-emerald-900">Slack 연동됨</span>
                 {formData.lastTestAt && (
                   <p className="text-xs text-emerald-700">
-                    마지막 테스트: {new Date(formData.lastTestAt).toLocaleString('ko-KR')}
+                    마지막 테스트: {new Date(formData.lastTestAt).toLocaleString("ko-KR")}
                   </p>
                 )}
               </div>
@@ -224,9 +228,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
 
       {/* Webhook URL Input */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Slack Webhook URL
-        </label>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Slack Webhook URL</label>
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <input
@@ -235,14 +237,14 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
               onChange={(e) => setWebhookUrl(e.target.value)}
               placeholder="https://hooks.slack.com/services/..."
               className={`w-full px-4 py-2.5 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 transition-all ${
-                validationStatus === 'valid'
-                  ? 'border-emerald-300 bg-emerald-50 focus:ring-emerald-500'
-                  : validationStatus === 'invalid'
-                  ? 'border-red-300 bg-red-50 focus:ring-red-500'
-                  : 'border-slate-300 bg-white focus:ring-indigo-500'
+                validationStatus === "valid"
+                  ? "border-emerald-300 bg-emerald-50 focus:ring-emerald-500"
+                  : validationStatus === "invalid"
+                    ? "border-red-300 bg-red-50 focus:ring-red-500"
+                    : "border-slate-300 bg-white focus:ring-indigo-500"
               }`}
             />
-            {validationStatus === 'valid' && (
+            {validationStatus === "valid" && (
               <IconCheck className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600" />
             )}
           </div>
@@ -257,7 +259,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
                 검증 중...
               </>
             ) : (
-              '검증'
+              "검증"
             )}
           </button>
         </div>
@@ -291,11 +293,11 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
                 전송 중...
               </>
             ) : (
-              '테스트 메시지 보내기'
+              "테스트 메시지 보내기"
             )}
           </button>
           <p className="mt-1 text-xs text-slate-500">
-            {isDirty && '(저장된 설정으로 테스트합니다)'}
+            {isDirty && "(저장된 설정으로 테스트합니다)"}
           </p>
         </div>
       )}
@@ -334,7 +336,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
             <input
               type="checkbox"
               checked={formData.notifications.newProspect ?? true}
-              onChange={(e) => handleToggleNotification('newProspect', e.target.checked)}
+              onChange={(e) => handleToggleNotification("newProspect", e.target.checked)}
               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
             />
           </label>
@@ -347,7 +349,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
             <input
               type="checkbox"
               checked={formData.notifications.followUpReminder ?? true}
-              onChange={(e) => handleToggleNotification('followUpReminder', e.target.checked)}
+              onChange={(e) => handleToggleNotification("followUpReminder", e.target.checked)}
               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
             />
           </label>
@@ -360,7 +362,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
             <input
               type="checkbox"
               checked={formData.notifications.followUpCompleted ?? true}
-              onChange={(e) => handleToggleNotification('followUpCompleted', e.target.checked)}
+              onChange={(e) => handleToggleNotification("followUpCompleted", e.target.checked)}
               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
             />
           </label>
@@ -373,7 +375,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
             <input
               type="checkbox"
               checked={formData.notifications.dailyDigest ?? false}
-              onChange={(e) => handleToggleNotification('dailyDigest', e.target.checked)}
+              onChange={(e) => handleToggleNotification("dailyDigest", e.target.checked)}
               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
             />
           </label>
@@ -386,7 +388,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
             <input
               type="checkbox"
               checked={formData.notifications.dealWon ?? false}
-              onChange={(e) => handleToggleNotification('dealWon', e.target.checked)}
+              onChange={(e) => handleToggleNotification("dealWon", e.target.checked)}
               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
             />
           </label>
@@ -399,7 +401,7 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
             <input
               type="checkbox"
               checked={formData.notifications.dealLost ?? false}
-              onChange={(e) => handleToggleNotification('dealLost', e.target.checked)}
+              onChange={(e) => handleToggleNotification("dealLost", e.target.checked)}
               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
             />
           </label>
@@ -430,5 +432,5 @@ export const SlackIntegrationTab: React.FC<SlackIntegrationTabProps> = ({ onSett
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

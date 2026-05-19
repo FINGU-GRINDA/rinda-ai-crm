@@ -1,22 +1,23 @@
-import React, { useState } from 'react';
-import { MeetingSummary } from '../types';
+import type React from "react"
+import { useState } from "react"
+import type { MeetingSummary } from "../types"
 import {
-  IconX,
-  IconMessageSquare,
-  IconCalendar,
-  IconClock,
-  IconTrash,
   IconArrowRight,
+  IconBriefcase,
+  IconCalendar,
   IconCheck,
-  IconBriefcase
-} from './Icons';
+  IconClock,
+  IconMessageSquare,
+  IconTrash,
+  IconX,
+} from "./Icons"
 
 interface MeetingDetailModalProps {
-  meeting: MeetingSummary | null;
-  customerName: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onDelete?: (meetingId: string) => void;
+  meeting: MeetingSummary | null
+  customerName: string
+  isOpen: boolean
+  onClose: () => void
+  onDelete?: (meetingId: string) => void
 }
 
 export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
@@ -24,46 +25,45 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
   customerName,
   isOpen,
   onClose,
-  onDelete
+  onDelete,
 }) => {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  if (!isOpen || !meeting) return null;
+  if (!isOpen || !meeting) return null
 
   const formatDate = (timestamp: string | number) => {
-    return new Date(timestamp).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+    return new Date(timestamp).toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return null;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}분 ${secs}초`;
-  };
+    if (!seconds) return null
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}분 ${secs}초`
+  }
 
   const handleDelete = () => {
     if (onDelete) {
-      onDelete(meeting.id);
-      onClose();
+      onDelete(meeting.id)
+      onClose()
     }
-  };
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-white">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <IconMessageSquare className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <IconMessageSquare className="w-5 h-5 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-slate-800 truncate">{meeting.title}</h2>
@@ -82,7 +82,6 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-
           {/* Metadata */}
           <div className="flex items-center gap-4 text-sm text-slate-600 pb-4 border-b">
             <span className="flex items-center gap-1.5">
@@ -158,16 +157,18 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
 
           {/* Customer Needs */}
           {meeting.customerNeeds && meeting.customerNeeds.length > 0 && (
-            <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+            <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl">
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <div className="w-6 h-6 bg-indigo-100 rounded flex items-center justify-center">
-                  <IconBriefcase className="w-3.5 h-3.5 text-indigo-600" />
+                <div className="w-6 h-6 bg-violet-100 rounded flex items-center justify-center">
+                  <IconBriefcase className="w-3.5 h-3.5 text-violet-600" />
                 </div>
                 고객 니즈
               </h4>
               <ul className="space-y-2">
                 {meeting.customerNeeds.map((item, i) => (
-                  <li key={i} className="text-sm text-slate-700 leading-relaxed">• {item}</li>
+                  <li key={i} className="text-sm text-slate-700 leading-relaxed">
+                    • {item}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -193,20 +194,20 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
 
           {/* Next Steps */}
           {meeting.nextSteps && meeting.nextSteps.length > 0 && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
               <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <div className="w-6 h-6 bg-green-100 rounded flex items-center justify-center">
-                  <IconArrowRight className="w-3.5 h-3.5 text-green-600" />
+                <div className="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center">
+                  <IconArrowRight className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
                 다음 단계
-                <span className="ml-1 bg-green-200 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                <span className="ml-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">
                   {meeting.nextSteps.length}
                 </span>
               </h4>
               <ul className="space-y-2">
                 {meeting.nextSteps.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                    <IconArrowRight className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <IconArrowRight className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <span className="leading-relaxed">{item}</span>
                   </li>
                 ))}
@@ -230,7 +231,7 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
         {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="text-xs text-slate-500">
-            생성: {new Date(meeting.createdAt).toLocaleDateString('ko-KR')}
+            생성: {new Date(meeting.createdAt).toLocaleDateString("ko-KR")}
           </div>
 
           {onDelete && (
@@ -245,7 +246,9 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-red-600 font-medium mr-2">정말 삭제하시겠습니까?</span>
+                  <span className="text-sm text-red-600 font-medium mr-2">
+                    정말 삭제하시겠습니까?
+                  </span>
                   <button
                     onClick={handleDelete}
                     className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
@@ -265,7 +268,7 @@ export const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default MeetingDetailModal;
+export default MeetingDetailModal

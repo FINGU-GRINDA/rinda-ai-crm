@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { apiClient } from '../src/services/apiClient'
+import type React from "react"
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react"
+import { apiClient } from "../src/services/apiClient"
+import { getErrorMessage } from "../src/utils/typeGuards"
 
 export interface User {
   id: string
@@ -13,7 +15,11 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   isAuthenticated: boolean
-  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
+  register: (
+    email: string,
+    password: string,
+    name: string,
+  ) => Promise<{ success: boolean; error?: string }>
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
@@ -25,9 +31,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
+    throw new Error("useAuth must be used within AuthProvider")
   }
   return context
+}
+
+function isUser(value: unknown): value is User {
+  if (typeof value !== "object" || value === null) return false
+  const v = value as Record<string, unknown>
+  return (
+    typeof v.id === "string" &&
+    typeof v.email === "string" &&
+    typeof v.name === "string" &&
+    typeof v.emailVerified === "boolean" &&
+    (v.picture === undefined || typeof v.picture === "string")
+  )
+}
+
+function extractUser(data: unknown): User | null {
+  if (isUser(data)) return data
+  // Some endpoints wrap the user under a `user` key
+  if (typeof data === "object" && data !== null && "user" in data) {
+    const wrapped = (data as { user: unknown }).user
+    if (isUser(wrapped)) return wrapped
+  }
+  return null
 }
 
 interface AuthProviderProps {
@@ -38,37 +66,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
   const checkAuth = useCallback(async () => {
     try {
       const response = await apiClient.getCurrentUser()
       if (response.success && response.data) {
-        setUser(response.data as User)
+        setUser(extractUser(response.data))
       } else {
         setUser(null)
       }
     } catch (error) {
-      console.error('Auth check failed:', error)
+      console.error("Auth check failed:", error)
       setUser(null)
     } finally {
       setLoading(false)
     }
   }, [])
 
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
   const register = useCallback(async (email: string, password: string, name: string) => {
     try {
       const response = await apiClient.register({ email, password, name })
       if (response.success && response.data) {
-        setUser(response.data.user as User)
+        const parsed = extractUser(response.data)
+        if (!parsed) {
+          return { success: false, error: "Invalid registration response" }
+        }
+        setUser(parsed)
         return { success: true }
       }
-      return { success: false, error: (response as any).error || 'Registration failed' }
+      return { success: false, error: getErrorMessage(response) || "Registration failed" }
     } catch (error) {
       const err = error as Error
-      return { success: false, error: err.message || 'Registration failed' }
+      return { success: false, error: err.message || "Registration failed" }
     }
   }, [])
 
@@ -76,30 +108,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.login({ email, password })
       if (response.success && response.data) {
-        setUser(response.data.user as User)
+        const parsed = extractUser(response.data)
+        if (!parsed) {
+          return { success: false, error: "Invalid login response" }
+        }
+        setUser(parsed)
         return { success: true }
       }
-      return { success: false, error: (response as any).error || 'Login failed' }
+      return { success: false, error: getErrorMessage(response) || "Login failed" }
     } catch (error) {
       const err = error as Error
-      return { success: false, error: err.message || 'Login failed' }
+      return { success: false, error: err.message || "Login failed" }
     }
   }, [])
 
   const loginWithGoogle = useCallback(async () => {
     try {
       const response = await apiClient.getGoogleOAuthUrl()
-      if (response.success && (response as any).data?.url) {
+      if (response.success && typeof response.data?.url === "string") {
+        const oauthUrl = response.data.url
         // Store state for validation in callback (CSRF protection)
-        const url = new URL((response as any).data.url)
-        const state = url.searchParams.get('state')
+        const url = new URL(oauthUrl)
+        const state = url.searchParams.get("state")
         if (state) {
-          sessionStorage.setItem('oauth_state', state)
+          sessionStorage.setItem("oauth_state", state)
         }
-        window.location.href = (response as any).data.url
+        window.location.href = oauthUrl
       }
     } catch (error) {
-      console.error('Failed to get Google OAuth URL:', error)
+      console.error("Failed to get Google OAuth URL:", error)
     }
   }, [])
 
@@ -109,12 +146,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.getCurrentUser()
       if (response.success && response.data) {
-        setUser(response.data as User)
+        const parsed = extractUser(response.data)
+        if (!parsed) {
+          return { success: false }
+        }
+        setUser(parsed)
         return { success: true }
       }
       return { success: false }
     } catch (error) {
-      console.error('Auth verification failed:', error)
+      console.error("Auth verification failed:", error)
       return { success: false }
     }
   }, [])
@@ -125,7 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setUser(null)
       // Redirect to login
-      window.location.href = '/login'
+      window.location.href = "/login"
     }
   }, [])
 

@@ -1,65 +1,56 @@
-import React from 'react';
-import { Customer, CustomerStatus } from '../types';
-import { DataTable, TableColumn } from './DataTable';
-import { KANBAN_COLUMNS } from './KanbanBoard';
-import { IconBrain, IconFileText } from './Icons';
+import type React from "react"
+import type { Customer } from "../types"
+import { DataTable, type TableColumn } from "./DataTable"
+import { IconBrain, IconFileText } from "./Icons"
+import { StatusBadge } from "./ui/StatusBadge"
 
 interface TableViewProps {
-  customers: Customer[];
-  selectedCustomerId: string | null;
-  onSelectCustomer: (customerId: string) => void;
-  selectedRows: Set<string>;
-  onSelectionChange: (selectedIds: Set<string>) => void;
+  customers: Customer[]
+  selectedCustomerId: string | null
+  onSelectCustomer: (customerId: string) => void
+  selectedRows: Set<string>
+  onSelectionChange: (selectedIds: Set<string>) => void
 }
 
 export const TableView: React.FC<TableViewProps> = ({
   customers,
-  selectedCustomerId,
+  selectedCustomerId: _selectedCustomerId,
   onSelectCustomer,
   selectedRows,
   onSelectionChange,
 }) => {
   const columns: TableColumn<Customer>[] = [
     {
-      id: 'name',
-      label: '고객명',
+      id: "name",
+      label: "고객명",
       width: 200,
       sortable: true,
       render: (customer) => (
         <div className="flex items-center gap-2">
           <span className="font-medium text-neutral-900">{customer.name}</span>
           {customer.enrichedData && (
-            <IconBrain className="w-3.5 h-3.5 text-blue-600" title="AI 분석 완료" />
+            <IconBrain className="w-3.5 h-3.5 text-violet-600" aria-label="회사 정보 수집 완료" />
           )}
         </div>
       ),
     },
     {
-      id: 'status',
-      label: '상태',
+      id: "status",
+      label: "상태",
       width: 120,
       sortable: true,
-      render: (customer) => {
-        const column = KANBAN_COLUMNS.find((col) => col.id === customer.status);
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-neutral-100 text-neutral-700">
-            {column?.title || customer.status}
-          </span>
-        );
-      },
+      render: (customer) => <StatusBadge kind="status" value={customer.status} />,
     },
     {
-      id: 'industry',
-      label: '산업',
+      id: "industry",
+      label: "산업",
       width: 150,
       sortable: true,
-      render: (customer) => (
-        <span className="text-neutral-600">{customer.industry}</span>
-      ),
+      render: (customer) => <span className="text-neutral-600">{customer.industry}</span>,
     },
     {
-      id: 'website',
-      label: '웹사이트',
+      id: "website",
+      label: "웹사이트",
       width: 180,
       render: (customer) => (
         <a
@@ -74,8 +65,8 @@ export const TableView: React.FC<TableViewProps> = ({
       ),
     },
     {
-      id: 'proposals',
-      label: '제안서',
+      id: "proposals",
+      label: "제안서",
       width: 80,
       sortable: true,
       render: (customer) => (
@@ -92,16 +83,16 @@ export const TableView: React.FC<TableViewProps> = ({
       ),
     },
     {
-      id: 'notes',
-      label: '메모',
+      id: "notes",
+      label: "메모",
       width: 250,
       render: (customer) => (
         <span className="text-neutral-600 truncate block max-w-[250px]">
-          {customer.notes || '-'}
+          {customer.notes || "-"}
         </span>
       ),
     },
-  ];
+  ]
 
   return (
     <div className="h-full w-full">
@@ -112,8 +103,8 @@ export const TableView: React.FC<TableViewProps> = ({
         onRowClick={(row) => onSelectCustomer(row.id)}
         selectedRows={selectedRows}
         onSelectionChange={onSelectionChange}
-        emptyMessage="고객이 없습니다"
+        emptyMessage="아직 등록된 고객이 없습니다"
       />
     </div>
-  );
-};
+  )
+}

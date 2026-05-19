@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { NotificationSettings } from '../../../types';
-import { IconBell } from '../../Icons';
+import type React from "react"
+import { useState } from "react"
+import type { NotificationSettings } from "../../../types"
+import { IconBell } from "../../Icons"
 
-const NOTIFICATION_SETTINGS_KEY = 'rinda_notification_settings';
+const NOTIFICATION_SETTINGS_KEY = "rinda_notification_settings"
 
 const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   browser: {
@@ -18,79 +19,84 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   email: {
     enabled: false,
     dailyDigest: false,
-    digestTime: '09:00',
+    digestTime: "09:00",
   },
-};
+}
 
 const getNotificationSettings = (): NotificationSettings => {
   try {
-    const stored = localStorage.getItem(NOTIFICATION_SETTINGS_KEY);
+    const stored = localStorage.getItem(NOTIFICATION_SETTINGS_KEY)
     if (stored) {
-      const parsed = JSON.parse(stored);
+      const parsed = JSON.parse(stored)
       return {
         browser: { ...DEFAULT_NOTIFICATION_SETTINGS.browser, ...parsed.browser },
         email: { ...DEFAULT_NOTIFICATION_SETTINGS.email, ...parsed.email },
-      };
+      }
     }
   } catch (error) {
-    console.error('Failed to load notification settings:', error);
+    console.error("Failed to load notification settings:", error)
   }
-  return DEFAULT_NOTIFICATION_SETTINGS;
-};
+  return DEFAULT_NOTIFICATION_SETTINGS
+}
 
 const saveNotificationSettings = (settings: NotificationSettings): void => {
   try {
-    localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
+    localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings))
   } catch (error) {
-    console.error('Failed to save notification settings:', error);
+    console.error("Failed to save notification settings:", error)
   }
-};
-
-interface NotificationSettingsTabProps {
-  onSettingsChange?: () => void;
 }
 
-export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = ({ onSettingsChange }) => {
-  const [settings, setSettings] = useState<NotificationSettings>(() => getNotificationSettings());
+interface NotificationSettingsTabProps {
+  onSettingsChange?: () => void
+}
 
-  const handleBrowserSettingsChange = (updates: Partial<NotificationSettings['browser']>) => {
+export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = ({
+  onSettingsChange: _onSettingsChange,
+}) => {
+  const [settings, setSettings] = useState<NotificationSettings>(() => getNotificationSettings())
+
+  const handleBrowserSettingsChange = (updates: Partial<NotificationSettings["browser"]>) => {
     const newSettings: NotificationSettings = {
       ...settings,
       browser: { ...settings.browser, ...updates },
-    };
-    setSettings(newSettings);
-    saveNotificationSettings(newSettings);
-  };
+    }
+    setSettings(newSettings)
+    saveNotificationSettings(newSettings)
+  }
 
-  const handleBrowserTypeChange = (type: keyof NotificationSettings['browser']['types'], value: boolean) => {
+  const handleBrowserTypeChange = (
+    type: keyof NotificationSettings["browser"]["types"],
+    value: boolean,
+  ) => {
     const newSettings: NotificationSettings = {
       ...settings,
       browser: {
         ...settings.browser,
         types: { ...settings.browser.types, [type]: value },
       },
-    };
-    setSettings(newSettings);
-    saveNotificationSettings(newSettings);
-  };
+    }
+    setSettings(newSettings)
+    saveNotificationSettings(newSettings)
+  }
 
-  const handleEmailSettingsChange = (updates: Partial<NotificationSettings['email']>) => {
+  const handleEmailSettingsChange = (updates: Partial<NotificationSettings["email"]>) => {
     const newSettings: NotificationSettings = {
       ...settings,
       email: { ...settings.email, ...updates },
-    };
-    setSettings(newSettings);
-    saveNotificationSettings(newSettings);
-  };
+    }
+    setSettings(newSettings)
+    saveNotificationSettings(newSettings)
+  }
 
   const requestBrowserPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        handleBrowserSettingsChange({ enabled: true });
+    if ("Notification" in window) {
+      const permission = await Notification.requestPermission()
+      if (permission === "granted") {
+        handleBrowserSettingsChange({ enabled: true })
       }
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -118,14 +124,14 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 checked={settings.browser.enabled}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    requestBrowserPermission();
+                    requestBrowserPermission()
                   } else {
-                    handleBrowserSettingsChange({ enabled: false });
+                    handleBrowserSettingsChange({ enabled: false })
                   }
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
@@ -141,8 +147,8 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 <input
                   type="checkbox"
                   checked={settings.browser.types.followUp}
-                  onChange={(e) => handleBrowserTypeChange('followUp', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  onChange={(e) => handleBrowserTypeChange("followUp", e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
 
@@ -154,8 +160,8 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 <input
                   type="checkbox"
                   checked={settings.browser.types.meeting}
-                  onChange={(e) => handleBrowserTypeChange('meeting', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  onChange={(e) => handleBrowserTypeChange("meeting", e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
 
@@ -167,8 +173,8 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 <input
                   type="checkbox"
                   checked={settings.browser.types.news}
-                  onChange={(e) => handleBrowserTypeChange('news', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  onChange={(e) => handleBrowserTypeChange("news", e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
 
@@ -180,8 +186,8 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 <input
                   type="checkbox"
                   checked={settings.browser.types.prospect}
-                  onChange={(e) => handleBrowserTypeChange('prospect', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  onChange={(e) => handleBrowserTypeChange("prospect", e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
 
@@ -193,8 +199,8 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 <input
                   type="checkbox"
                   checked={settings.browser.types.risk}
-                  onChange={(e) => handleBrowserTypeChange('risk', e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  onChange={(e) => handleBrowserTypeChange("risk", e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
             </div>
@@ -222,7 +228,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                 onChange={(e) => handleEmailSettingsChange({ enabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
@@ -237,7 +243,7 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
                   type="checkbox"
                   checked={settings.email.dailyDigest}
                   onChange={(e) => handleEmailSettingsChange({ dailyDigest: e.target.checked })}
-                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
               </div>
 
@@ -270,5 +276,5 @@ export const NotificationSettingsTab: React.FC<NotificationSettingsTabProps> = (
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

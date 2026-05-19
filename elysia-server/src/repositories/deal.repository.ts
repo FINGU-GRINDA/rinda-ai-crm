@@ -243,22 +243,18 @@ export const dealRepository = {
         note,
       })
 
-      const actualCloseDate =
-        targetStage.stageType === "won" || targetStage.stageType === "lost"
-          ? now.toISOString().slice(0, 10)
-          : null
-
-      const forecastCategory =
-        targetStage.stageType === "won" || targetStage.stageType === "lost"
-          ? ("closed" as const)
-          : existing.forecastCategory
+      const isClosing = targetStage.stageType === "won" || targetStage.stageType === "lost"
+      // Reopening a deal (won/lost → open) must clear the close date AND
+      // restore the forecast category so old won/lost rows don't poison metrics.
+      const actualCloseDate = isClosing ? now.toISOString().slice(0, 10) : null
+      const forecastCategory: typeof existing.forecastCategory = isClosing ? "closed" : "pipeline"
 
       const [updated] = await tx
         .update(deals)
         .set({
           stageId: toStageId,
           stageEnteredAt: now,
-          actualCloseDate: actualCloseDate ?? existing.actualCloseDate,
+          actualCloseDate,
           forecastCategory,
           updatedAt: now,
         })

@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(xargs:*)",
+      "Bash(echo:*)",
+      "Bash(jq:*)",
+      "Bash(pwd)",
+      "Bash(which:*)",
+
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote:*)",
+      "Bash(git fetch:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git switch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git stash:*)",
+
+      "Bash(just --list)",
+      "Bash(just fe-build)",
+      "Bash(just fe-install)",
+      "Bash(just be-lint)",
+      "Bash(just be-typecheck)",
+      "Bash(just be-format)",
+      "Bash(just be-install)",
+      "Bash(just be-check)",
+      "Bash(just c4-validate)",
+      "Bash(just c4-build)",
+      "Bash(just c4-format)",
+
+      "Bash(cd frontend && npm install)",
+      "Bash(cd frontend && npm run build)",
+      "Bash(cd frontend && npm run dev:*)",
+      "Bash(cd frontend && npx tsc --noEmit)",
+      "Bash(cd frontend && npx tsc:*)",
+
+      "Bash(cd elysia-server && bun install)",
+      "Bash(cd elysia-server && bun lint)",
+      "Bash(cd elysia-server && bun lint:check)",
+      "Bash(cd elysia-server && bun type-check)",
+      "Bash(cd elysia-server && bun format)",
+      "Bash(cd elysia-server && bun format:check)",
+      "Bash(cd elysia-server && bun run db:generate)",
+      "Bash(cd elysia-server && bun run dev:*)",
+
+      "Bash(bun --version)",
+      "Bash(node --version)",
+      "Bash(npm --version)",
+
+      "Read(./**)",
+
+      "Skill(*)"
+    ],
+    "deny": [
+      "Bash(*db:migrate*)",
+      "Bash(*db:push*)",
+      "Bash(*db:reset*)",
+      "Bash(*docker:db-clean*)",
+      "Bash(*drizzle-kit migrate*)",
+      "Bash(*drizzle-kit push*)",
+
+      "Bash(rm -rf:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(sudo rm:*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push --force-with-lease origin main*)",
+      "Bash(git reset --hard origin/main*)",
+      "Bash(git clean -fdx*)",
+      "Bash(git branch -D main*)",
+      "Bash(git branch -D master*)",
+      "Bash(*--no-verify*)",
+      "Bash(*--no-gpg-sign*)",
+
+      "Read(./elysia-server/.env)",
+      "Read(./elysia-server/.env.local)",
+      "Read(./elysia-server/.env.production)",
+      "Read(./frontend/.env)",
+      "Read(./frontend/.env.local)",
+      "Read(./frontend/.env.production)",
+      "Read(**/id_rsa)",
+      "Read(**/id_ed25519)",
+      "Read(**/.aws/credentials)",
+      "Read(**/.ssh/**)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(cd elysia-server && bun run db:generate:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-start.sh",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-tool-use.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/stop.sh",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "BUN_INSTALL": "/root/.bun"
+  }
+}

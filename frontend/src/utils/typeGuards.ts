@@ -3,7 +3,7 @@
  * Runtime type checking functions for API responses
  */
 
-import type { ApiListResponse, ApiResponse } from '../../../elysia-server/src/types/api'
+import type { ApiListResponse, ApiResponse } from "../../../elysia-server/src/types/api"
 
 /**
  * Check if response is a successful list response
@@ -12,11 +12,7 @@ import type { ApiListResponse, ApiResponse } from '../../../elysia-server/src/ty
 export function isSuccessListResponse<T>(
   response: ApiListResponse<T>,
 ): response is { success: true; data: T[]; count: number } {
-  return (
-    response.success === true &&
-    'data' in response &&
-    Array.isArray(response.data)
-  )
+  return response.success === true && "data" in response && Array.isArray(response.data)
 }
 
 /**
@@ -26,7 +22,7 @@ export function isSuccessListResponse<T>(
 export function isSuccessResponse<T>(
   response: ApiResponse<T>,
 ): response is { success: true; data: T } {
-  return response.success === true && 'data' in response
+  return response.success === true && "data" in response
 }
 
 /**
@@ -36,7 +32,7 @@ export function isSuccessResponse<T>(
 export function isErrorResponse(
   response: ApiResponse<unknown> | ApiListResponse<unknown>,
 ): response is { success: false; error: string; code?: string } {
-  return response.success === false && 'error' in response
+  return response.success === false && "error" in response
 }
 
 /**
