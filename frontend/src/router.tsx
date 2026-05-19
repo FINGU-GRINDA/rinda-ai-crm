@@ -1,29 +1,21 @@
 import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom"
+import { AgenticLoader } from "../components/AgenticLoader"
 import { AuthCallback } from "../components/auth/AuthCallback"
 import { LoginForm } from "../components/auth/LoginForm"
 import { ErrorBoundary } from "../components/ErrorBoundary"
 import { AuthProvider, useAuth } from "../contexts/AuthContext"
+import { LanguageProvider } from "./i18n/LanguageContext"
 
 // Lazy load the dashboard for better performance
 const AppDashboard = lazy(() => import("../App").then((m) => ({ default: m.AppDashboard })))
-
-// Loading fallback component
-function LoadingFallback() {
-  return (
-    <div className="flex flex-col h-screen bg-slate-50 items-center justify-center">
-      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p className="text-slate-600 text-sm">로딩 중...</p>
-    </div>
-  )
-}
 
 // Protected route - redirects to login if not authenticated
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return <LoadingFallback />
+    return <AgenticLoader variant="page" />
   }
 
   if (!user) {
@@ -38,7 +30,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return <LoadingFallback />
+    return <AgenticLoader variant="page" />
   }
 
   if (user) {
@@ -48,14 +40,16 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// App wrapper with AuthProvider
+// App wrapper with LanguageProvider + AuthProvider
 function AppWrapper() {
   return (
-    <AuthProvider>
-      <ErrorBoundary>
-        <Outlet />
-      </ErrorBoundary>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
+      </AuthProvider>
+    </LanguageProvider>
   )
 }
 
@@ -88,7 +82,7 @@ export const router = createBrowserRouter([
         path: "dashboard",
         element: (
           <ProtectedRoute>
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={<AgenticLoader variant="page" />}>
               <AppDashboard />
             </Suspense>
           </ProtectedRoute>

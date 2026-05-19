@@ -2,6 +2,7 @@ import { Bell, Home, Search, Settings } from "lucide-react"
 import type React from "react"
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import type { ApiResponse } from "../elysia-server/src/types/api"
+import { AgenticLoader } from "./components/AgenticLoader"
 import { AppHeader, StatsBar } from "./components/AppHeader"
 import { BackgroundTaskToast } from "./components/BackgroundTaskToast"
 import { BusinessCardScanner } from "./components/BusinessCardScanner"
@@ -852,13 +853,7 @@ export const AppDashboard: React.FC = () => {
 
   // Loading screen
   if (customersLoading) {
-    return (
-      <div className="flex flex-col h-screen bg-slate-50 items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-slate-600 text-sm">데이터를 불러오는 중...</p>
-        <p className="text-slate-400 text-xs mt-2">백엔드 서버에 연결하고 있습니다</p>
-      </div>
-    )
+    return <AgenticLoader variant="page" />
   }
 
   const showServerWarning = isServerHealthy === false || isServerHealthy === null
