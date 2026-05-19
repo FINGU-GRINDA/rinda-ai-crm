@@ -1,6 +1,6 @@
 import { Eye, EyeOff, Mail, Search, Send, Sparkles, TrendingUp } from "lucide-react"
 import type React from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
 import { useTranslation } from "../../src/i18n/LanguageContext"
@@ -22,8 +22,18 @@ const AgentHero: React.FC = () => {
   const messages = t.login.agent.messages
   const [index, setIndex] = useState(0)
   const [displayed, setDisplayed] = useState("")
+  const prevMessagesRef = useRef(messages)
 
   useEffect(() => {
+    // Reset typing state when language (and therefore messages reference) changes
+    if (prevMessagesRef.current !== messages) {
+      prevMessagesRef.current = messages
+      if (index !== 0 || displayed !== "") {
+        setIndex(0)
+        setDisplayed("")
+        return
+      }
+    }
     const full = messages[index] ?? ""
     if (displayed.length < full.length) {
       const id = window.setTimeout(() => {
@@ -37,12 +47,6 @@ const AgentHero: React.FC = () => {
     }, 2600)
     return () => window.clearTimeout(hold)
   }, [displayed, index, messages])
-
-  // When language switches, reset typing state to play full intro for new copy
-  useEffect(() => {
-    setIndex(0)
-    setDisplayed("")
-  }, [t.login.agent.thinking])
 
   const capabilities = useMemo(
     () => [
@@ -357,10 +361,7 @@ export const LoginForm: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
                 <div>
-                  <label
-                    htmlFor="name"
-                    className="block text-xs font-medium text-slate-700 mb-1.5"
-                  >
+                  <label htmlFor="name" className="block text-xs font-medium text-slate-700 mb-1.5">
                     {t.login.fields.name}
                   </label>
                   <input
@@ -377,10 +378,7 @@ export const LoginForm: React.FC = () => {
               )}
 
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-xs font-medium text-slate-700 mb-1.5"
-                >
+                <label htmlFor="email" className="block text-xs font-medium text-slate-700 mb-1.5">
                   {t.login.fields.email}
                 </label>
                 <div className="relative">
@@ -426,11 +424,7 @@ export const LoginForm: React.FC = () => {
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100 transition"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {isSignUp && (

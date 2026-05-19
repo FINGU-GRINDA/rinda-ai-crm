@@ -74,8 +74,7 @@ export const ko: TranslationDictionary = {
     toggleToSignInCta: "로그인",
     alphaNotice: {
       title: "지금은 알파 단계입니다",
-      body:
-        "RINDA는 선별된 팀과 함께 빠르게 진화하고 있어요. 빠른 피드백, 빠른 개선, 그리고 가까운 거리. 알파 사용자에게 우선 기능과 지원을 제공합니다.",
+      body: "RINDA는 선별된 팀과 함께 빠르게 진화하고 있어요. 빠른 피드백, 빠른 개선, 그리고 가까운 거리. 알파 사용자에게 우선 기능과 지원을 제공합니다.",
     },
     legal: {
       preamble: "계속하시면",

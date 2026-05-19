@@ -78,9 +78,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                 role="option"
                 aria-selected={selected}
                 className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-sm transition-colors ${
-                  selected
-                    ? "text-blue-700 bg-blue-50/60"
-                    : "text-slate-700 hover:bg-slate-50"
+                  selected ? "text-blue-700 bg-blue-50/60" : "text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 <span className="flex items-center gap-2.5">

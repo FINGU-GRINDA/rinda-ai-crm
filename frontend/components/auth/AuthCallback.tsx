@@ -110,5 +110,7 @@ export const AuthCallback: React.FC = () => {
     )
   }
 
-  return <AgenticLoader variant="page" title={t.authCallback.verifying} detail={t.authCallback.detail} />
+  return (
+    <AgenticLoader variant="page" title={t.authCallback.verifying} detail={t.authCallback.detail} />
+  )
 }

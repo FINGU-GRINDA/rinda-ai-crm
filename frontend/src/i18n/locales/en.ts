@@ -74,8 +74,7 @@ export const en: TranslationDictionary = {
     toggleToSignInCta: "Sign in",
     alphaNotice: {
       title: "You're in the alpha",
-      body:
-        "RINDA is evolving fast alongside a hand-picked group of sales teams. Fast feedback, fast iteration, close collaboration — alpha users get priority features and support.",
+      body: "RINDA is evolving fast alongside a hand-picked group of sales teams. Fast feedback, fast iteration, close collaboration — alpha users get priority features and support.",
     },
     legal: {
       preamble: "By continuing, you agree to our",

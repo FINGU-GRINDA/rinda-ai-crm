@@ -209,7 +209,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-slate-800 text-lg tracking-tight">{t.common.appName}</h1>
+              <h1 className="font-bold text-slate-800 text-lg tracking-tight">
+                {t.common.appName}
+              </h1>
               <span className="text-[10px] font-semibold tracking-wider text-blue-700 bg-blue-50 border border-blue-200 rounded px-1 py-0.5">
                 {t.common.alpha}
               </span>

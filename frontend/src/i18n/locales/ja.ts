@@ -74,8 +74,7 @@ export const ja: TranslationDictionary = {
     toggleToSignInCta: "ログイン",
     alphaNotice: {
       title: "現在アルファ版で運用中です",
-      body:
-        "RINDAは厳選されたチームと共に素早く進化しています。素早いフィードバック、素早い改善、そして近い距離感。アルファユーザーには優先的に新機能とサポートを提供します。",
+      body: "RINDAは厳選されたチームと共に素早く進化しています。素早いフィードバック、素早い改善、そして近い距離感。アルファユーザーには優先的に新機能とサポートを提供します。",
     },
     legal: {
       preamble: "続行することで",
