@@ -56,7 +56,6 @@ async function main() {
             { name: "Slack", description: "Slack integration" },
             { name: "Gmail", description: "Gmail integration" },
             { name: "Calendar", description: "Calendar integration" },
-            { name: "Mixpanel", description: "Mixpanel integration" },
           ],
         },
       }),

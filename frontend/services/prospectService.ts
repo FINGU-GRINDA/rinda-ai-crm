@@ -9,6 +9,10 @@ const STORAGE_KEY_ICPS = "rinda_icp_profiles"
 const STORAGE_KEY_PROSPECTS = "rinda_prospects"
 const STORAGE_KEY_COLLECTION_SETTINGS = "rinda_collection_settings"
 
+// Re-exported for callers that need to write directly to localStorage and
+// surface storage errors (e.g. settings tabs that show error toasts).
+export { STORAGE_KEY_COLLECTION_SETTINGS, STORAGE_KEY_ICPS }
+
 export interface CollectionSettings {
   enabled: boolean
   interval: number // milliseconds

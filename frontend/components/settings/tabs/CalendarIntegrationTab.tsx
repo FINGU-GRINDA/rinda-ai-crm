@@ -1,7 +1,21 @@
 import type React from "react"
 import { useState } from "react"
 import type { CalendarSettings } from "../../../types"
-import { IconCalendar, IconCheck } from "../../Icons"
+import { IconCalendar, IconLoader } from "../../Icons"
+import { useSettingsToast } from "../SettingsToastContext"
+import {
+  btnGhost,
+  btnSecondary,
+  card,
+  infoNote,
+  inputBase,
+  pageDesc,
+  pageTitle,
+  sectionDesc,
+  sectionTitle,
+  tile,
+  toggle,
+} from "../tokens"
 
 const CALENDAR_SETTINGS_KEY = "rinda_calendar_settings"
 
@@ -9,7 +23,7 @@ const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   provider: null,
   isConnected: false,
   autoSync: true,
-  syncInterval: 300000, // 5분
+  syncInterval: 300000,
   lastSyncAt: undefined,
   meetingPrepEnabled: true,
 }
@@ -27,11 +41,17 @@ const getCalendarSettings = (): CalendarSettings => {
 }
 
 const saveCalendarSettings = (settings: CalendarSettings): void => {
-  try {
-    localStorage.setItem(CALENDAR_SETTINGS_KEY, JSON.stringify(settings))
-  } catch (error) {
-    console.error("Failed to save calendar settings:", error)
-  }
+  localStorage.setItem(CALENDAR_SETTINGS_KEY, JSON.stringify(settings))
+}
+
+const PROVIDER_LABEL: Record<NonNullable<CalendarSettings["provider"]>, string> = {
+  google: "Google Calendar",
+  outlook: "Outlook Calendar",
+}
+
+const PROVIDER_DESC: Record<NonNullable<CalendarSettings["provider"]>, string> = {
+  google: "Google 계정으로 연결",
+  outlook: "Microsoft 계정으로 연결",
 }
 
 interface CalendarIntegrationTabProps {
@@ -42,188 +62,179 @@ export const CalendarIntegrationTab: React.FC<CalendarIntegrationTabProps> = ({
   onSettingsChange,
 }) => {
   const [settings, setSettings] = useState<CalendarSettings>(() => getCalendarSettings())
-  const [isConnecting, setIsConnecting] = useState(false)
+  const [connectingProvider, setConnectingProvider] = useState<CalendarSettings["provider"] | null>(
+    null,
+  )
+  const toast = useSettingsToast()
+
+  const persist = (next: CalendarSettings, message = "저장되었습니다") => {
+    setSettings(next)
+    try {
+      saveCalendarSettings(next)
+      onSettingsChange?.()
+      toast.show("success", message)
+    } catch (error) {
+      console.error(error)
+      toast.show("error", "저장에 실패했습니다")
+    }
+  }
 
   const handleConnect = async (provider: "google" | "outlook") => {
-    setIsConnecting(true)
-
-    // 시뮬레이션: 실제로는 OAuth 플로우가 필요
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    const newSettings: CalendarSettings = {
-      ...settings,
-      provider,
-      isConnected: true,
-      lastSyncAt: Date.now(),
-    }
-    setSettings(newSettings)
-    saveCalendarSettings(newSettings)
-    onSettingsChange?.()
-    setIsConnecting(false)
+    setConnectingProvider(provider)
+    await new Promise((resolve) => setTimeout(resolve, 1200))
+    persist(
+      {
+        ...settings,
+        provider,
+        isConnected: true,
+        lastSyncAt: Date.now(),
+      },
+      `${PROVIDER_LABEL[provider]}이(가) 연동되었습니다`,
+    )
+    setConnectingProvider(null)
   }
 
   const handleDisconnect = () => {
-    const newSettings: CalendarSettings = {
-      ...DEFAULT_CALENDAR_SETTINGS,
-    }
-    setSettings(newSettings)
-    saveCalendarSettings(newSettings)
-    onSettingsChange?.()
-  }
-
-  const handleSettingsChange = (updates: Partial<CalendarSettings>) => {
-    const newSettings = { ...settings, ...updates }
-    setSettings(newSettings)
-    saveCalendarSettings(newSettings)
+    persist({ ...DEFAULT_CALENDAR_SETTINGS }, "연동이 해제되었습니다")
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-1">캘린더 연동</h3>
-        <p className="text-sm text-slate-500">
-          캘린더를 연동하여 미팅 일정을 관리하고 준비 자료를 자동 생성합니다.
+      <header>
+        <h3 className={pageTitle}>캘린더 연동</h3>
+        <p className={pageDesc}>
+          캘린더를 연동해 미팅 일정을 가져오고, AI가 자동으로 준비 자료를 만들 수 있습니다.
         </p>
-      </div>
+      </header>
 
-      {/* Connection Status */}
-      {settings.isConnected && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <IconCheck className="w-5 h-5 text-emerald-600" />
-              <div>
-                <span className="text-sm font-semibold text-emerald-900">
-                  {settings.provider === "google" ? "Google Calendar" : "Outlook Calendar"} 연동됨
-                </span>
+      {settings.isConnected && settings.provider ? (
+        <section className={card}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900">
+                  {PROVIDER_LABEL[settings.provider]} 연동됨
+                </p>
                 {settings.lastSyncAt && (
-                  <p className="text-xs text-emerald-700">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     마지막 동기화: {new Date(settings.lastSyncAt).toLocaleString("ko-KR")}
                   </p>
                 )}
               </div>
             </div>
-            <button
-              onClick={handleDisconnect}
-              className="text-xs text-emerald-700 hover:text-emerald-900 underline"
-            >
+            <button type="button" onClick={handleDisconnect} className={btnGhost}>
               연동 해제
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Provider Selection */}
-      {!settings.isConnected && (
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-slate-700">캘린더 서비스 선택</p>
-
-          <button
-            onClick={() => handleConnect("google")}
-            disabled={isConnecting}
-            className="w-full flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50"
-          >
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <IconCalendar className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="flex-1 text-left">
-              <span className="text-sm font-medium text-slate-900">Google Calendar</span>
-              <p className="text-xs text-slate-500">Google 계정으로 연결</p>
-            </div>
-            {isConnecting && <span className="text-xs text-slate-500">연결 중...</span>}
-          </button>
-
-          <button
-            onClick={() => handleConnect("outlook")}
-            disabled={isConnecting}
-            className="w-full flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50"
-          >
-            <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
-              <IconCalendar className="w-5 h-5 text-sky-600" />
-            </div>
-            <div className="flex-1 text-left">
-              <span className="text-sm font-medium text-slate-900">Outlook Calendar</span>
-              <p className="text-xs text-slate-500">Microsoft 계정으로 연결</p>
-            </div>
-            {isConnecting && <span className="text-xs text-slate-500">연결 중...</span>}
-          </button>
-        </div>
-      )}
-
-      {/* Calendar Settings */}
-      {settings.isConnected && (
-        <div className="border-t border-slate-200 pt-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="text-sm font-medium text-slate-700">자동 동기화</label>
-              <p className="text-xs text-slate-500">캘린더 이벤트를 자동으로 가져옵니다</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.autoSync}
-                onChange={(e) => handleSettingsChange({ autoSync: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-            </label>
+        </section>
+      ) : (
+        <section>
+          <div className="mb-3">
+            <h4 className={sectionTitle}>제공자 선택</h4>
+            <p className={sectionDesc}>연결할 캘린더 서비스를 선택하세요</p>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="text-sm font-medium text-slate-700">AI 미팅 준비 자료</label>
-              <p className="text-xs text-slate-500">
-                고객 미팅 전 AI가 자동으로 준비 자료를 생성합니다
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.meetingPrepEnabled}
-                onChange={(e) => handleSettingsChange({ meetingPrepEnabled: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-            </label>
-          </div>
-
-          {settings.autoSync && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">동기화 주기</label>
-              <select
-                value={settings.syncInterval}
-                onChange={(e) =>
-                  handleSettingsChange({ syncInterval: parseInt(e.target.value, 10) })
-                }
-                className="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+          <div className="space-y-2">
+            {(["google", "outlook"] as const).map((provider) => (
+              <button
+                key={provider}
+                type="button"
+                onClick={() => handleConnect(provider)}
+                disabled={connectingProvider !== null}
+                className={tile}
               >
-                <option value={300000}>5분마다</option>
-                <option value={600000}>10분마다</option>
-                <option value={900000}>15분마다</option>
-                <option value={1800000}>30분마다</option>
-                <option value={3600000}>1시간마다</option>
-              </select>
-            </div>
-          )}
-
-          <button className="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors">
-            지금 동기화
-          </button>
-        </div>
+                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  <IconCalendar className="w-5 h-5 text-slate-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900">{PROVIDER_LABEL[provider]}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{PROVIDER_DESC[provider]}</p>
+                </div>
+                {connectingProvider === provider && (
+                  <IconLoader className="w-4 h-4 text-slate-400 animate-spin flex-shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
       )}
 
-      {/* Info */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <span className="text-xl">💡</span>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-900 mb-1">알림</p>
-            <p className="text-xs text-amber-700">
-              현재 캘린더 연동은 시뮬레이션 모드입니다. 실제 연동을 위해서는 OAuth 설정이
-              필요합니다.
-            </p>
+      {settings.isConnected && (
+        <section>
+          <div className="mb-3">
+            <h4 className={sectionTitle}>옵션</h4>
+            <p className={sectionDesc}>동기화 및 AI 미팅 준비 동작을 설정합니다</p>
           </div>
-        </div>
+
+          <div className={`${card} space-y-5`}>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-slate-900">자동 동기화</p>
+                <p className="text-xs text-slate-500 mt-0.5">캘린더 이벤트를 자동으로 가져옵니다</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.autoSync}
+                  onChange={(e) => persist({ ...settings, autoSync: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className={toggle} />
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-slate-900">AI 미팅 준비 자료</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  미팅 전 고객 정보, 최근 활동, 추천 의제를 자동 생성
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.meetingPrepEnabled}
+                  onChange={(e) => persist({ ...settings, meetingPrepEnabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className={toggle} />
+              </label>
+            </div>
+
+            {settings.autoSync && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  동기화 주기
+                </label>
+                <select
+                  value={settings.syncInterval}
+                  onChange={(e) =>
+                    persist({ ...settings, syncInterval: parseInt(e.target.value, 10) })
+                  }
+                  className={inputBase}
+                >
+                  <option value={300000}>5분마다</option>
+                  <option value={600000}>10분마다</option>
+                  <option value={900000}>15분마다</option>
+                  <option value={1800000}>30분마다</option>
+                  <option value={3600000}>1시간마다</option>
+                </select>
+              </div>
+            )}
+
+            <div className="pt-1">
+              <button type="button" className={btnSecondary}>
+                지금 동기화
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <div className={infoNote}>
+        OAuth 연결은 시뮬레이션 모드입니다. 실제 연동은 운영 환경에서 OAuth 자격 증명을 구성한 후
+        사용할 수 있습니다.
       </div>
     </div>
   )

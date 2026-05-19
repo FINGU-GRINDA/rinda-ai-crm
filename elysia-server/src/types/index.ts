@@ -26,10 +26,6 @@ export type {
   MeetingSummary,
   NewMeetingSummary,
 } from "../db/schema/meetings"
-export type {
-  MixpanelEvent,
-  NewMixpanelEvent,
-} from "../db/schema/mixpanel"
 
 export type {
   NewNotification,
@@ -288,21 +284,6 @@ export interface CollectionSettings {
   lastRun?: number | null
 }
 
-export interface MixpanelSettings {
-  enabled?: boolean
-  isEnabled?: boolean
-  projectToken?: string
-  apiSecret?: string
-  autoCreateLeads?: boolean
-  autoCreateProspect?: boolean
-  eventMappings?: Record<string, string>
-  trackedEvents?: string[]
-  defaultSignalStrength?: string
-  enrichWithAI?: boolean
-  syncFrequency?: string // 'hourly' | 'every_4_hours' | 'daily'
-  lastSyncAt?: number | null
-}
-
 // Combined settings type for all application settings
 export interface AllSettings {
   slack: SlackSettings
@@ -310,7 +291,6 @@ export interface AllSettings {
   calendar: CalendarSettings
   notifications: NotificationSettings
   collection: CollectionSettings
-  mixpanel: MixpanelSettings
 }
 
 // Type for settings keys

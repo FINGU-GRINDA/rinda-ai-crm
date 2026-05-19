@@ -1,6 +1,6 @@
 import type React from "react"
 import type { SettingsTabType } from "../../types"
-import { IconActivity, IconBell, IconBrain, IconCalendar, IconMail, IconSparkles } from "../Icons"
+import { IconBell, IconBrain, IconCalendar, IconMail, IconSparkles } from "../Icons"
 
 // Slack 아이콘 (lucide-react에 없으므로 직접 정의)
 const IconSlack: React.FC<{ className?: string }> = ({ className }) => (
@@ -12,6 +12,7 @@ const IconSlack: React.FC<{ className?: string }> = ({ className }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <rect x="13" y="2" width="3" height="8" rx="1.5" />
     <path d="M19 8.5V10a1.5 1.5 0 0 0 3 0V8.5a1.5 1.5 0 0 0-3 0z" />
@@ -32,27 +33,51 @@ interface TabConfig {
 }
 
 const SETTINGS_TABS: TabConfig[] = [
-  { id: "ai", label: "AI 설정", icon: IconBrain, description: "Gemini API Key" },
-  { id: "prospect", label: "잠재고객 탐색", icon: IconSparkles, description: "ICP 프로필 및 수집" },
-  { id: "slack", label: "Slack 연동", icon: IconSlack, description: "Webhook 알림" },
-  { id: "email", label: "이메일 연동", icon: IconMail, description: "Gmail/Outlook" },
-  { id: "calendar", label: "캘린더 연동", icon: IconCalendar, description: "Google/Outlook" },
-  { id: "mixpanel", label: "Mixpanel", icon: IconActivity, description: "이벤트 통합" },
-  { id: "notifications", label: "알림 설정", icon: IconBell, description: "알림 관리" },
+  { id: "ai", label: "AI 모델", icon: IconBrain, description: "Gemini 연동 상태" },
+  { id: "prospect", label: "잠재고객 탐색", icon: IconSparkles, description: "ICP · 자동 수집" },
+  { id: "slack", label: "Slack", icon: IconSlack, description: "Webhook 알림" },
+  { id: "email", label: "이메일", icon: IconMail, description: "Gmail · Outlook" },
+  { id: "calendar", label: "캘린더", icon: IconCalendar, description: "Google · Outlook" },
+  { id: "notifications", label: "알림", icon: IconBell, description: "브라우저 · 이메일" },
 ]
+
+interface ConnectionStatus {
+  slack?: boolean
+  email?: boolean
+  calendar?: boolean
+}
 
 interface SettingsTabBarProps {
   activeTab: SettingsTabType
   onTabChange: (tab: SettingsTabType) => void
-  connectionStatus?: {
-    ai?: boolean
-    slack?: boolean
-    email?: boolean
-    calendar?: boolean
-    mixpanel?: boolean
-  }
+  connectionStatus?: ConnectionStatus
   horizontal?: boolean
 }
+
+const isConnected = (tabId: SettingsTabType, status: ConnectionStatus): boolean => {
+  if (tabId === "slack") return !!status.slack
+  if (tabId === "email") return !!status.email
+  if (tabId === "calendar") return !!status.calendar
+  return false
+}
+
+const isConnectable = (tabId: SettingsTabType): boolean =>
+  tabId === "slack" || tabId === "email" || tabId === "calendar"
+
+const StatusDot: React.FC<{ active: boolean }> = ({ active }) => (
+  // Soft halo behind the dot when on a non-active tab; on the active tab the
+  // dot is brighter and skips the halo so the active state stays clean.
+  <span className="relative inline-flex w-1.5 h-1.5" aria-label="연결됨" title="연결됨">
+    {!active && (
+      <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-40 motion-safe:animate-ping motion-reduce:animate-none" />
+    )}
+    <span
+      className={`relative inline-block w-1.5 h-1.5 rounded-full ${
+        active ? "bg-emerald-300" : "bg-emerald-500"
+      }`}
+    />
+  </span>
+)
 
 export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
   activeTab,
@@ -60,45 +85,30 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
   connectionStatus = {},
   horizontal = false,
 }) => {
-  const getStatusBadge = (tabId: SettingsTabType) => {
-    if (tabId === "ai" && connectionStatus.ai) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />
-    }
-    if (tabId === "slack" && connectionStatus.slack) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />
-    }
-    if (tabId === "email" && connectionStatus.email) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />
-    }
-    if (tabId === "calendar" && connectionStatus.calendar) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />
-    }
-    if (tabId === "mixpanel" && connectionStatus.mixpanel) {
-      return <span className="w-2 h-2 rounded-full bg-emerald-500" />
-    }
-    return null
-  }
-
-  // Horizontal mode for mobile
+  // Horizontal (mobile)
   if (horizontal) {
     return (
       <>
         {SETTINGS_TABS.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
+          const connected = isConnectable(tab.id) && isConnected(tab.id, connectionStatus)
 
           return (
             <button
               key={tab.id}
+              type="button"
+              aria-current={isActive ? "page" : undefined}
               onClick={() => onTabChange(tab.id)}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
-                ${isActive ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}
-              `}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-[transform,background-color,color,border-color] duration-150 active:scale-[0.97] ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+              }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`} />
+              <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
-              {getStatusBadge(tab.id)}
+              {connected && <StatusDot active={isActive} />}
             </button>
           )
         })}
@@ -106,38 +116,52 @@ export const SettingsTabBar: React.FC<SettingsTabBarProps> = ({
     )
   }
 
-  // Vertical mode for desktop
+  // Vertical (desktop)
   return (
-    <div className="flex flex-col space-y-1 w-48 border-r border-slate-200 pr-4">
+    <nav className="flex flex-col space-y-1 w-52" aria-label="설정 메뉴">
       {SETTINGS_TABS.map((tab) => {
         const Icon = tab.icon
         const isActive = activeTab === tab.id
+        const connected = isConnectable(tab.id) && isConnected(tab.id, connectionStatus)
 
         return (
           <button
             key={tab.id}
+            type="button"
+            aria-current={isActive ? "page" : undefined}
             onClick={() => onTabChange(tab.id)}
-            className={`
-              flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all
-              ${
-                isActive
-                  ? "bg-blue-50 text-blue-700 border border-blue-200"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              }
-            `}
+            className={`group relative flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-[background-color,color] duration-150 ${
+              isActive ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100"
+            }`}
           >
-            <Icon className={`w-5 h-5 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+            {/* Active indicator bar — slides in via opacity for a soft cue. */}
+            <span
+              className={`absolute left-0 top-2 bottom-2 w-0.5 rounded-r bg-blue-600 transition-opacity duration-150 ${
+                isActive ? "opacity-100" : "opacity-0"
+              }`}
+              aria-hidden="true"
+            />
+            <Icon
+              className={`w-4 h-4 mt-0.5 flex-shrink-0 transition-colors duration-150 ${
+                isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+              }`}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className={`text-sm font-medium truncate ${isActive ? "text-blue-700" : ""}`}>
-                  {tab.label}
-                </span>
-                {getStatusBadge(tab.id)}
+                <span className="text-sm font-medium truncate">{tab.label}</span>
+                {connected && <StatusDot active={false} />}
               </div>
+              <p
+                className={`text-xs mt-0.5 truncate transition-colors duration-150 ${
+                  isActive ? "text-blue-500" : "text-slate-500"
+                }`}
+              >
+                {tab.description}
+              </p>
             </div>
           </button>
         )
       })}
-    </div>
+    </nav>
   )
 }
