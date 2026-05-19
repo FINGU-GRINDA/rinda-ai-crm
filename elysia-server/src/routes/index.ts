@@ -11,7 +11,6 @@ import { gmailRoutes } from "./gmail.routes"
 import { icpRoutes } from "./icp.routes"
 import { leadsRoutes } from "./leads.routes"
 import { meetingRoutes } from "./meeting.routes"
-import { mixpanelRoutes } from "./mixpanel.routes"
 import { notificationRoutes } from "./notification.routes"
 import { pipelineRoutes } from "./pipeline.routes"
 import { prospectRoutes } from "./prospect.routes"
@@ -53,4 +52,3 @@ export const routes = new Elysia()
   .use(slackEventRoutes)
   .use(gmailRoutes)
   .use(calendarRoutes)
-  .use(mixpanelRoutes)

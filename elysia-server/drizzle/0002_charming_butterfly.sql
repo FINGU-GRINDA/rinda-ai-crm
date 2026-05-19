@@ -194,6 +194,8 @@ CREATE TABLE "workspaces" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "mixpanel_events" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
+DROP TABLE "mixpanel_events" CASCADE;--> statement-breakpoint
 ALTER TABLE "attachments" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
 ALTER TABLE "customer_contacts" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
 ALTER TABLE "customer_enrichments" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
@@ -204,7 +206,6 @@ ALTER TABLE "follow_up_history" ADD COLUMN "workspace_id" uuid;--> statement-bre
 ALTER TABLE "scheduled_follow_ups" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
 ALTER TABLE "icp_profiles" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
 ALTER TABLE "meeting_summaries" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
-ALTER TABLE "mixpanel_events" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
 ALTER TABLE "notifications" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
 ALTER TABLE "prospects" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
 ALTER TABLE "settings" ADD COLUMN "workspace_id" uuid;--> statement-breakpoint
@@ -285,7 +286,6 @@ ALTER TABLE "follow_up_history" ADD CONSTRAINT "follow_up_history_workspace_id_w
 ALTER TABLE "scheduled_follow_ups" ADD CONSTRAINT "scheduled_follow_ups_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "icp_profiles" ADD CONSTRAINT "icp_profiles_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "meeting_summaries" ADD CONSTRAINT "meeting_summaries_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "mixpanel_events" ADD CONSTRAINT "mixpanel_events_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "prospects" ADD CONSTRAINT "prospects_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "settings" ADD CONSTRAINT "settings_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -304,7 +304,6 @@ CREATE INDEX "idx_scheduled_workspace" ON "scheduled_follow_ups" USING btree ("w
 CREATE INDEX "idx_icp_profiles_workspace" ON "icp_profiles" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "idx_meetings_workspace" ON "meeting_summaries" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "idx_meetings_workspace_date" ON "meeting_summaries" USING btree ("workspace_id","meeting_date");--> statement-breakpoint
-CREATE INDEX "idx_mixpanel_events_workspace" ON "mixpanel_events" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "idx_notifications_workspace" ON "notifications" USING btree ("workspace_id","read");--> statement-breakpoint
 CREATE INDEX "idx_notifications_workspace_created" ON "notifications" USING btree ("workspace_id","created_at");--> statement-breakpoint
 CREATE INDEX "idx_prospects_workspace" ON "prospects" USING btree ("workspace_id");--> statement-breakpoint

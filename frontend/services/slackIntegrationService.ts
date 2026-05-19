@@ -8,6 +8,10 @@ import type { Customer, Prospect, ScheduledFollowUp, SlackSettings } from "../ty
 
 const SLACK_SETTINGS_KEY = "rinda_slack_settings"
 
+// Re-exported for callers that need to write directly to localStorage and
+// surface storage errors (e.g. settings tabs that show error toasts).
+export { SLACK_SETTINGS_KEY }
+
 // Default Slack settings
 const DEFAULT_SLACK_SETTINGS: SlackSettings = {
   webhookUrl: "",

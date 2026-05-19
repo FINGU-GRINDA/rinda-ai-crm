@@ -68,11 +68,4 @@ export const defaultSettings: AllSettings = {
     interval: 3600000,
     lastRun: null,
   },
-  mixpanel: {
-    enabled: false,
-    projectToken: "",
-    apiSecret: "",
-    autoCreateLeads: true,
-    eventMappings: {},
-  },
 }
