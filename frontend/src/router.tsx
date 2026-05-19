@@ -96,7 +96,7 @@ export const router = createBrowserRouter([
         path: "deals",
         element: (
           <ProtectedRoute>
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={<AgenticLoader variant="page" />}>
               <DealsPage />
             </Suspense>
           </ProtectedRoute>
