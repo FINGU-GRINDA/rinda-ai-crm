@@ -1,12 +1,15 @@
 /**
- * CRM Email Backfill — pulls the last N months of email from the configured
- * provider (Gmail in slice 1) and feeds them through the CRM ingestion
- * service. Resumable: the worker stores a cursor on `crm_backfill_progress`
- * and resumes on retry.
+ * CRM Email Backfill — pulls N months of email from the configured provider
+ * (Gmail in slice 1) and feeds them through the CRM ingestion service.
  *
- * Lifted from send-grid-test/elysia-server/src/services/crm/crm-email-backfill.service.ts.
- * Adapted: `userEmailAccounts` lookups → `crmEmailConnections`; Unipile-specific
- * `listAccountEmailsPage` → provider-agnostic `EmailProvider.listPage()`.
+ * Runs entirely in-process. `runBackfill(progressId)` is fire-and-forget
+ * (callers don't await); state lives on the `crm_backfill_progress` row
+ * (`status`, `cursor`, counters). Resumable on process restart via
+ * `resumeRunningBackfills()` — finds `status='running'` rows whose worker
+ * died and re-spawns them.
+ *
+ * Originally lifted from send-grid-test as a BullMQ worker; refactored away
+ * from the queue per slice 1 Part IV migration plan.
  */
 
 import { and, eq, inArray } from "drizzle-orm"
@@ -14,27 +17,80 @@ import { db } from "../../db"
 import { crmBackfillProgress } from "../../db/schema/crm-backfill-progress"
 import { messages } from "../../db/schema/crm-deals"
 import { crmEmailConnections } from "../../db/schema/crm-email-connections"
-import { addCrmStageClassifyJob } from "../../lib/queue/queues"
-import type { CrmEmailBackfillJob, CrmEmailBackfillResult } from "../../lib/queue/types"
+import { fireAndForget } from "../../lib/job-runner"
 import logger from "../../utils/logger"
+import { enqueueClassify } from "./classify-runner"
 import { getEmailProvider, type MailboxEmail } from "./email-provider"
 import { ingestEmail } from "./ingestion.service"
 
+const RUNNER_NAME = "crm-email-backfill"
 const PAGE_SIZE = 100
 const MAX_PAGES_PER_RUN = 200
+const MIN_MONTHS = 1
+const MAX_MONTHS = 3
 
-export async function processCrmEmailBackfill(
-  data: CrmEmailBackfillJob,
-): Promise<CrmEmailBackfillResult> {
-  const { workspaceId, emailAccountId } = data
-  // Match the route cap. Jobs enqueued without `monthsBack` (or with values
-  // outside [1, 3]) get clamped here so the worker can't run a 12-month pull
-  // that bypasses /backfill/start's Zod validation.
-  const MIN_MONTHS = 1
-  const MAX_MONTHS = 3
-  const monthsBack = Math.max(MIN_MONTHS, Math.min(data.monthsBack ?? MAX_MONTHS, MAX_MONTHS))
+/** Per-process dedup: one active run per `crm_backfill_progress.id`. */
+const activeBackfills: Map<string, Promise<unknown>> = new Map()
 
-  // 1. Load the connection so we know the provider + external account id.
+export interface RunBackfillResult {
+  success: boolean
+  progressId: string
+  pagesProcessed: number
+  messagesProcessed: number
+  messagesIngested: number
+  error?: string
+}
+
+/**
+ * Schedule a backfill run for an existing progress row, fire-and-forget.
+ * Returns false if a run is already active for this progress row.
+ */
+export function scheduleBackfill(progressId: string): boolean {
+  if (activeBackfills.has(progressId)) return false
+  const promise = runBackfill(progressId).finally(() => {
+    activeBackfills.delete(progressId)
+  })
+  activeBackfills.set(progressId, promise)
+  fireAndForget(promise, `${RUNNER_NAME}:${progressId}`)
+  return true
+}
+
+/**
+ * Find any `crm_backfill_progress` rows still in `status='running'` (likely
+ * orphaned by a previous process crash) and resume each one. Called from
+ * `src/index.ts` after the server starts listening.
+ */
+export async function resumeRunningBackfills(): Promise<{ resumed: number }> {
+  const rows = await db
+    .select({ id: crmBackfillProgress.id })
+    .from(crmBackfillProgress)
+    .where(eq(crmBackfillProgress.status, "running"))
+
+  let resumed = 0
+  for (const row of rows) {
+    if (scheduleBackfill(row.id)) resumed += 1
+  }
+  if (rows.length > 0) {
+    logger.info({ found: rows.length, resumed }, `[${RUNNER_NAME}] Resumed running backfills`)
+  }
+  return { resumed }
+}
+
+async function runBackfill(progressId: string): Promise<RunBackfillResult> {
+  // 1. Load progress row — drives workspace/connection/cursor recovery.
+  const [progress] = await db
+    .select()
+    .from(crmBackfillProgress)
+    .where(eq(crmBackfillProgress.id, progressId))
+    .limit(1)
+
+  if (!progress) {
+    throw new Error(`${RUNNER_NAME}: progress row ${progressId} not found`)
+  }
+  const { workspaceId, emailAccountId } = progress
+  const monthsBack = Math.max(MIN_MONTHS, Math.min(progress.monthsBack ?? MAX_MONTHS, MAX_MONTHS))
+
+  // 2. Load the connection.
   const [connection] = await db
     .select({
       id: crmEmailConnections.id,
@@ -51,41 +107,16 @@ export async function processCrmEmailBackfill(
     .limit(1)
 
   if (!connection) {
-    throw new Error(`crm-email-backfill: email connection ${emailAccountId} not found in workspace`)
+    throw new Error(`${RUNNER_NAME}: connection ${emailAccountId} not found in workspace`)
   }
   const provider = getEmailProvider(connection.provider)
 
   // All rep email addresses in this workspace — used to label direction.
-  // For Gmail-as-provider the externalAccountId IS the rep's email address.
   const repAccountRows = await db
     .select({ externalAccountId: crmEmailConnections.externalAccountId })
     .from(crmEmailConnections)
     .where(eq(crmEmailConnections.workspaceId, workspaceId))
   const repEmails = new Set(repAccountRows.map((r) => r.externalAccountId.toLowerCase()))
-
-  // 2. Upsert progress row; resume cursor if it exists.
-  const [progress] = await db
-    .insert(crmBackfillProgress)
-    .values({
-      workspaceId,
-      emailAccountId,
-      status: "running",
-      monthsBack,
-      startedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: [crmBackfillProgress.workspaceId, crmBackfillProgress.emailAccountId],
-      set: {
-        status: "running",
-        lastError: null,
-        updatedAt: new Date(),
-      },
-    })
-    .returning()
-
-  if (!progress) {
-    throw new Error(`crm-email-backfill: progress upsert returned no row`)
-  }
 
   const after = new Date(Date.now() - monthsBack * 30 * 24 * 60 * 60 * 1000).toISOString()
   let cursor: string | null = progress.cursor ?? null
@@ -129,7 +160,7 @@ export async function processCrmEmailBackfill(
           messagesIngested: totalMessagesIngested,
           updatedAt: new Date(),
         })
-        .where(eq(crmBackfillProgress.id, progress.id))
+        .where(eq(crmBackfillProgress.id, progressId))
 
       if (cursor === null) break
     }
@@ -143,40 +174,25 @@ export async function processCrmEmailBackfill(
         ...(completed ? { reclassifiedAt: new Date() } : {}),
         updatedAt: new Date(),
       })
-      .where(eq(crmBackfillProgress.id, progress.id))
+      .where(eq(crmBackfillProgress.id, progressId))
 
-    // Fan out Stage Classifier jobs.
+    // Fan out Stage Classifier work. In-process — fire-and-forget under the
+    // shared classifyLimiter (concurrency=4). Stable per-(workspace, thread)
+    // dedup comes from `crm_deals_workspace_thread_uidx`; running the same
+    // thread twice is cheap (idempotent materializer).
     if (threadsTouchedThisRun.size > 0) {
-      let enqueued = 0
       for (const threadExternalId of threadsTouchedThisRun) {
-        try {
-          await addCrmStageClassifyJob({
-            workspaceId,
-            threadExternalId,
-            reason: "backfill",
-          })
-          enqueued += 1
-        } catch (err) {
-          logger.warn(
-            {
-              workspaceId,
-              threadExternalId,
-              err: err instanceof Error ? err.message : String(err),
-            },
-            "[crm-email-backfill] Failed to enqueue stage-classify job",
-          )
-        }
+        enqueueClassify({ workspaceId, threadExternalId, reason: "backfill" })
       }
       logger.info(
-        { workspaceId, emailAccountId, threadsTouched: threadsTouchedThisRun.size, enqueued },
-        "[crm-email-backfill] Fanned out stage-classify jobs",
+        { workspaceId, emailAccountId, threadsTouched: threadsTouchedThisRun.size },
+        `[${RUNNER_NAME}] Dispatched classify tasks`,
       )
     }
 
     return {
       success: true,
-      workspaceId,
-      emailAccountId,
+      progressId,
       pagesProcessed: totalPagesProcessed,
       messagesProcessed: totalMessagesProcessed,
       messagesIngested: totalMessagesIngested,
@@ -185,7 +201,7 @@ export async function processCrmEmailBackfill(
     const message = err instanceof Error ? err.message : String(err)
     logger.error(
       { workspaceId, emailAccountId, err: message },
-      "[crm-email-backfill] processCrmEmailBackfill failed",
+      `[${RUNNER_NAME}] runBackfill failed`,
     )
     await db
       .update(crmBackfillProgress)
@@ -194,11 +210,10 @@ export async function processCrmEmailBackfill(
         lastError: message.slice(0, 1000),
         updatedAt: new Date(),
       })
-      .where(eq(crmBackfillProgress.id, progress.id))
+      .where(eq(crmBackfillProgress.id, progressId))
     return {
       success: false,
-      workspaceId,
-      emailAccountId,
+      progressId,
       pagesProcessed: totalPagesProcessed,
       messagesProcessed: totalMessagesProcessed,
       messagesIngested: totalMessagesIngested,
@@ -214,7 +229,6 @@ async function ingestPage(args: {
 }): Promise<{ ingested: number; threadsTouched: Set<string> }> {
   const { workspaceId, repEmails, items } = args
 
-  // Bulk-skip already-ingested provider ids.
   const providerIds = items.map((it) => it.id).filter((v): v is string => Boolean(v))
   const existing = providerIds.length
     ? await db
@@ -272,7 +286,7 @@ async function ingestPage(args: {
     } catch (err) {
       logger.warn(
         { workspaceId, providerId, err: err instanceof Error ? err.message : String(err) },
-        "[crm-email-backfill] ingestEmail failed for single email",
+        `[${RUNNER_NAME}] ingestEmail failed for single email`,
       )
     }
   }

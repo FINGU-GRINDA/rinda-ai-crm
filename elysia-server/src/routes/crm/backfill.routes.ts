@@ -14,8 +14,8 @@ import { Elysia, t } from "elysia"
 import { db } from "../../db"
 import { crmBackfillProgress } from "../../db/schema/crm-backfill-progress"
 import { crmEmailConnections } from "../../db/schema/crm-email-connections"
-import { addCrmEmailBackfillJob } from "../../lib/queue/queues"
 import { ROLE_ADMIN, requireRole, workspaceMiddleware } from "../../middleware/workspace"
+import { scheduleBackfill } from "../../services/crm/email-backfill.service"
 import { ErrorCode, error, success, successList } from "../../utils/response"
 
 // Slice 1: only `gmail` is implemented. `unipile` ships in slice 2 — until
@@ -81,7 +81,10 @@ export const crmBackfillRoutes = new Elysia({ prefix: "/api/v1/crm/backfill" })
     return successList(rows)
   })
 
-  // Enqueue a backfill for a registered connection.
+  // Start a backfill for a registered connection. Upserts a progress row to
+  // `status='running'` and kicks off the in-process runner fire-and-forget.
+  // The route returns immediately with the progress row id; the FE polls
+  // `GET /status` for completion.
   .post(
     "/start",
     async ({ workspace, body, set }) => {
@@ -102,12 +105,40 @@ export const crmBackfillRoutes = new Elysia({ prefix: "/api/v1/crm/backfill" })
         return error("Email connection not found", ErrorCode.NOT_FOUND)
       }
 
-      const jobId = await addCrmEmailBackfillJob({
-        workspaceId: workspace.workspaceId,
-        emailAccountId: body.emailAccountId,
-        monthsBack: body.monthsBack ?? 1,
+      // Slice 1: cap monthsBack at 3 to bound Anthropic spend on first runs.
+      // The runner also clamps, but stamp the requested value here so it
+      // shows correctly in the progress row.
+      const monthsBack = body.monthsBack ?? 1
+
+      const [progress] = await db
+        .insert(crmBackfillProgress)
+        .values({
+          workspaceId: workspace.workspaceId,
+          emailAccountId: body.emailAccountId,
+          status: "running",
+          monthsBack,
+          startedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [crmBackfillProgress.workspaceId, crmBackfillProgress.emailAccountId],
+          set: {
+            status: "running",
+            monthsBack,
+            lastError: null,
+            updatedAt: new Date(),
+          },
+        })
+        .returning({ id: crmBackfillProgress.id })
+
+      if (!progress) {
+        return error("Failed to register backfill progress", ErrorCode.INTERNAL_ERROR)
+      }
+
+      const scheduled = scheduleBackfill(progress.id)
+      return success({
+        progressId: progress.id,
+        status: scheduled ? ("running" as const) : ("already_running" as const),
       })
-      return success({ jobId, status: "enqueued" as const })
     },
     {
       body: t.Object({

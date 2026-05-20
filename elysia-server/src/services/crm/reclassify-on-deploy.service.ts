@@ -2,26 +2,30 @@
  * Reclassify-on-deploy — one-shot sweep that classifies threads in workspaces
  * whose backfill completed BEFORE the Stage Classifier shipped.
  *
- * Lifted verbatim from send-grid-test/elysia-server/src/services/crm/reclassify-on-deploy.service.ts.
+ * In-process variant of the original BullMQ-enqueueing sweep. Each thread
+ * dispatch goes through `enqueueClassify`, which is concurrency-bounded
+ * (Semaphore<4>) — so the 250ms stagger here is mostly cosmetic now, but
+ * preserves the original ≤4/sec/workspace shape so we don't blast Anthropic
+ * with bursts when a workspace has thousands of unclassified threads.
  *
- * Trigger: invoked from `worker.ts` after BullMQ workers are up. Reads every
- * `crm_backfill_progress` row where `status='completed' AND reclassified_at IS
- * NULL`, finds threads in that workspace that have no Deal yet, enqueues
- * classify jobs at ≤4/sec/workspace.
- *
- * Idempotent at three layers: (1) reclassified_at timestamp, (2) BullMQ jobId
- * dedupe, (3) the partial-unique on `crm_deals`.
+ * Idempotent: `reclassified_at` timestamp gates re-runs; the partial-unique
+ * on `crm_deals(workspace_id, thread_external_id)` makes the actual
+ * materialization idempotent regardless.
  */
 
 import { and, eq, isNull, or, sql } from "drizzle-orm"
 import { db } from "../../db"
 import { crmBackfillProgress } from "../../db/schema/crm-backfill-progress"
 import { deals, messages } from "../../db/schema/crm-deals"
-import { addCrmStageClassifyJob } from "../../lib/queue/queues"
 import logger from "../../utils/logger"
+import { enqueueClassify } from "./classify-runner"
 
-/** ≤4 classify jobs per second per workspace to keep Anthropic budget linear. */
+/** ≤4 classify jobs per second per workspace. Stagger gap, in ms. */
 const ENQUEUE_STAGGER_MS = 250
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 export async function runReclassifyOnDeploy(): Promise<{
   workspacesScanned: number
@@ -87,7 +91,6 @@ export async function reclassifyWorkspace(workspaceId: string): Promise<number> 
     )
 
   if (unclassifiedThreads.length === 0) {
-    // Stamp anyway so we don't re-scan forever.
     await db
       .update(crmBackfillProgress)
       .set({ reclassifiedAt: new Date(), updatedAt: new Date() })
@@ -100,17 +103,12 @@ export async function reclassifyWorkspace(workspaceId: string): Promise<number> 
   }
 
   let enqueued = 0
-  let i = 0
   for (const row of unclassifiedThreads) {
     const tid = row.threadExternalId
     if (!tid) continue
     try {
-      await addCrmStageClassifyJob(
-        { workspaceId, threadExternalId: tid, reason: "reclassify_deploy" },
-        { delayMs: i * ENQUEUE_STAGGER_MS },
-      )
+      enqueueClassify({ workspaceId, threadExternalId: tid, reason: "reclassify_deploy" })
       enqueued += 1
-      i += 1
     } catch (err) {
       logger.warn(
         {
@@ -121,6 +119,9 @@ export async function reclassifyWorkspace(workspaceId: string): Promise<number> 
         "[reclassify-on-deploy] Failed to enqueue thread",
       )
     }
+    // Stagger dispatch so we don't blast Anthropic with N parallel calls
+    // before the classify limiter applies backpressure.
+    if (enqueued % 4 === 0) await sleep(ENQUEUE_STAGGER_MS)
   }
 
   await db
@@ -130,7 +131,7 @@ export async function reclassifyWorkspace(workspaceId: string): Promise<number> 
 
   logger.info(
     { workspaceId, threadsFound: unclassifiedThreads.length, enqueued },
-    "[reclassify-on-deploy] Enqueued classify jobs for workspace",
+    "[reclassify-on-deploy] Dispatched classify tasks for workspace",
   )
   return enqueued
 }
