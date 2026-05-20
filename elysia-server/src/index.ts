@@ -99,10 +99,17 @@ async function main() {
   // after the workers are up so its enqueues land on draining queues.
   const stoppers: Array<() => Promise<void>> = []
   if (startCrmEmailBackfillWorker()) stoppers.push(stopCrmEmailBackfillWorker)
-  if (startCrmStageClassifyWorker()) stoppers.push(stopCrmStageClassifyWorker)
-  void runReclassifyOnDeploy()
-    .then((result) => logger.info(result, "[crm] runReclassifyOnDeploy complete"))
-    .catch((err) => logger.error({ err }, "[crm] runReclassifyOnDeploy failed"))
+  const classifyWorker = startCrmStageClassifyWorker()
+  if (classifyWorker) {
+    stoppers.push(stopCrmStageClassifyWorker)
+    // Only seed reclassify jobs when there's a consumer — otherwise the queue
+    // accumulates work no one will drain (Redis unreachable at boot etc).
+    void runReclassifyOnDeploy()
+      .then((result) => logger.info(result, "[crm] runReclassifyOnDeploy complete"))
+      .catch((err) => logger.error({ err }, "[crm] runReclassifyOnDeploy failed"))
+  } else {
+    logger.warn("[crm] Stage-classifier worker failed to start — skipping reclassify-on-deploy")
+  }
 
   async function shutdown(signal: string): Promise<void> {
     logger.info({ signal }, "[server] Shutting down")

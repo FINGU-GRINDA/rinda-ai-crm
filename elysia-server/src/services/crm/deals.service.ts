@@ -497,22 +497,29 @@ export async function updateDeal(params: {
     if (lostAtPatch) {
       const fromIso = existing.lostAt ? existing.lostAt.toISOString() : null
       if (lostAtPatch.value === null) {
-        // Restore.
-        updates.lostAt = null
-        nextOverrides.lost_at = { userId, timestamp: now.toISOString() }
-        events.push({
-          eventType: "deal_lost_changed",
-          metadata: { from: fromIso, to: null },
-        })
+        // Restore — only write if currently lost. A retried restore on an
+        // already-active deal would otherwise log a bogus null→null event.
+        if (existing.lostAt !== null) {
+          updates.lostAt = null
+          nextOverrides.lost_at = { userId, timestamp: now.toISOString() }
+          events.push({
+            eventType: "deal_lost_changed",
+            metadata: { from: fromIso, to: null },
+          })
+        }
       } else {
-        // Mark lost — always re-stamp NOW(). Server ignores client-provided
+        // Mark lost — only write if currently active. Re-marking an already
+        // lost deal would otherwise re-stamp lostAt to a new time and produce
+        // a spurious "lost→lost(now)" audit row. Server ignores any client
         // timestamp to prevent clock drift.
-        updates.lostAt = now
-        nextOverrides.lost_at = { userId, timestamp: now.toISOString() }
-        events.push({
-          eventType: "deal_lost_changed",
-          metadata: { from: fromIso, to: now.toISOString() },
-        })
+        if (existing.lostAt === null) {
+          updates.lostAt = now
+          nextOverrides.lost_at = { userId, timestamp: now.toISOString() }
+          events.push({
+            eventType: "deal_lost_changed",
+            metadata: { from: fromIso, to: now.toISOString() },
+          })
+        }
       }
     }
 

@@ -48,10 +48,14 @@ export async function addCrmEmailBackfillJob(data: CrmEmailBackfillJob): Promise
     try {
       await existing.remove()
     } catch (error) {
+      // remove() lost a race against another producer/worker. The old job
+      // still occupies the deterministic id, so `add()` would throw as a
+      // duplicate. Treat the existing job as canonical and return its id.
       logger.warn(
         { workspaceId: data.workspaceId, jobId, error },
-        "[CrmEmailBackfill] Failed to drop stale job before re-enqueue",
+        "[CrmEmailBackfill] Failed to drop stale job — keeping existing",
       )
+      return jobId
     }
   }
   await crmEmailBackfillQueue.add("crm-backfill", data, { jobId })
@@ -100,10 +104,13 @@ export async function addCrmStageClassifyJob(
     try {
       await existing.remove()
     } catch (error) {
+      // Same race as the backfill enqueue helper above — fall back to the
+      // existing job rather than re-adding into a duplicate-id collision.
       logger.warn(
         { workspaceId: data.workspaceId, threadExternalId: data.threadExternalId, jobId, error },
-        "[CrmStageClassify] Failed to drop stale job before re-enqueue",
+        "[CrmStageClassify] Failed to drop stale job — keeping existing",
       )
+      return jobId
     }
   }
   await crmStageClassifyQueue.add("crm-stage-classify", data, {

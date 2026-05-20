@@ -27,7 +27,12 @@ export async function processCrmEmailBackfill(
   data: CrmEmailBackfillJob,
 ): Promise<CrmEmailBackfillResult> {
   const { workspaceId, emailAccountId } = data
-  const monthsBack = data.monthsBack ?? 12
+  // Match the route cap. Jobs enqueued without `monthsBack` (or with values
+  // outside [1, 3]) get clamped here so the worker can't run a 12-month pull
+  // that bypasses /backfill/start's Zod validation.
+  const MIN_MONTHS = 1
+  const MAX_MONTHS = 3
+  const monthsBack = Math.max(MIN_MONTHS, Math.min(data.monthsBack ?? MAX_MONTHS, MAX_MONTHS))
 
   // 1. Load the connection so we know the provider + external account id.
   const [connection] = await db

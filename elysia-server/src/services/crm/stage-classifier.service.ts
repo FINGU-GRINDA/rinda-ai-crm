@@ -230,7 +230,12 @@ export async function classifyThread(
     subject: m.subject,
     body: truncate(m.body, MAX_BODY_CHARS_PER_MESSAGE),
     sentAt: m.sentAt.toISOString(),
-    personEmail: personEmailFor(m.contactId, contactRows),
+    // The `contact_id` on a message is the buyer-side contact picked at
+    // ingestion. For inbound that's the sender; for outbound it's the
+    // recipient. Pass the email and let the prompt builder render it as
+    // `from=` or `to=` based on direction (otherwise the LLM thinks the
+    // buyer sent our outbound messages).
+    buyerEmail: personEmailFor(m.contactId, contactRows),
   }))
 
   // 7. Run the classifier with bounded retry.
@@ -410,7 +415,8 @@ function buildUserPrompt(args: {
     subject: string | null
     body: string
     sentAt: string
-    personEmail: string | null
+    /** Buyer-side email on this message (sender for inbound, recipient for outbound). */
+    buyerEmail: string | null
   }>
   signals: ThreadSignals
   floorStage: DealStage
@@ -444,12 +450,18 @@ function buildUserPrompt(args: {
     `extraction lands. When the body clearly shows a commercial/quotation/contract\n` +
     `signal even though the corresponding flag reads false, you may still promote.\n`
   const threadText = args.thread
-    .map(
-      (m, i) =>
-        `--- Message ${i + 1} (${m.direction}, ${m.sentAt}, from=${m.personEmail ?? "?"}) ---\n` +
+    .map((m, i) => {
+      // For outbound the rep is the sender; the contact on the message row is
+      // the buyer-side recipient. Render the buyer email as `from=` on inbound
+      // and `to=` on outbound so the LLM doesn't think the buyer wrote our
+      // own outbound messages.
+      const buyerLabel = m.direction === "inbound" ? "from" : "to"
+      return (
+        `--- Message ${i + 1} (${m.direction}, ${m.sentAt}, ${buyerLabel}=${m.buyerEmail ?? "?"}) ---\n` +
         (m.subject ? `Subject: ${m.subject}\n` : "") +
-        m.body,
-    )
+        m.body
+      )
+    })
     .join("\n\n")
   return `${header}\n${salesContextBlock}\n${signalsText}\nTHREAD (${args.thread.length} messages, chronological):\n\n${threadText}`
 }

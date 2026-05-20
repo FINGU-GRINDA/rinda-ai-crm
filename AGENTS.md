@@ -4,8 +4,9 @@ This is the **open-standard agent contract** ([agents.md](https://agents.md))
 for this repo. Codex, Cursor, Aider, and other tools that read `AGENTS.md`
 should treat this file as authoritative.
 
-Claude Code reads [`CLAUDE.md`](./CLAUDE.md) — content there is identical.
-**Keep both files in sync.**
+Claude Code reads [`CLAUDE.md`](./CLAUDE.md) — the two files are kept
+in sync in intent (every rule appears in both), though their section
+structure differs. **Keep both files in sync** when you update either.
 
 ---
 
