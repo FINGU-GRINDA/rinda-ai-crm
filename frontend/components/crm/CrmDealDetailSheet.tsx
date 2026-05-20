@@ -111,20 +111,18 @@ export function CrmDealDetailSheet({ dealId, onClose }: Props) {
                   >
                     <div className="flex items-center justify-between">
                       <span
-                        className={
-                          m.direction === "inbound" ? "text-blue-600" : "text-slate-600"
-                        }
+                        className={m.direction === "inbound" ? "text-blue-600" : "text-slate-600"}
                       >
                         {m.direction === "inbound" ? "↓ Inbound" : "↑ Outbound"}
-                        {m.contactName && <span className="text-slate-400"> · {m.contactName}</span>}
+                        {m.contactName && (
+                          <span className="text-slate-400"> · {m.contactName}</span>
+                        )}
                       </span>
                       <span className="text-slate-400">
                         {new Date(m.sentAt).toLocaleDateString()}
                       </span>
                     </div>
-                    {m.subject && (
-                      <div className="mt-1 text-slate-700">{m.subject}</div>
-                    )}
+                    {m.subject && <div className="mt-1 text-slate-700">{m.subject}</div>}
                   </li>
                 ))}
                 {deal.recentMessages.length === 0 && (

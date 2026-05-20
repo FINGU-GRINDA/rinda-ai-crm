@@ -12,7 +12,12 @@ import {
 } from "@dnd-kit/core"
 import { useState } from "react"
 import { useUpdateDealStage } from "../../src/api/crm/hooks"
-import { DEAL_STAGE_LABELS, DEAL_STAGES, type DealListItem, type DealStage } from "../../src/api/crm/types"
+import {
+  DEAL_STAGE_LABELS,
+  DEAL_STAGES,
+  type DealListItem,
+  type DealStage,
+} from "../../src/api/crm/types"
 import { CrmDealCard } from "./CrmDealCard"
 
 interface Props {
@@ -20,13 +25,7 @@ interface Props {
   onCardClick: (dealId: string) => void
 }
 
-function ColumnDropZone({
-  stage,
-  children,
-}: {
-  stage: DealStage
-  children: React.ReactNode
-}) {
+function ColumnDropZone({ stage, children }: { stage: DealStage; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${stage}`, data: { stage } })
   return (
     <div
@@ -91,9 +90,7 @@ export function CrmKanbanBoard({ deals, onCardClick }: Props) {
               className="flex w-[300px] min-w-[280px] flex-col rounded-lg border border-slate-200 bg-slate-50"
             >
               <div className="flex items-center justify-between px-3 py-2">
-                <h2 className="text-sm font-semibold text-slate-700">
-                  {DEAL_STAGE_LABELS[stage]}
-                </h2>
+                <h2 className="text-sm font-semibold text-slate-700">{DEAL_STAGE_LABELS[stage]}</h2>
                 <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">
                   {items.length}
                 </span>

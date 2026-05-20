@@ -46,9 +46,7 @@ export function CrmKanbanPage() {
         )}
       </header>
 
-      {dealsQuery.isLoading && (
-        <div className="p-8 text-sm text-slate-500">Loading deals…</div>
-      )}
+      {dealsQuery.isLoading && <div className="p-8 text-sm text-slate-500">Loading deals…</div>}
 
       {dealsQuery.error && (
         <div className="m-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">

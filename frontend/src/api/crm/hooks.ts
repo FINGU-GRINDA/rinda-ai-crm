@@ -52,8 +52,7 @@ export interface ListDealsParams {
 function buildQuery(params: ListDealsParams, cursor?: string): string {
   const qs = new URLSearchParams()
   if (params.dealStage) qs.set("dealStage", params.dealStage)
-  if (typeof params.isBackfilled === "boolean")
-    qs.set("isBackfilled", String(params.isBackfilled))
+  if (typeof params.isBackfilled === "boolean") qs.set("isBackfilled", String(params.isBackfilled))
   if (params.includeLost) qs.set("includeLost", "true")
   if (params.onlyLost) qs.set("onlyLost", "true")
   if (params.limit) qs.set("limit", String(params.limit))
@@ -81,9 +80,7 @@ export function useDeal(dealId: string | null) {
     queryKey: dealId ? crmDealKeys.detail(dealId) : ["crm", "deals", "detail", "disabled"],
     enabled: dealId !== null,
     queryFn: async () => {
-      const res = await crmFetch<ApiSuccess<{ deal: DealDetail }>>(
-        `/api/v1/crm/deals/${dealId}`,
-      )
+      const res = await crmFetch<ApiSuccess<{ deal: DealDetail }>>(`/api/v1/crm/deals/${dealId}`)
       return res.data.deal
     },
   })

@@ -69,11 +69,7 @@ export async function crmFetch<T>(path: string, init: RequestInit = {}): Promise
 
   if (!res.ok || ("success" in body && body.success === false)) {
     const errBody = body as ApiError
-    throw new CrmFetchError(
-      errBody.error || `HTTP ${res.status}`,
-      res.status,
-      errBody.code,
-    )
+    throw new CrmFetchError(errBody.error || `HTTP ${res.status}`, res.status, errBody.code)
   }
 
   return body as T
