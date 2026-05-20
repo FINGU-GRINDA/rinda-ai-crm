@@ -6,16 +6,14 @@
  * between the legacy app and the new CRM kanban.
  */
 
+import { safeGetString } from "../../utils/safeStorage"
+
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? ""
 const WORKSPACE_STORAGE_KEY = "rinda.workspaceId"
 
 function readWorkspaceId(): string | null {
   if (typeof window === "undefined") return null
-  try {
-    return window.localStorage.getItem(WORKSPACE_STORAGE_KEY)
-  } catch {
-    return null
-  }
+  return safeGetString(WORKSPACE_STORAGE_KEY)
 }
 
 export interface ApiSuccess<T> {

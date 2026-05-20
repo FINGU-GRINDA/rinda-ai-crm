@@ -79,8 +79,11 @@ export async function callAIObject<T>(
       try {
         parsed = JSON.parse(raw)
       } catch (err) {
+        // Do NOT include `raw` in the thrown message — model output can echo
+        // back PII / customer email content from the prompt, which would then
+        // be logged by the retry path below.
         throw new Error(
-          `Anthropic JSON parse failed: ${err instanceof Error ? err.message : String(err)}; raw: ${raw.slice(0, 200)}`,
+          `Anthropic JSON parse failed: ${err instanceof Error ? err.message : String(err)} (raw_length=${raw.length})`,
         )
       }
 
@@ -93,8 +96,11 @@ export async function callAIObject<T>(
       lastError = err
       if (attempt < maxAttempts) {
         const jitterMs = 500 + Math.random() * 200
+        // Pass err.message rather than the err object so any nested stack /
+        // captured content stays out of the structured log.
+        const errMessage = err instanceof Error ? err.message : String(err)
         logger.warn(
-          { feature: options.feature, attempt, jitterMs, err },
+          { feature: options.feature, attempt, jitterMs, err: errMessage },
           "[ai-gateway] callAIObject retry",
         )
         await new Promise((r) => setTimeout(r, jitterMs))

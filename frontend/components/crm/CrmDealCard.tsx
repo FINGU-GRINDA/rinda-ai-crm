@@ -2,7 +2,7 @@ import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import type { DealListItem } from "../../src/api/crm/types"
 
-interface Props {
+interface CardProps {
   deal: DealListItem
   onClick: (dealId: string) => void
 }
@@ -20,36 +20,17 @@ function formatRelative(iso: string | null): string {
   return `${Math.floor(days / 365)}y ago`
 }
 
-export function CrmDealCard({ deal, onClick }: Props) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: deal.id,
-    data: { deal },
-  })
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : 1,
-  }
-
+/**
+ * Visual-only card body. Shared by `CrmDealCard` (which adds dnd-kit's
+ * draggable wiring) and by the `<DragOverlay>` preview (which must NOT
+ * re-register a draggable for the same id).
+ */
+export function CrmDealCardBody({ deal }: { deal: DealListItem }) {
   const isLost = deal.lostAt !== null
   const lastMsg = deal.lastMessage
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      onClick={(e) => {
-        // Don't open the detail sheet when the user just started a drag.
-        if (isDragging) return
-        e.stopPropagation()
-        onClick(deal.id)
-      }}
-      className={`cursor-grab rounded-md border bg-white p-3 shadow-sm transition hover:shadow-md ${
-        isLost ? "border-red-200 bg-red-50" : "border-slate-200"
-      }`}
-    >
+    <>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-slate-900">
@@ -89,6 +70,49 @@ export function CrmDealCard({ deal, onClick }: Props) {
           Lost
         </div>
       )}
+    </>
+  )
+}
+
+const cardClasses = (isLost: boolean): string =>
+  `cursor-grab rounded-md border bg-white p-3 shadow-sm transition hover:shadow-md ${
+    isLost ? "border-red-200 bg-red-50" : "border-slate-200"
+  }`
+
+/** Static visual clone of the card, used inside `<DragOverlay>`. No dnd-kit registration. */
+export function CrmDealCardPreview({ deal }: { deal: DealListItem }) {
+  return (
+    <div className={cardClasses(deal.lostAt !== null)}>
+      <CrmDealCardBody deal={deal} />
+    </div>
+  )
+}
+
+export function CrmDealCard({ deal, onClick }: CardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: deal.id,
+    data: { deal },
+  })
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.4 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onClick={(e) => {
+        if (isDragging) return
+        e.stopPropagation()
+        onClick(deal.id)
+      }}
+      className={cardClasses(deal.lostAt !== null)}
+    >
+      <CrmDealCardBody deal={deal} />
     </div>
   )
 }

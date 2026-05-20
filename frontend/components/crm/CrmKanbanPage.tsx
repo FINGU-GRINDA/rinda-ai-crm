@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useDeals } from "../../src/api/crm/hooks"
 import type { DealListItem } from "../../src/api/crm/types"
 import { CrmDealDetailSheet } from "./CrmDealDetailSheet"
@@ -10,19 +10,20 @@ const MAX_AUTO_PAGES = 10
 export function CrmKanbanPage() {
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const dealsQuery = useDeals({ limit: DEALS_PAGE_LIMIT })
+  const { hasNextPage, isFetchingNextPage, fetchNextPage, data } = dealsQuery
+  const pagesLoaded = data?.pages.length ?? 0
 
-  // Auto-fetch up to MAX_AUTO_PAGES pages, then expose a "Load more" button.
-  if (
-    dealsQuery.hasNextPage &&
-    !dealsQuery.isFetchingNextPage &&
-    (dealsQuery.data?.pages.length ?? 0) < MAX_AUTO_PAGES
-  ) {
-    void dealsQuery.fetchNextPage()
-  }
+  // Auto-fetch up to MAX_AUTO_PAGES pages. In useEffect, NOT during render —
+  // a render-time side effect can fire repeatedly across re-renders.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && pagesLoaded < MAX_AUTO_PAGES) {
+      void fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, pagesLoaded, fetchNextPage])
 
-  const allDeals: DealListItem[] = dealsQuery.data?.pages.flatMap((p) => p.items) ?? []
-  const autoCapReached = (dealsQuery.data?.pages.length ?? 0) >= MAX_AUTO_PAGES
-  const canLoadMore = dealsQuery.hasNextPage && autoCapReached
+  const allDeals: DealListItem[] = data?.pages.flatMap((p) => p.items) ?? []
+  const autoCapReached = pagesLoaded >= MAX_AUTO_PAGES
+  const canLoadMore = hasNextPage && autoCapReached
 
   return (
     <div className="flex h-screen flex-col bg-slate-100">

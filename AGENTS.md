@@ -135,6 +135,7 @@ frontend/
 - Branch from `main`; name like `feat/<topic>`, `fix/<topic>`, etc.
 - Open PRs as **draft** initially; mark ready once lint/type-check/build
   all pass.
+- **AI-tooling attribution in commits** — never `Co-Authored-By: Claude`, never mention Claude / Claude Code / AI in commit messages, PR titles, or PR bodies.
 
 ## Pitfalls already paid for
 

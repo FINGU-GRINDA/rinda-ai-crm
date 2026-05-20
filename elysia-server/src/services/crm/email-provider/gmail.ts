@@ -62,7 +62,9 @@ export class GmailEmailProvider implements EmailProvider {
     const client = await gmailService.getClient()
     const gmail = google.gmail({ version: "v1", auth: client })
 
-    const q = `after:${isoToGmailDate(args.after)} -in:spam -in:promotions`
+    // category:primary scopes to the Primary tab — reliable category filter,
+    // unlike `-in:promotions` which Gmail does not document as a category op.
+    const q = `after:${isoToGmailDate(args.after)} category:primary -in:spam`
     const maxResults = Math.min(args.limit ?? 100, 100)
 
     const listResp = await gmail.users.messages.list({

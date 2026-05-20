@@ -18,7 +18,7 @@ import {
   type DealListItem,
   type DealStage,
 } from "../../src/api/crm/types"
-import { CrmDealCard } from "./CrmDealCard"
+import { CrmDealCard, CrmDealCardPreview } from "./CrmDealCard"
 
 interface Props {
   deals: DealListItem[]
@@ -105,9 +105,7 @@ export function CrmKanbanBoard({ deals, onCardClick }: Props) {
         })}
       </div>
 
-      <DragOverlay>
-        {activeDeal && <CrmDealCard deal={activeDeal} onClick={() => {}} />}
-      </DragOverlay>
+      <DragOverlay>{activeDeal && <CrmDealCardPreview deal={activeDeal} />}</DragOverlay>
     </DndContext>
   )
 }

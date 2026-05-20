@@ -28,6 +28,8 @@ export function registrableDomain(hostname: string | null | undefined): string |
   const labels = h.split(".").filter(Boolean)
   if (labels.length < 2) return null
   const lastTwo = labels.slice(-2).join(".")
+  // Hostname IS a bare multi-part TLD (e.g. "co.uk") — not a registrable domain.
+  if (MULTI_PART_TLDS.has(lastTwo) && labels.length < 3) return null
   if (MULTI_PART_TLDS.has(lastTwo) && labels.length >= 3) {
     return labels.slice(-3).join(".")
   }

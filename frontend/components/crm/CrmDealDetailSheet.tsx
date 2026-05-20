@@ -1,4 +1,5 @@
 import { X } from "lucide-react"
+import { useEffect } from "react"
 import { useDeal, useUpdateDealLost } from "../../src/api/crm/hooks"
 import { DEAL_STAGE_LABELS } from "../../src/api/crm/types"
 
@@ -11,22 +12,33 @@ export function CrmDealDetailSheet({ dealId, onClose }: Props) {
   const { data: deal, isLoading } = useDeal(dealId)
   const updateLost = useUpdateDealLost()
 
+  // Escape closes the sheet. Listener on window — an onKeyDown on the overlay
+  // div doesn't fire because the div isn't focusable.
+  useEffect(() => {
+    if (!dealId) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handleKey)
+    return () => {
+      window.removeEventListener("keydown", handleKey)
+    }
+  }, [dealId, onClose])
+
   if (!dealId) return null
 
   return (
     <>
-      <div
-        role="presentation"
-        className="fixed inset-0 z-40 bg-black/20"
-        onClick={onClose}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") onClose()
-        }}
-      />
+      <div role="presentation" className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
       <aside className="fixed top-0 right-0 z-50 h-full w-[420px] overflow-y-auto border-l border-slate-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <h2 className="text-sm font-semibold text-slate-700">Deal</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 hover:bg-slate-100">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close deal details"
+            className="rounded p-1 hover:bg-slate-100"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>

@@ -18,33 +18,23 @@ import { addCrmEmailBackfillJob } from "../../lib/queue/queues"
 import { ROLE_ADMIN, requireRole, workspaceMiddleware } from "../../middleware/workspace"
 import { ErrorCode, error, success, successList } from "../../utils/response"
 
-const PROVIDERS = ["gmail", "unipile"] as const
+// Slice 1: only `gmail` is implemented. `unipile` ships in slice 2 — until
+// then it MUST NOT be selectable, or backfill jobs deterministically fail.
+const PROVIDERS = ["gmail"] as const
 
 export const crmBackfillRoutes = new Elysia({ prefix: "/api/v1/crm/backfill" })
   .use(workspaceMiddleware)
 
-  // Register a mailbox connection for the workspace.
+  // Register a mailbox connection for the workspace. Atomic upsert — the
+  // partial unique on (workspace_id, provider, external_account_id) is the
+  // single source of truth, so concurrent identical requests collapse to
+  // the same row rather than racing past a separate pre-check.
   .post(
     "/connections",
     async ({ workspace, body }) => {
       requireRole(workspace, ROLE_ADMIN)
 
-      const [existing] = await db
-        .select({ id: crmEmailConnections.id })
-        .from(crmEmailConnections)
-        .where(
-          and(
-            eq(crmEmailConnections.workspaceId, workspace.workspaceId),
-            eq(crmEmailConnections.provider, body.provider),
-            eq(crmEmailConnections.externalAccountId, body.externalAccountId),
-          ),
-        )
-        .limit(1)
-      if (existing) {
-        return success({ id: existing.id })
-      }
-
-      const [created] = await db
+      const [row] = await db
         .insert(crmEmailConnections)
         .values({
           workspaceId: workspace.workspaceId,
@@ -52,12 +42,20 @@ export const crmBackfillRoutes = new Elysia({ prefix: "/api/v1/crm/backfill" })
           externalAccountId: body.externalAccountId,
           displayName: body.displayName ?? null,
         })
+        .onConflictDoUpdate({
+          target: [
+            crmEmailConnections.workspaceId,
+            crmEmailConnections.provider,
+            crmEmailConnections.externalAccountId,
+          ],
+          set: { updatedAt: new Date() },
+        })
         .returning({ id: crmEmailConnections.id })
 
-      if (!created) {
+      if (!row) {
         return error("Failed to register connection", ErrorCode.INTERNAL_ERROR)
       }
-      return success({ id: created.id })
+      return success({ id: row.id })
     },
     {
       body: t.Object({

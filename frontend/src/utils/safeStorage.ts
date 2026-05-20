@@ -37,6 +37,19 @@ export function safeGetItem<T>(key: string, fallback: T): T {
 }
 
 /**
+ * Safely read a RAW string value from localStorage (no JSON parse).
+ * Use for values that were stored unencoded (e.g. workspace id).
+ */
+export function safeGetString(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch (error) {
+    console.error(`Failed to get ${key} from localStorage:`, error)
+    return null
+  }
+}
+
+/**
  * Safely set item in localStorage
  * @param key - localStorage key
  * @param value - Value to store (will be JSON stringified)

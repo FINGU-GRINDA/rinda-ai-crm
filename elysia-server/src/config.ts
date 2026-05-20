@@ -65,8 +65,9 @@ const configSchema = z.object({
   JWT_REFRESH_SECRET: z.string().optional(),
   ENCRYPTION_KEY: z.string().optional(),
 
-  // BullMQ / Redis — required when the worker process runs.
-  REDIS_URL: z.string().default("redis://localhost:6379"),
+  // BullMQ / Redis — required. Fail-fast on missing config rather than
+  // silently defaulting to localhost (would mask prod misconfig).
+  REDIS_URL: z.string().min(1, "REDIS_URL is required"),
 
   // Anthropic (Stage Classifier). Optional in slice 1: ingestion still works
   // without it, classifier skips and no Deals materialize.
