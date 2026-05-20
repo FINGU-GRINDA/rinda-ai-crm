@@ -3,12 +3,23 @@ import { swagger } from "@elysiajs/swagger"
 import { Elysia } from "elysia"
 import { config } from "./config"
 import { runMigrations, waitForDatabase } from "./db/bootstrap"
+import { closeCrmQueues } from "./lib/queue/queues"
+import { closeRedisConnections } from "./lib/redis/connection"
 import { errorHandler } from "./middleware/error-handler"
 import { loggerMiddleware } from "./middleware/logger"
 import { settingsRepository } from "./repositories"
 import { routes } from "./routes"
+import { runReclassifyOnDeploy } from "./services/crm/reclassify-on-deploy.service"
 import { logger } from "./utils/logger"
 import { success } from "./utils/response"
+import {
+  startCrmEmailBackfillWorker,
+  stopCrmEmailBackfillWorker,
+} from "./workers/bullmq/crm-email-backfill.worker"
+import {
+  startCrmStageClassifyWorker,
+  stopCrmStageClassifyWorker,
+} from "./workers/bullmq/crm-stage-classify.worker"
 
 async function main() {
   // Wait for the database to accept connections, then run migrations.
@@ -83,6 +94,29 @@ async function main() {
 
   logger.info(`🚀 RINDA CRM API server running at http://localhost:${config.PORT}`)
   logger.info(`📚 Swagger documentation available at http://localhost:${config.PORT}/swagger`)
+
+  // CRM BullMQ consumers — run in-process. Reclassify-on-deploy fires once
+  // after the workers are up so its enqueues land on draining queues.
+  const stoppers: Array<() => Promise<void>> = []
+  if (startCrmEmailBackfillWorker()) stoppers.push(stopCrmEmailBackfillWorker)
+  if (startCrmStageClassifyWorker()) stoppers.push(stopCrmStageClassifyWorker)
+  void runReclassifyOnDeploy()
+    .then((result) => logger.info(result, "[crm] runReclassifyOnDeploy complete"))
+    .catch((err) => logger.error({ err }, "[crm] runReclassifyOnDeploy failed"))
+
+  async function shutdown(signal: string): Promise<void> {
+    logger.info({ signal }, "[server] Shutting down")
+    await Promise.allSettled(stoppers.map((stop) => stop()))
+    await closeCrmQueues()
+    await closeRedisConnections()
+    process.exit(0)
+  }
+  process.on("SIGTERM", () => {
+    void shutdown("SIGTERM")
+  })
+  process.on("SIGINT", () => {
+    void shutdown("SIGINT")
+  })
 }
 
 main().catch((error) => {
