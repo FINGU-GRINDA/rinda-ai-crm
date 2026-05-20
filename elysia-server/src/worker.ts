@@ -11,28 +11,28 @@
 import { closeCrmQueues } from "./lib/queue/queues"
 import { closeRedisConnections } from "./lib/redis/connection"
 import logger from "./utils/logger"
+import {
+  startCrmEmailBackfillWorker,
+  stopCrmEmailBackfillWorker,
+} from "./workers/bullmq/crm-email-backfill.worker"
 
-const workers: Array<{ close: () => Promise<void> }> = []
-
-// Phase 2 / Phase 3 will register workers here. Importing the modules side-
-// effectfully starts the workers. Wrapped in dynamic imports so missing
-// modules during incremental builds don't break the entry.
-
-// async function registerWorkers() {
-//   const { crmEmailBackfillWorker } = await import("./workers/bullmq/crm-email-backfill.worker")
-//   const { crmStageClassifyWorker } = await import("./workers/bullmq/crm-stage-classify.worker")
-//   workers.push(crmEmailBackfillWorker, crmStageClassifyWorker)
-// }
+const stoppers: Array<() => Promise<void>> = []
 
 async function main(): Promise<void> {
   logger.info("[worker] Booting BullMQ worker process")
-  // await registerWorkers()
-  logger.info({ workerCount: workers.length }, "[worker] Workers registered, awaiting jobs")
+
+  // Phase 2 — email backfill worker.
+  const backfillWorker = startCrmEmailBackfillWorker()
+  if (backfillWorker) stoppers.push(stopCrmEmailBackfillWorker)
+
+  // Phase 3 will register the stage-classifier worker here.
+
+  logger.info({ workerCount: stoppers.length }, "[worker] Workers registered, awaiting jobs")
 }
 
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, "[worker] Shutting down")
-  await Promise.allSettled(workers.map((w) => w.close()))
+  await Promise.allSettled(stoppers.map((stop) => stop()))
   await closeCrmQueues()
   await closeRedisConnections()
   process.exit(0)
