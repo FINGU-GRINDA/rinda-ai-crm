@@ -29,7 +29,6 @@ import {
   messages,
 } from "../../db/schema/crm-deals"
 import { crmObjectEvents } from "../../db/schema/crm-events"
-import { crmEmailBackfillJobId } from "../../lib/queue/queues"
 import { NotFoundError } from "../../utils/errors"
 
 // ============================================================================
@@ -693,6 +692,8 @@ async function collectDealContactIds(workspaceId: string, dealId: string): Promi
 // ============================================================================
 
 export interface BackfillRunItem {
+  /** crm_backfill_progress.id — opaque identifier for this run. */
+  progressId: string
   status: string
   emailAccountId: string
   cursor: string | null
@@ -704,7 +705,6 @@ export interface BackfillRunItem {
   startedAt: string | null
   completedAt: string | null
   updatedAt: string
-  jobId: string
 }
 
 export async function listBackfillRuns(params: {
@@ -721,6 +721,7 @@ export async function listBackfillRuns(params: {
     )
 
   return rows.map((row) => ({
+    progressId: row.id,
     status: row.status,
     emailAccountId: row.emailAccountId,
     cursor: row.cursor,
@@ -732,6 +733,5 @@ export async function listBackfillRuns(params: {
     startedAt: row.startedAt ? row.startedAt.toISOString() : null,
     completedAt: row.completedAt ? row.completedAt.toISOString() : null,
     updatedAt: row.updatedAt.toISOString(),
-    jobId: crmEmailBackfillJobId(workspaceId, row.emailAccountId),
   }))
 }
