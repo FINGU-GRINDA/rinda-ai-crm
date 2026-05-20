@@ -10,24 +10,35 @@
 
 import { closeCrmQueues } from "./lib/queue/queues"
 import { closeRedisConnections } from "./lib/redis/connection"
+import { runReclassifyOnDeploy } from "./services/crm/reclassify-on-deploy.service"
 import logger from "./utils/logger"
 import {
   startCrmEmailBackfillWorker,
   stopCrmEmailBackfillWorker,
 } from "./workers/bullmq/crm-email-backfill.worker"
+import {
+  startCrmStageClassifyWorker,
+  stopCrmStageClassifyWorker,
+} from "./workers/bullmq/crm-stage-classify.worker"
 
 const stoppers: Array<() => Promise<void>> = []
 
 async function main(): Promise<void> {
   logger.info("[worker] Booting BullMQ worker process")
 
-  // Phase 2 — email backfill worker.
   const backfillWorker = startCrmEmailBackfillWorker()
   if (backfillWorker) stoppers.push(stopCrmEmailBackfillWorker)
 
-  // Phase 3 will register the stage-classifier worker here.
+  const classifyWorker = startCrmStageClassifyWorker()
+  if (classifyWorker) stoppers.push(stopCrmStageClassifyWorker)
 
   logger.info({ workerCount: stoppers.length }, "[worker] Workers registered, awaiting jobs")
+
+  // Reclassify-on-deploy: one-shot sweep of completed-but-not-yet-classified
+  // workspaces. Runs AFTER workers are up so its enqueues land on draining queues.
+  void runReclassifyOnDeploy()
+    .then((result) => logger.info(result, "[worker] runReclassifyOnDeploy complete"))
+    .catch((err) => logger.error({ err }, "[worker] runReclassifyOnDeploy failed"))
 }
 
 async function shutdown(signal: string): Promise<void> {
