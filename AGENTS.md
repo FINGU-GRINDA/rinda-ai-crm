@@ -4,9 +4,8 @@ This is the **open-standard agent contract** ([agents.md](https://agents.md))
 for this repo. Codex, Cursor, Aider, and other tools that read `AGENTS.md`
 should treat this file as authoritative.
 
-Claude Code reads [`CLAUDE.md`](./CLAUDE.md) — the two files are kept
-in sync in intent (every rule appears in both), though their section
-structure differs. **Keep both files in sync** when you update either.
+Claude Code reads [`CLAUDE.md`](./CLAUDE.md) — content there is identical.
+**Keep both files in sync.**
 
 ---
 
@@ -136,7 +135,6 @@ frontend/
 - Branch from `main`; name like `feat/<topic>`, `fix/<topic>`, etc.
 - Open PRs as **draft** initially; mark ready once lint/type-check/build
   all pass.
-- **AI-tooling attribution in commits** — never `Co-Authored-By: Claude`, never mention Claude / Claude Code / AI in commit messages, PR titles, or PR bodies.
 
 ## Pitfalls already paid for
 
