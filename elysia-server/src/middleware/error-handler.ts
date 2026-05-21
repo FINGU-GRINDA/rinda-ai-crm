@@ -1,16 +1,9 @@
 import { Elysia } from "elysia"
-import { AppError } from "../utils/errors"
 import { logger } from "../utils/logger"
 
 export const errorHandler = new Elysia().onError(({ code, error, set }) => {
   const errorMessage = error instanceof Error ? error.message : String(error)
   logger.error({ code, error: errorMessage }, `Error [${code}]: ${errorMessage}`)
-
-  // Application-level errors carry their own status + code.
-  if (error instanceof AppError) {
-    set.status = error.status
-    return { error: error.message, code: error.code }
-  }
 
   switch (code) {
     case "NOT_FOUND":

@@ -4,8 +4,6 @@ import { aiRoutes } from "./ai.routes"
 import { authRoutes } from "./auth.routes"
 import { calendarRoutes } from "./calendar.routes"
 import { contactRoutes } from "./contact.routes"
-import { crmBackfillRoutes } from "./crm/backfill.routes"
-import { crmDealsRoutes } from "./crm/deals.routes"
 import { customerRoutes } from "./customer.routes"
 import { dealRoutes } from "./deal.routes"
 import { followUpRoutes } from "./followup.routes"
@@ -46,10 +44,6 @@ export const routes = new Elysia()
   // Phase 0/1 — deal pipeline (uses workspace middleware internally)
   .use(pipelineRoutes)
   .use(dealRoutes)
-
-  // CRM rebuild — slice 1 (uses workspace middleware internally)
-  .use(crmBackfillRoutes)
-  .use(crmDealsRoutes)
 
   // Integration routes
   .use(aiRoutes)
