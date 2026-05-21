@@ -7,7 +7,7 @@ const databaseUrl =
   process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres"
 
 export default {
-  schema: "./src/db/schema.ts",
+  schema: ["./src/db/schema.ts", "./src/db/schema-crm.ts"],
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {

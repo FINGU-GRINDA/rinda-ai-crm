@@ -202,3 +202,4 @@ Specialized sub-agents live under `.claude/agents/`. Use them when:
   service boundaries (`just c4-validate` before commit).
 - Migration files under `elysia-server/drizzle/` are committed and
   applied on boot. **Never edit them manually**; always regenerate.
+- **AI-tooling attribution in commits** — never `Co-Authored-By: Claude`, never mention Claude / Claude Code / AI in commit messages, PR titles, or PR bodies.

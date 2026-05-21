@@ -67,3 +67,6 @@ tmpclaude-*
 # TypeScript incremental build cache
 *.tsbuildinfo
 
+# Reference clone of the source repo for the CRM rebuild — do not commit
+send-grid-test/
+

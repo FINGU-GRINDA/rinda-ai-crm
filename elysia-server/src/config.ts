@@ -65,6 +65,17 @@ const configSchema = z.object({
   JWT_REFRESH_SECRET: z.string().optional(),
   ENCRYPTION_KEY: z.string().optional(),
 
+  // Anthropic (Stage Classifier). Optional in slice 1: ingestion still works
+  // without it, classifier skips and no Deals materialize.
+  ANTHROPIC_API_KEY: z.string().optional(),
+
+  // Unipile (deferred to slice 2 — placeholders only).
+  UNIPILE_API_KEY: z.string().optional(),
+  UNIPILE_WEBHOOK_SECRET: z.string().optional(),
+
+  // Bumping this forces the reclassify-on-deploy hook to re-blast LLM cost.
+  CRM_RECLASSIFY_VERSION: z.string().default("0"),
+
   LOGGING_LEVEL: z.string().default(isProduction ? "info" : "debug"),
 })
 

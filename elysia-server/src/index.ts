@@ -3,12 +3,17 @@ import { swagger } from "@elysiajs/swagger"
 import { Elysia } from "elysia"
 import { config } from "./config"
 import { runMigrations, waitForDatabase } from "./db/bootstrap"
+import { drainInFlight } from "./lib/job-runner"
 import { errorHandler } from "./middleware/error-handler"
 import { loggerMiddleware } from "./middleware/logger"
 import { settingsRepository } from "./repositories"
 import { routes } from "./routes"
+import { resumeRunningBackfills } from "./services/crm/email-backfill.service"
+import { runReclassifyOnDeploy } from "./services/crm/reclassify-on-deploy.service"
 import { logger } from "./utils/logger"
 import { success } from "./utils/response"
+
+const SHUTDOWN_DRAIN_TIMEOUT_MS = 30_000
 
 async function main() {
   // Wait for the database to accept connections, then run migrations.
@@ -83,6 +88,27 @@ async function main() {
 
   logger.info(`🚀 RINDA CRM API server running at http://localhost:${config.PORT}`)
   logger.info(`📚 Swagger documentation available at http://localhost:${config.PORT}/swagger`)
+
+  // CRM background work — runs in-process via fire-and-forget promises
+  // tracked by job-runner. Shutdown drains the in-flight set with a timeout.
+  void resumeRunningBackfills()
+    .then((result) => logger.info(result, "[crm] resumeRunningBackfills complete"))
+    .catch((err) => logger.error({ err }, "[crm] resumeRunningBackfills failed"))
+  void runReclassifyOnDeploy()
+    .then((result) => logger.info(result, "[crm] runReclassifyOnDeploy complete"))
+    .catch((err) => logger.error({ err }, "[crm] runReclassifyOnDeploy failed"))
+
+  async function shutdown(signal: string): Promise<void> {
+    logger.info({ signal }, "[server] Shutting down — draining in-flight CRM tasks")
+    await drainInFlight({ timeoutMs: SHUTDOWN_DRAIN_TIMEOUT_MS })
+    process.exit(0)
+  }
+  process.on("SIGTERM", () => {
+    void shutdown("SIGTERM")
+  })
+  process.on("SIGINT", () => {
+    void shutdown("SIGINT")
+  })
 }
 
 main().catch((error) => {
